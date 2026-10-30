@@ -6,7 +6,7 @@ from typing import Any
 
 from factoria.domain.permissions import PermissionProfile
 
-from .models import GlobalConfig, ProjectConfig, ResolvedConfig
+from .models import GlobalConfig, ProjectConfig, ResolvedConfig, RuntimeOverrides
 
 
 class ConfigError(ValueError):
@@ -16,17 +16,31 @@ class ConfigError(ValueError):
 def _read_toml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    with path.open("rb") as handle:
-        return tomllib.load(handle)
+    try:
+        with path.open("rb") as handle:
+            return tomllib.load(handle)
+    except tomllib.TOMLDecodeError as exc:
+        raise ConfigError(f"Invalid TOML in {path}: {exc}") from exc
 
 
-def _profile(value: str | None, *, field_name: str) -> PermissionProfile | None:
+def _profile(value: object, *, field_name: str) -> PermissionProfile | None:
     if value is None:
         return None
+    if not isinstance(value, str):
+        raise ConfigError(f"{field_name} must be a string")
     try:
         return PermissionProfile(value)
     except ValueError as exc:
-        raise ConfigError(f"Invalid {field_name}: {value}") from exc
+        allowed = ", ".join(profile.value for profile in PermissionProfile)
+        raise ConfigError(f"{field_name} must be one of: {allowed}") from exc
+
+
+def _positive_int(value: object, *, field_name: str, default: int | None = None) -> int | None:
+    if value is None:
+        return default
+    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+        raise ConfigError(f"{field_name} must be a positive integer")
+    return value
 
 
 def _paths(values: object, *, base: Path) -> tuple[Path, ...]:
@@ -49,21 +63,30 @@ def load_global_config(path: Path) -> GlobalConfig:
     if not isinstance(plugins, dict):
         raise ConfigError("[plugins] must be a TOML table")
 
-    profile = _profile(data.get("default_profile"), field_name="default_profile")
     tool = data.get("default_tool")
     if tool is not None and not isinstance(tool, str):
         raise ConfigError("default_tool must be a string")
 
     return GlobalConfig(
-        default_profile=profile or PermissionProfile.NORMAL,
+        default_profile=_profile(data.get("default_profile"), field_name="default_profile")
+        or PermissionProfile.NORMAL,
         default_tool=tool,
+        max_agents=_positive_int(data.get("max_agents"), field_name="max_agents", default=2)
+        or 2,
         personal_plugin_paths=_paths(plugins.get("personal_paths"), base=path.parent),
-        organization_plugin_paths=_paths(plugins.get("organization_paths"), base=path.parent),
+        organization_plugin_paths=_paths(
+            plugins.get("organization_paths"), base=path.parent
+        ),
     )
 
 
 def load_project_config(path: Path) -> ProjectConfig:
     data = _read_toml(path)
+    if "default_tool" in data:
+        raise ConfigError(
+            "Projects cannot define default_tool; tool preference is global or per execution"
+        )
+
     flows = data.get("flows", {})
     if not isinstance(flows, dict):
         raise ConfigError("[flows] must be a TOML table")
@@ -81,15 +104,24 @@ def load_project_config(path: Path) -> ProjectConfig:
 
     return ProjectConfig(
         profile=_profile(data.get("profile"), field_name="profile"),
+        max_agents=_positive_int(data.get("max_agents"), field_name="max_agents"),
         allowed_flows=tuple(allowed),
         blocked_flows=tuple(blocked),
     )
 
 
-def resolve_config(global_config: GlobalConfig, project_config: ProjectConfig) -> ResolvedConfig:
+def resolve_config(
+    global_config: GlobalConfig,
+    project_config: ProjectConfig | None = None,
+    overrides: RuntimeOverrides | None = None,
+) -> ResolvedConfig:
+    project_config = project_config or ProjectConfig()
+    overrides = overrides or RuntimeOverrides()
+
     return ResolvedConfig(
-        profile=project_config.profile or global_config.default_profile,
-        tool=global_config.default_tool,
+        profile=overrides.profile or project_config.profile or global_config.default_profile,
+        tool=overrides.tool if overrides.tool is not None else global_config.default_tool,
+        max_agents=overrides.max_agents or project_config.max_agents or global_config.max_agents,
         allowed_flows=project_config.allowed_flows,
         blocked_flows=project_config.blocked_flows,
         personal_plugin_paths=global_config.personal_plugin_paths,

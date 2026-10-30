@@ -2,7 +2,7 @@
 
 from .contracts import Adapter, CheckRunner, MemoryStore, Plugin
 from .flow import Flow, FlowState, FlowStateMachine, InvalidTransitionError
-from .models import CheckResult, PluginManifest, ProjectMemory
+from .models import CheckResult, PluginManifest, PluginType, ProjectMemory
 from .permissions import PermissionDecision, PermissionPolicy, PermissionProfile
 
 __all__ = [
@@ -19,5 +19,6 @@ __all__ = [
     "PermissionProfile",
     "Plugin",
     "PluginManifest",
+    "PluginType",
     "ProjectMemory",
 ]
