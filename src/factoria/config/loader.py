@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import tomllib
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
+from factoria.domain.models import MemoryDocumentKind, ProjectKind
 from factoria.domain.permissions import PermissionProfile
 
-from .models import GlobalConfig, ProjectConfig, ResolvedConfig, RuntimeOverrides
+from .models import GlobalConfig, MemoryConfig, ProjectConfig, ResolvedConfig, RuntimeOverrides
 
 
 class ConfigError(ValueError):
@@ -55,6 +57,46 @@ def _paths(values: object, *, base: Path) -> tuple[Path, ...]:
             path = base / path
         result.append(path.resolve())
     return tuple(result)
+
+
+def _memory_config(data: object) -> MemoryConfig:
+    if data is None:
+        return MemoryConfig()
+    if not isinstance(data, dict):
+        raise ConfigError("[memory] must be a TOML table")
+
+    raw_kind = data.get("type")
+    project_kind: ProjectKind | None = None
+    if raw_kind is not None:
+        if not isinstance(raw_kind, str):
+            raise ConfigError("memory.type must be a string")
+        try:
+            project_kind = ProjectKind(raw_kind)
+        except ValueError as exc:
+            allowed = ", ".join(kind.value for kind in ProjectKind)
+            raise ConfigError(f"memory.type must be one of: {allowed}") from exc
+
+    staleness = data.get("staleness", {})
+    if not isinstance(staleness, dict):
+        raise ConfigError("[memory.staleness] must be a TOML table")
+
+    thresholds: dict[MemoryDocumentKind, int] = {}
+    for raw_document, raw_value in staleness.items():
+        try:
+            document = MemoryDocumentKind(raw_document)
+        except ValueError as exc:
+            allowed = ", ".join(document.value for document in MemoryDocumentKind)
+            raise ConfigError(
+                f"Unknown memory staleness document {raw_document!r}; expected one of: {allowed}"
+            ) from exc
+        value = _positive_int(raw_value, field_name=f"memory.staleness.{raw_document}")
+        assert value is not None
+        thresholds[document] = value
+
+    return MemoryConfig(
+        project_kind=project_kind,
+        stale_after_commits=MappingProxyType(thresholds),
+    )
 
 
 def load_global_config(path: Path) -> GlobalConfig:
@@ -107,6 +149,7 @@ def load_project_config(path: Path) -> ProjectConfig:
         max_agents=_positive_int(data.get("max_agents"), field_name="max_agents"),
         allowed_flows=tuple(allowed),
         blocked_flows=tuple(blocked),
+        memory=_memory_config(data.get("memory")),
     )
 
 
@@ -126,4 +169,5 @@ def resolve_config(
         blocked_flows=project_config.blocked_flows,
         personal_plugin_paths=global_config.personal_plugin_paths,
         organization_plugin_paths=global_config.organization_plugin_paths,
+        memory=project_config.memory,
     )
