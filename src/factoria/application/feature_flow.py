@@ -4,6 +4,8 @@ from dataclasses import dataclass, replace
 
 from factoria.domain.feature import FeatureOutcome, FeaturePhase, FeaturePlan, FeatureTask
 
+from .quality import ReviewAction, ReviewGate, VerificationGate
+
 
 class FeatureFlowError(RuntimeError):
     """Raised when a feature flow violates its governance gates."""
@@ -32,10 +34,15 @@ class FeatureRun:
     def record_outcome(self, outcome: FeatureOutcome) -> FeatureRun:
         if self.phase is not FeaturePhase.IMPLEMENT or not self.plan_approved:
             raise FeatureFlowError("Implementation requires an approved plan")
-        if not outcome.required_verifications_passed:
+
+        verification = VerificationGate.evaluate(outcome.verifications)
+        if not verification.passed:
             return replace(self, outcome=outcome, phase=FeaturePhase.BLOCKED)
-        if outcome.review.blocks_closure:
+
+        review = ReviewGate(max_cycles=0).evaluate(outcome.review, current_cycle=0)
+        if review.action is ReviewAction.BLOCK:
             return replace(self, outcome=outcome, phase=FeaturePhase.BLOCKED)
+
         if outcome.memory_update_required:
             return replace(self, outcome=outcome, phase=FeaturePhase.MEMORY_UPDATE)
         return replace(self, outcome=outcome, phase=FeaturePhase.AWAITING_FINAL_APPROVAL)
