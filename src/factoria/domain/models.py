@@ -61,6 +61,21 @@ class ModuleMemory:
 
 
 @dataclass(frozen=True, slots=True)
+class ConfirmedCommand:
+    category: str
+    command: tuple[str, ...]
+    scope: str | None = None
+    required: bool = True
+    global_check: bool = False
+
+    def __post_init__(self) -> None:
+        if not self.category.strip():
+            raise ValueError("Confirmed command category cannot be empty")
+        if not self.command or not all(part.strip() for part in self.command):
+            raise ValueError("Confirmed command must contain non-empty argv parts")
+
+
+@dataclass(frozen=True, slots=True)
 class ProjectMemory:
     project_name: str
     purpose: str = ""
@@ -70,9 +85,11 @@ class ProjectMemory:
     dependencies: Mapping[str, tuple[str, ...]] = field(
         default_factory=lambda: MappingProxyType({})
     )
+    # Legacy command format kept temporarily for backward compatibility.
     confirmed_commands: Mapping[str, tuple[tuple[str, ...], ...]] = field(
         default_factory=lambda: MappingProxyType({})
     )
+    confirmed_check_commands: tuple[ConfirmedCommand, ...] = field(default_factory=tuple)
     mandatory_rules: tuple[str, ...] = field(default_factory=tuple)
     decisions: tuple[str, ...] = field(default_factory=tuple)
     manual_verification: tuple[str, ...] = field(default_factory=tuple)

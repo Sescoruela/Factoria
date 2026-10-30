@@ -15,7 +15,7 @@ from .fix import (
     VerificationResult,
 )
 from .flow import Flow, FlowState, FlowStateMachine, InvalidTransitionError
-from .models import CheckResult, PluginManifest, PluginType, ProjectMemory
+from .models import CheckResult, ConfirmedCommand, PluginManifest, PluginType, ProjectMemory
 from .permissions import PermissionDecision, PermissionPolicy, PermissionProfile
 
 __all__ = [
@@ -24,6 +24,7 @@ __all__ = [
     "ChangeScope",
     "CheckResult",
     "CheckRunner",
+    "ConfirmedCommand",
     "FeatureOutcome",
     "FeaturePhase",
     "FeaturePlan",

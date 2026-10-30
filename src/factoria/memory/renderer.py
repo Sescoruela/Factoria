@@ -22,6 +22,25 @@ def _bullet_list(values: tuple[str, ...], *, empty: str = "- Sin datos confirmad
     return "\n".join(f"- {value}" for value in values)
 
 
+def _render_commands(memory: ProjectMemory) -> list[str]:
+    lines: list[str] = []
+    if memory.confirmed_check_commands:
+        for item in memory.confirmed_check_commands:
+            scope = item.scope or "global"
+            requirement = "obligatorio" if item.required else "opcional"
+            global_marker = ", global" if item.global_check else ""
+            lines.append(
+                f"- **{item.category} / {scope}** ({requirement}{global_marker}): "
+                f"{' '.join(item.command)}"
+            )
+        return lines
+
+    for category, commands in memory.confirmed_commands.items():
+        rendered = [" ".join(command) for command in commands]
+        lines.append(f"- **{category}**: {'; '.join(rendered)}")
+    return lines
+
+
 def render_agents_md(memory: ProjectMemory) -> str:
     lines: list[str] = [
         _metadata_header(memory),
@@ -44,12 +63,8 @@ def render_agents_md(memory: ProjectMemory) -> str:
         lines.append("- Sin módulos confirmados")
 
     lines.extend(["", "## Comandos confirmados"])
-    if memory.confirmed_commands:
-        for category, commands in memory.confirmed_commands.items():
-            rendered = [" ".join(command) for command in commands]
-            lines.append(f"- **{category}**: {'; '.join(rendered)}")
-    else:
-        lines.append("- Ninguno confirmado todavía")
+    rendered_commands = _render_commands(memory)
+    lines.extend(rendered_commands or ["- Ninguno confirmado todavía"])
 
     lines.extend(["", "## Reglas obligatorias", _bullet_list(memory.mandatory_rules)])
     lines.extend(["", "## Dependencias"])
@@ -131,12 +146,8 @@ def render_memory_document(memory: ProjectMemory, document: MemoryDocumentKind) 
 
     elif document is MemoryDocumentKind.TESTING:
         lines.extend(["## Estado", ""])
-        if memory.confirmed_commands:
-            for category, commands in memory.confirmed_commands.items():
-                rendered = [" ".join(command) for command in commands]
-                lines.append(f"- **{category}**: {'; '.join(rendered)}")
-        else:
-            lines.append("- No hay comandos de verificación confirmados")
+        rendered_commands = _render_commands(memory)
+        lines.extend(rendered_commands or ["- No hay comandos de verificación confirmados"])
         lines.extend(["", "## Cómo comprobarlo a mano", _bullet_list(memory.manual_verification)])
 
     lines.append("")
