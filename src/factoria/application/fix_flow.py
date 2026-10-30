@@ -12,6 +12,8 @@ from factoria.domain.fix import (
     VerificationResult,
 )
 
+from .quality import ReviewAction, ReviewGate, VerificationGate
+
 
 class FixFlowError(RuntimeError):
     """Raised when a fix flow receives an invalid action for its current phase."""
@@ -63,35 +65,37 @@ class FixRun:
 
     def record_verification(self, results: tuple[VerificationResult, ...]) -> FixRun:
         self._require(FixPhase.VERIFY)
-        failed_required = tuple(result for result in results if result.required and not result.passed)
-        if failed_required:
-            names = ", ".join(result.name for result in failed_required)
+        decision = VerificationGate.evaluate(results)
+        if not decision.passed:
             return replace(
                 self,
                 verification=results,
                 phase=FixPhase.BLOCKED,
-                block_reason=f"Required verification failed: {names}",
+                block_reason=decision.reason,
             )
         return replace(self, verification=results, phase=FixPhase.REVIEW, block_reason=None)
 
     def record_review(self, result: ReviewResult) -> FixRun:
         self._require(FixPhase.REVIEW)
-        next_cycle = self.review_cycle + 1
-        if result.blocks_closure:
-            if next_cycle <= self.limits.max_review_cycles:
-                return replace(
-                    self,
-                    review=result,
-                    review_cycle=next_cycle,
-                    phase=FixPhase.CORRECTION,
-                    block_reason=None,
-                )
+        decision = ReviewGate(self.limits.max_review_cycles).evaluate(
+            result,
+            current_cycle=self.review_cycle,
+        )
+        if decision.action is ReviewAction.CORRECT:
             return replace(
                 self,
                 review=result,
-                review_cycle=next_cycle,
+                review_cycle=decision.next_cycle,
+                phase=FixPhase.CORRECTION,
+                block_reason=None,
+            )
+        if decision.action is ReviewAction.BLOCK:
+            return replace(
+                self,
+                review=result,
+                review_cycle=decision.next_cycle,
                 phase=FixPhase.BLOCKED,
-                block_reason="Blocking review findings remain after configured correction cycles",
+                block_reason=decision.reason,
             )
 
         final_phase = (
@@ -100,7 +104,7 @@ class FixRun:
         return replace(
             self,
             review=result,
-            review_cycle=next_cycle,
+            review_cycle=decision.next_cycle,
             phase=final_phase,
             block_reason=None,
         )
