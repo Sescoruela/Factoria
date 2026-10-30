@@ -1,6 +1,7 @@
 """Domain primitives for Factoria."""
 
 from .contracts import Adapter, CheckRunner, MemoryStore, Plugin
+from .feature import AcceptanceCriterion, FeatureOutcome, FeaturePhase, FeaturePlan, FeatureTask
 from .fix import (
     ChangeScope,
     FindingSeverity,
@@ -18,10 +19,15 @@ from .models import CheckResult, PluginManifest, PluginType, ProjectMemory
 from .permissions import PermissionDecision, PermissionPolicy, PermissionProfile
 
 __all__ = [
+    "AcceptanceCriterion",
     "Adapter",
     "ChangeScope",
     "CheckResult",
     "CheckRunner",
+    "FeatureOutcome",
+    "FeaturePhase",
+    "FeaturePlan",
+    "FeatureTask",
     "FindingSeverity",
     "FixLimits",
     "FixPhase",
