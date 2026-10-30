@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 from enum import StrEnum
 from types import MappingProxyType
 from typing import Mapping
@@ -11,6 +12,18 @@ class PluginType(StrEnum):
     PACK = "pack"
     CHECK = "check"
     FLOW = "flow"
+
+
+class ProjectKind(StrEnum):
+    ACTIVE = "active"
+    MAINTENANCE = "maintenance"
+
+
+class MemoryDocumentKind(StrEnum):
+    ARCHITECTURE = "architecture"
+    FLOWS = "flows"
+    DECISIONS = "decisions"
+    TESTING = "testing"
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,13 +46,33 @@ class PluginManifest:
 
 
 @dataclass(frozen=True, slots=True)
+class MemoryMetadata:
+    reviewed_commit: str
+    reviewed_at: date
+    factoria_version: str
+    project_kind: ProjectKind
+
+
+@dataclass(frozen=True, slots=True)
+class ModuleMemory:
+    name: str
+    paths: tuple[str, ...] = field(default_factory=tuple)
+    affects: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True, slots=True)
 class ProjectMemory:
     project_name: str
-    decisions: tuple[str, ...] = field(default_factory=tuple)
-    modules: tuple[str, ...] = field(default_factory=tuple)
+    purpose: str = ""
+    metadata: MemoryMetadata | None = None
+    technologies: tuple[str, ...] = field(default_factory=tuple)
+    modules: tuple[ModuleMemory, ...] = field(default_factory=tuple)
     dependencies: Mapping[str, tuple[str, ...]] = field(
         default_factory=lambda: MappingProxyType({})
     )
     confirmed_commands: Mapping[str, tuple[tuple[str, ...], ...]] = field(
         default_factory=lambda: MappingProxyType({})
     )
+    mandatory_rules: tuple[str, ...] = field(default_factory=tuple)
+    decisions: tuple[str, ...] = field(default_factory=tuple)
+    manual_verification: tuple[str, ...] = field(default_factory=tuple)
