@@ -1,0 +1,15 @@
+profile = "normal"
+max_agents = 2
+
+[flows]
+allowed = ["fix", "feature", "memory-init", "memory-update"]
+blocked = []
+
+[memory]
+type = "active"
+
+[memory.staleness]
+architecture = 25
+flows = 15
+decisions = 50
+testing = 20
