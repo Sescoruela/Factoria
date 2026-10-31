@@ -1,4 +1,5 @@
 from .secrets import (
+    SecretBlockedError,
     SecretFinding,
     SecretIncident,
     SecretScanner,
@@ -7,6 +8,7 @@ from .secrets import (
 )
 
 __all__ = [
+    "SecretBlockedError",
     "SecretFinding",
     "SecretIncident",
     "SecretScanner",
