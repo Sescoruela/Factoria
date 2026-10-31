@@ -4,6 +4,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from factoria.security import SecretBlockedError, SecretScanner
+
 from .flow_service import FlowExecution
 
 
@@ -35,6 +37,7 @@ class CommitResult:
 @dataclass(frozen=True, slots=True)
 class GitLifecycle:
     project_root: Path
+    secret_scanner: SecretScanner = SecretScanner()
 
     def prepare(self, execution: FlowExecution, *, message: str | None = None) -> CommitProposal:
         branch = self._git("branch", "--show-current").strip()
@@ -45,6 +48,12 @@ class GitLifecycle:
         changes = self.changes()
         if not changes:
             raise GitLifecycleError("No pending changes to commit")
+        findings = self.secret_scanner.scan_files(
+            self.project_root,
+            tuple(item.path for item in changes),
+        )
+        if findings:
+            raise SecretBlockedError(findings)
         proposed = message or self._default_message(execution)
         if not proposed.strip():
             raise GitLifecycleError("Commit message cannot be empty")
@@ -87,6 +96,12 @@ class GitLifecycle:
             raise GitLifecycleError(
                 "Working tree changed after the commit preview; generate a new preview before committing"
             )
+        findings = self.secret_scanner.scan_files(
+            self.project_root,
+            tuple(item.path for item in current_changes),
+        )
+        if findings:
+            raise SecretBlockedError(findings)
         final_message = (message or proposal.message).strip()
         if not final_message:
             raise GitLifecycleError("Commit message cannot be empty")
