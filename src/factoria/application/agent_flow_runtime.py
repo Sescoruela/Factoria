@@ -457,14 +457,21 @@ def build_live_runner(project_root: Path) -> LiveAgentFlowRunner:
 
 def _model_router_from_environment() -> ModelRouter:
     mapping: dict[str, dict[ModelProfile, str]] = {}
+    aliases = {
+        ModelProfile.RAPIDO: "FAST",
+        ModelProfile.EQUILIBRADO: "BALANCED",
+        ModelProfile.POTENTE: "POWERFUL",
+    }
     for adapter in ("codex", "opencode"):
         profiles: dict[ModelProfile, str] = {}
-        for profile, suffix in (
-            (ModelProfile.RAPIDO, "FAST"),
-            (ModelProfile.EQUILIBRADO, "BALANCED"),
-            (ModelProfile.POTENTE, "POWERFUL"),
-        ):
-            value = os.environ.get(f"FACTORIA_{adapter.upper()}_MODEL_{suffix}")
+        for profile, alias in aliases.items():
+            canonical = os.environ.get(
+                f"FACTORIA_{adapter.upper()}_{profile.value.upper()}"
+            )
+            compatibility = os.environ.get(
+                f"FACTORIA_{adapter.upper()}_MODEL_{alias}"
+            )
+            value = canonical or compatibility
             if value:
                 profiles[profile] = value
         if profiles:
