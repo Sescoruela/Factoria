@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import shlex
+
 from factoria.domain.models import MemoryDocumentKind, ProjectKind, ProjectMemory
 
 
@@ -31,12 +33,12 @@ def _render_commands(memory: ProjectMemory) -> list[str]:
             global_marker = ", global" if item.global_check else ""
             lines.append(
                 f"- **{item.category} / {scope}** ({requirement}{global_marker}): "
-                f"{' '.join(item.command)}"
+                f"{shlex.join(item.command)}"
             )
         return lines
 
     for category, commands in memory.confirmed_commands.items():
-        rendered = [" ".join(command) for command in commands]
+        rendered = [shlex.join(command) for command in commands]
         lines.append(f"- **{category}**: {'; '.join(rendered)}")
     return lines
 

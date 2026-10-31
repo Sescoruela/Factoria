@@ -8,10 +8,14 @@ from pathlib import Path
 
 from factoria.application.artifacts import FlowArtifactStore
 from factoria.application.flow_service import FlowService
+from factoria.application.memory_flows import MemoryInitFlow, MemoryUpdateFlow
 from factoria.application.state_store import LocalFlowStateStore
+from factoria.config.loader import ConfigError, load_project_config
 from factoria.memory.detectors import BasicTechnologyDetector, DirectoryModuleDetector, GitActivityAnalyzer
+from factoria.memory.git_staleness import GitMemoryStalenessInspector
 from factoria.memory.initializer import MemoryInitializer
-from factoria.application.memory_flows import MemoryInitFlow
+from factoria.memory.loader import MemoryFormatError, load_project_memory
+from factoria.memory.updater import RepositoryMemoryAnalyzer, describe_memory_changes
 from factoria.plugins.registry import PluginRegistry, PluginSource
 
 FACTORIA_VERSION = "0.1.0"
@@ -28,8 +32,8 @@ def build_parser() -> argparse.ArgumentParser:
     memory_init.add_argument("--purpose", default="")
     memory_init.add_argument("--yes", action="store_true", help="Confirm writing the proposed memory")
 
-    memory_update = sub.add_parser("memoria-update", help="Review project memory")
-    memory_update.add_argument("--yes", action="store_true")
+    memory_update = sub.add_parser("memoria-update", help="Review and update persisted project memory")
+    memory_update.add_argument("--yes", action="store_true", help="Confirm writing the reviewed memory")
 
     for kind in ("fix", "feature"):
         flow = sub.add_parser(kind, help=f"Start a {kind} flow")
@@ -95,6 +99,11 @@ def _choose_execution(store: LocalFlowStateStore, flow_id: str | None):
     raise RuntimeError(f"Multiple interrupted flows found; choose one: {ids}")
 
 
+def _memory_thresholds(root: Path):
+    config = load_project_config(root / ".factoria" / "config.toml")
+    return config.memory.stale_after_commits
+
+
 def _cmd_memory_init(args: argparse.Namespace, root: Path) -> int:
     if args.read_only and args.yes:
         raise PermissionError("--read-only forbids writing project memory")
@@ -130,16 +139,48 @@ def _cmd_memory_init(args: argparse.Namespace, root: Path) -> int:
 
 
 def _cmd_memory_update(args: argparse.Namespace, root: Path) -> int:
-    agents = root / "AGENTS.md"
-    if not agents.exists():
-        raise FileNotFoundError("No project memory found; run `factoria memoria-init` first")
-    if args.read_only:
-        print("Memoria encontrada. --read-only: no se realizarán cambios.")
-        return 0
-    print(
-        "La revisión automática de memoria todavía necesita el cargador estructurado de memoria; "
-        "no se ha modificado ningún archivo."
+    current = load_project_memory(root)
+    thresholds = _memory_thresholds(root)
+    staleness = GitMemoryStalenessInspector().inspect(
+        root,
+        current,
+        threshold_overrides=thresholds,
     )
+    analyzer = RepositoryMemoryAnalyzer(
+        technology_detector=BasicTechnologyDetector(),
+        module_detector=DirectoryModuleDetector(),
+    )
+    preview = analyzer.analyze(root, current)
+    changes = describe_memory_changes(current, preview, staleness)
+    flow = MemoryUpdateFlow(analyzer=analyzer, factoria_version=FACTORIA_VERSION)
+    proposal = flow.propose(
+        root,
+        current,
+        reviewed_commit=_git_head(root),
+        changes=changes,
+    )
+
+    print(f"Proyecto: {current.project_name}")
+    print(f"Commits desde revisión: {staleness.commits_since_review}")
+    if staleness.stale_documents:
+        print("Memoria potencialmente desactualizada: " + ", ".join(item.value for item in staleness.stale_documents))
+    else:
+        print("Memoria: dentro de los umbrales de revisión")
+    print("Propuesta:")
+    for change in proposal.changes:
+        evidence = f" [{'; '.join(change.evidence)}]" if change.evidence else ""
+        print(f"- {change.target}: {change.reason}{evidence}")
+
+    if args.read_only:
+        print("--read-only: propuesta analizada; no se escribirá ningún archivo.")
+        return 0
+    if not args.yes:
+        print("Propuesta no escrita. Repite con --yes tras revisarla.")
+        return 0
+
+    written = flow.apply(root, proposal.confirm())
+    for path in written:
+        print(f"Actualizado: {path.relative_to(root)}")
     return 0
 
 
@@ -160,9 +201,22 @@ def _cmd_start_flow(args: argparse.Namespace, root: Path, kind: str) -> int:
 def _cmd_status(root: Path) -> int:
     _, store, _ = _services(root)
     incomplete = tuple(store.incomplete())
-    memory = root / "AGENTS.md"
+    agents = root / "AGENTS.md"
     print(f"Proyecto: {root.name}")
-    print(f"Memoria: {'presente' if memory.exists() else 'no inicializada'}")
+    if not agents.exists():
+        print("Memoria: no inicializada")
+    else:
+        memory = load_project_memory(root)
+        staleness = GitMemoryStalenessInspector().inspect(
+            root,
+            memory,
+            threshold_overrides=_memory_thresholds(root),
+        )
+        if staleness.stale_documents:
+            docs = ", ".join(item.value for item in staleness.stale_documents)
+            print(f"Memoria: potencialmente desactualizada ({docs})")
+        else:
+            print(f"Memoria: al día ({staleness.commits_since_review} commits desde revisión)")
     if not incomplete:
         print("Flujos activos: ninguno")
         return 0
@@ -249,7 +303,15 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "plugins":
             return _cmd_plugins(args)
         parser.error(f"Unknown command: {args.command}")
-    except (FileNotFoundError, PermissionError, RuntimeError, subprocess.CalledProcessError) as exc:
+    except (
+        ConfigError,
+        FileNotFoundError,
+        MemoryFormatError,
+        PermissionError,
+        RuntimeError,
+        ValueError,
+        subprocess.CalledProcessError,
+    ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     return 0
