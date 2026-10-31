@@ -67,6 +67,7 @@ class AgentOrchestrator:
                 structured_output=structured,
                 timeout_seconds=stage.timeout_seconds,
                 extra_args=self.safety_policy.args_for(adapter.name, stage.role),
+                environment=self.safety_policy.environment_for(adapter.name, stage.role),
             )
             result = adapter.run(request)
             last_result = result

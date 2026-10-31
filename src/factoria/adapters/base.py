@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
-from typing import Protocol, Sequence
+from types import MappingProxyType
+from typing import Mapping, Protocol, Sequence
 
 from factoria.domain.models import CheckResult
 
@@ -25,6 +27,9 @@ class AgentRequest:
     structured_output: bool = False
     timeout_seconds: int = 1800
     extra_args: tuple[str, ...] = field(default_factory=tuple)
+    environment: Mapping[str, str] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
 
     def __post_init__(self) -> None:
         if not self.prompt.strip():
@@ -89,6 +94,8 @@ class SubprocessToolAdapter:
                 returncode=None,
                 error=f"Executable not found: {self.executable}",
             )
+        environment = os.environ.copy()
+        environment.update(request.environment)
         try:
             completed = subprocess.run(
                 list(command),
@@ -99,6 +106,7 @@ class SubprocessToolAdapter:
                 errors="replace",
                 check=False,
                 timeout=request.timeout_seconds,
+                env=environment,
             )
         except subprocess.TimeoutExpired:
             return AgentResult(

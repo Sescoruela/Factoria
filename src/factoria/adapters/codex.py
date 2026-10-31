@@ -26,12 +26,13 @@ class CodexAdapter(SubprocessToolAdapter):
         )
 
     def build_command(self, request: AgentRequest) -> tuple[str, ...]:
-        args: list[str] = [self.executable, "exec"]
+        args: list[str] = [self.executable]
+        args.extend(request.extra_args)
+        args.append("exec")
         if request.structured_output:
             args.append("--json")
         if request.model:
             args.extend(["--model", request.model])
-        args.extend(request.extra_args)
         args.append(request.prompt)
         return tuple(args)
 

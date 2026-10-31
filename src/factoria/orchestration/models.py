@@ -61,7 +61,7 @@ ROLE_SPECS: Mapping[AgentRole, RoleSpec] = MappingProxyType(
         AgentRole.DOCUMENTER: RoleSpec(
             AgentRole.DOCUMENTER,
             ModelProfile.EQUILIBRADO,
-            RoleAccess.MEMORY_WRITE,
+            RoleAccess.READ_ONLY,
         ),
     }
 )
@@ -85,11 +85,19 @@ class AdapterSafetyPolicy:
     restricted_access: Mapping[str, frozenset[RoleAccess]] = field(
         default_factory=lambda: MappingProxyType({})
     )
+    denied_access: Mapping[str, frozenset[RoleAccess]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     role_args: Mapping[str, Mapping[AgentRole, tuple[str, ...]]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    role_environment: Mapping[str, Mapping[AgentRole, Mapping[str, str]]] = field(
         default_factory=lambda: MappingProxyType({})
     )
 
     def supports(self, adapter: str, access: RoleAccess) -> bool:
+        if access in self.denied_access.get(adapter, frozenset()):
+            return False
         if access is RoleAccess.PROJECT_WRITE:
             return True
         return access in self.restricted_access.get(adapter, frozenset())
@@ -99,6 +107,12 @@ class AdapterSafetyPolicy:
         if mapping is None:
             return ()
         return mapping.get(role, ())
+
+    def environment_for(self, adapter: str, role: AgentRole) -> Mapping[str, str]:
+        mapping = self.role_environment.get(adapter)
+        if mapping is None:
+            return MappingProxyType({})
+        return mapping.get(role, MappingProxyType({}))
 
 
 @dataclass(frozen=True, slots=True)

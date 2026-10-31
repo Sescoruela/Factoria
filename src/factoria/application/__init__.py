@@ -1,5 +1,12 @@
 """Application-layer orchestration for Factoria."""
 
+from .agent_flow_runtime import (
+    LiveAgentFlowError,
+    LiveAgentFlowRunner,
+    LiveFlowSession,
+    build_live_runner,
+    default_live_orchestrator,
+)
 from .artifacts import FlowArtifactStore, FlowWorkspace
 from .execution import (
     CommandExecution,
@@ -40,6 +47,9 @@ __all__ = [
     "FlowExecution",
     "FlowService",
     "FlowWorkspace",
+    "LiveAgentFlowError",
+    "LiveAgentFlowRunner",
+    "LiveFlowSession",
     "MemoryInitFlow",
     "MemoryUpdateFlow",
     "MemoryUpdateProposal",
@@ -52,4 +62,6 @@ __all__ = [
     "SubprocessCommandRunner",
     "VerificationDecision",
     "VerificationGate",
+    "build_live_runner",
+    "default_live_orchestrator",
 ]

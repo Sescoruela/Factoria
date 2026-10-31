@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 import uuid
 from pathlib import Path
 
+from factoria.application.agent_flow_runtime import LiveAgentFlowError, build_live_runner
 from factoria.application.artifacts import FlowArtifactStore
 from factoria.application.flow_service import FlowService
 from factoria.application.memory_flows import MemoryInitFlow, MemoryUpdateFlow
@@ -35,16 +37,27 @@ def build_parser() -> argparse.ArgumentParser:
     memory_update = sub.add_parser("memoria-update", help="Review and update persisted project memory")
     memory_update.add_argument("--yes", action="store_true", help="Confirm writing the reviewed memory")
 
-    for kind in ("fix", "feature"):
-        flow = sub.add_parser(kind, help=f"Start a {kind} flow")
-        flow.add_argument("title")
-        flow.add_argument("--label")
+    fix = sub.add_parser("fix", help="Start and execute a fix flow with coding agents")
+    fix.add_argument("title")
+    fix.add_argument("--label")
+    fix.add_argument("--branch", help="Branch to create when starting from main")
+    fix.add_argument("--tool", choices=("codex", "opencode"), help="Preferred agent tool")
+    fix.add_argument("--large", action="store_true", help="Treat the fix as feature-like and require plan/final approval")
+    fix.add_argument("--update-memory", action="store_true", help="Request a documentation/memory proposal")
+
+    feature = sub.add_parser("feature", help="Start and execute a governed feature flow with coding agents")
+    feature.add_argument("title")
+    feature.add_argument("--label")
+    feature.add_argument("--branch", help="Branch to create when starting from main")
+    feature.add_argument("--tool", choices=("codex", "opencode"), help="Preferred agent tool")
 
     status = sub.add_parser("status", help="Show project Factoria status")
     status.add_argument("--all", action="store_true", help="Include terminal flows when available")
 
     resume = sub.add_parser("resume", help="Resume an interrupted flow")
     resume.add_argument("flow_id", nargs="?")
+    resume.add_argument("--approve-plan", action="store_true", help="Approve a persisted plan and continue implementation")
+    resume.add_argument("--approve-final", action="store_true", help="Approve the reviewed final result")
 
     pause = sub.add_parser("pause", help="Pause an active flow")
     pause.add_argument("flow_id")
@@ -186,15 +199,29 @@ def _cmd_memory_update(args: argparse.Namespace, root: Path) -> int:
 
 def _cmd_start_flow(args: argparse.Namespace, root: Path, kind: str) -> int:
     if args.read_only:
-        raise PermissionError("--read-only forbids creating flow workspaces")
-    service, _, artifacts = _services(root)
+        raise PermissionError("--read-only forbids creating or executing agent flows")
     flow_id = str(uuid.uuid4())
-    execution = service.create(flow_id=flow_id, kind=kind, label=args.label or args.title)
-    task = f"# {kind.title()}\n\n{args.title}\n"
-    artifacts.write_text(flow_id, "task.md", task)
-    execution = service.start(execution)
+    runner = build_live_runner(root)
+    execution = runner.start(
+        kind=kind,
+        title=args.title,
+        project_root=root,
+        flow_id=flow_id,
+        branch=args.branch,
+        preferred_tool=args.tool,
+        label=args.label,
+        large_fix=bool(getattr(args, "large", False)),
+        update_memory=bool(getattr(args, "update_memory", False)),
+    )
     print(f"{kind} iniciado: {execution.flow.flow_id}")
     print(f"Estado: {execution.flow.state.value}")
+    workspace = root / ".factoria" / "work" / flow_id
+    session_path = workspace / "agent-flow.json"
+    if session_path.exists():
+        phase = json.loads(session_path.read_text(encoding="utf-8"))["phase"]
+        print(f"Fase: {phase}")
+    if execution.flow.state.value == "paused":
+        print("Revisa los artefactos del flujo antes de continuar con `factoria resume`.")
     return 0
 
 
@@ -223,7 +250,12 @@ def _cmd_status(root: Path) -> int:
     print("Flujos activos:")
     for item in incomplete:
         label = f" ({item.label})" if item.label else ""
-        print(f"- {item.flow.flow_id}: {item.flow.kind} / {item.flow.state.value}{label}")
+        session_path = item.workspace.root / "agent-flow.json"
+        phase = ""
+        if session_path.exists():
+            phase_name = json.loads(session_path.read_text(encoding="utf-8")).get("phase")
+            phase = f" / {phase_name}" if phase_name else ""
+        print(f"- {item.flow.flow_id}: {item.flow.kind} / {item.flow.state.value}{phase}{label}")
     return 0
 
 
@@ -232,7 +264,17 @@ def _cmd_resume(args: argparse.Namespace, root: Path) -> int:
         raise PermissionError("--read-only forbids changing flow state")
     service, store, _ = _services(root)
     execution = _choose_execution(store, args.flow_id)
-    updated = service.resume(execution)
+    session_path = execution.workspace.root / "agent-flow.json"
+    if session_path.exists():
+        runner = build_live_runner(root)
+        updated = runner.resume(
+            flow_id=execution.flow.flow_id,
+            project_root=root,
+            approve_plan=args.approve_plan,
+            approve_final=args.approve_final,
+        )
+    else:
+        updated = service.resume(execution)
     print(f"Reanudado: {updated.flow.flow_id} -> {updated.flow.state.value}")
     return 0
 
@@ -306,6 +348,7 @@ def main(argv: list[str] | None = None) -> int:
     except (
         ConfigError,
         FileNotFoundError,
+        LiveAgentFlowError,
         MemoryFormatError,
         PermissionError,
         RuntimeError,
