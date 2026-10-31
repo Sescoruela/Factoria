@@ -4,13 +4,19 @@ from dataclasses import dataclass
 
 from factoria.application.fix_flow import FixRun
 from factoria.domain.fix import FindingSeverity
+from factoria.security import SecretFinding
 
 
 @dataclass(frozen=True, slots=True)
 class FixReportRenderer:
     """Render a stable human-readable report with fixed section ordering."""
 
-    def render(self, run: FixRun) -> str:
+    def render(
+        self,
+        run: FixRun,
+        *,
+        security_findings: tuple[SecretFinding, ...] = (),
+    ) -> str:
         reproduction = run.reproduction
         scope = run.scope
         review = run.review
@@ -78,6 +84,23 @@ class FixReportRenderer:
                 "",
                 "## Permissions",
                 "- Not recorded by fix domain; supplied by execution context.",
+                "",
+                "## Security",
+            ]
+        )
+        if not security_findings:
+            lines.append("- No secret incident recorded")
+        else:
+            lines.append(f"- Secret incident: yes ({len(security_findings)} sanitized finding(s))")
+            for finding in security_findings:
+                lines.append(
+                    f"- {finding.secret_type.value} at {finding.location}; fingerprint={finding.fingerprint}; value=[REDACTED]"
+                )
+            lines.append("- Required action: rotate/revoke the affected credential outside Factoria and remove it from the repository/workspace")
+            lines.append("- Prevention: use environment variables or an approved secret manager; never commit credentials")
+
+        lines.extend(
+            [
                 "",
                 "## Final status",
                 f"- Result: {run.phase.value}",
