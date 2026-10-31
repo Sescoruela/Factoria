@@ -13,6 +13,7 @@ from factoria.application.execution import ExecutionMode, SafeCheckExecutor, Sub
 from factoria.application.flow_service import FlowExecution, FlowService
 from factoria.application.state_store import LocalFlowStateStore
 from factoria.domain.models import ProjectMemory
+from factoria.domain.permissions import PermissionProfile
 from factoria.memory.loader import load_project_memory
 from factoria.orchestration import (
     AdapterSafetyPolicy,
@@ -38,6 +39,9 @@ class LiveFlowSession:
     phase: str
     large_fix: bool = False
     update_memory: bool = False
+    base_permission_profile: str = PermissionProfile.NORMAL.value
+    permission_profile: str = PermissionProfile.NORMAL.value
+    permission_escalated: bool = False
 
 
 class LiveAgentFlowError(RuntimeError):
@@ -64,6 +68,8 @@ class LiveAgentFlowRunner:
         label: str | None = None,
         large_fix: bool = False,
         update_memory: bool = False,
+        base_permission_profile: PermissionProfile = PermissionProfile.NORMAL,
+        requested_permission_profile: PermissionProfile | None = None,
     ) -> FlowExecution:
         if kind not in {"fix", "feature"}:
             raise ValueError(f"Unsupported live flow kind: {kind}")
@@ -76,6 +82,8 @@ class LiveAgentFlowRunner:
         )
         self.artifacts.write_text(flow_id, "task.md", f"# {kind.title()}\n\n{title}\n")
         execution = self.service.start(execution)
+        effective_profile = requested_permission_profile or base_permission_profile
+        escalated = _profile_rank(effective_profile) > _profile_rank(base_permission_profile)
         gated = kind == "feature" or large_fix
         session = LiveFlowSession(
             flow_id=flow_id,
@@ -86,8 +94,25 @@ class LiveAgentFlowRunner:
             phase="running",
             large_fix=large_fix,
             update_memory=update_memory,
+            base_permission_profile=base_permission_profile.value,
+            permission_profile=effective_profile.value,
+            permission_escalated=escalated,
         )
         self._save_session(session)
+        self.artifacts.write_text(
+            flow_id,
+            "permissions.json",
+            json.dumps(
+                {
+                    "base_profile": base_permission_profile.value,
+                    "effective_profile": effective_profile.value,
+                    "temporary_escalation": escalated,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+        )
 
         workflow = self._workflow(session)
         if gated:
@@ -431,17 +456,28 @@ def build_live_runner(project_root: Path) -> LiveAgentFlowRunner:
 
 
 def _model_router_from_environment() -> ModelRouter:
-    mappings: dict[str, dict[ModelProfile, str]] = {}
+    mapping: dict[str, dict[ModelProfile, str]] = {}
     for adapter in ("codex", "opencode"):
-        values: dict[ModelProfile, str] = {}
-        for profile in ModelProfile:
-            key = f"FACTORIA_{adapter.upper()}_{profile.value.upper()}"
-            value = os.environ.get(key)
+        profiles: dict[ModelProfile, str] = {}
+        for profile, suffix in (
+            (ModelProfile.RAPIDO, "FAST"),
+            (ModelProfile.EQUILIBRADO, "BALANCED"),
+            (ModelProfile.POTENTE, "POWERFUL"),
+        ):
+            value = os.environ.get(f"FACTORIA_{adapter.upper()}_MODEL_{suffix}")
             if value:
-                values[profile] = value
-        if values:
-            mappings[adapter] = values
-    return ModelRouter(mappings)
+                profiles[profile] = value
+        if profiles:
+            mapping[adapter] = profiles
+    return ModelRouter(mapping=mapping)
+
+
+def _profile_rank(profile: PermissionProfile) -> int:
+    return {
+        PermissionProfile.SAFE: 0,
+        PermissionProfile.NORMAL: 1,
+        PermissionProfile.POWER: 2,
+    }[profile]
 
 
 def _git(project_root: Path, *args: str) -> str:
