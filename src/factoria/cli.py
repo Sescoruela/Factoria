@@ -10,11 +10,13 @@ from pathlib import Path
 from factoria.application.agent_flow_runtime import LiveAgentFlowError, build_live_runner
 from factoria.application.artifacts import FlowArtifactStore
 from factoria.application.flow_service import FlowService
+from factoria.application.governance import ExecutionContext, ExecutionGovernor, GovernedAction
 from factoria.application.history import LocalExecutionHistoryStore
 from factoria.application.memory_flows import MemoryInitFlow, MemoryUpdateFlow
 from factoria.application.state_store import LocalFlowStateStore
 from factoria.cli_lifecycle import archive_terminal, register_lifecycle_commands, run_commit, run_history
-from factoria.config.loader import ConfigError, load_project_config
+from factoria.config.loader import ConfigError, load_global_config, load_project_config
+from factoria.domain.permissions import PermissionProfile
 from factoria.memory.detectors import BasicTechnologyDetector, DirectoryModuleDetector, GitActivityAnalyzer
 from factoria.memory.git_staleness import GitMemoryStalenessInspector
 from factoria.memory.initializer import MemoryInitializer
@@ -29,6 +31,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="factoria", description="Factoria development-flow CLI")
     parser.add_argument("--project", default=".", help="Project root (default: current directory)")
     parser.add_argument("--read-only", action="store_true", help="Forbid writes and project command execution")
+    parser.add_argument(
+        "--profile",
+        choices=tuple(profile.value for profile in PermissionProfile),
+        help="Temporary execution permission profile for this command",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     memory_init = sub.add_parser("memoria-init", help="Propose and initialize project memory")
@@ -121,6 +128,14 @@ def _memory_thresholds(root: Path):
     return config.memory.stale_after_commits
 
 
+def _permission_profiles(args: argparse.Namespace, root: Path) -> tuple[PermissionProfile, PermissionProfile | None]:
+    global_config = load_global_config(Path.home() / ".factoria" / "config.toml")
+    project_config = load_project_config(root / ".factoria" / "config.toml")
+    base = project_config.profile or global_config.default_profile
+    requested = PermissionProfile(args.profile) if args.profile else None
+    return base, requested
+
+
 def _cmd_memory_init(args: argparse.Namespace, root: Path) -> int:
     if args.read_only and args.yes:
         raise PermissionError("--read-only forbids writing project memory")
@@ -205,6 +220,7 @@ def _cmd_start_flow(args: argparse.Namespace, root: Path, kind: str) -> int:
     if args.read_only:
         raise PermissionError("--read-only forbids creating or executing agent flows")
     flow_id = str(uuid.uuid4())
+    base_profile, requested_profile = _permission_profiles(args, root)
     runner = build_live_runner(root)
     execution = runner.start(
         kind=kind,
@@ -216,8 +232,14 @@ def _cmd_start_flow(args: argparse.Namespace, root: Path, kind: str) -> int:
         label=args.label,
         large_fix=bool(getattr(args, "large", False)),
         update_memory=bool(getattr(args, "update_memory", False)),
+        base_permission_profile=base_profile,
+        requested_permission_profile=requested_profile,
     )
+    effective = requested_profile or base_profile
     print(f"{kind} iniciado: {execution.flow.flow_id}")
+    print(f"Perfil de permisos: {effective.value}")
+    if requested_profile is not None and requested_profile != base_profile:
+        print(f"Perfil base: {base_profile.value} (override temporal registrado)")
     print(f"Estado: {execution.flow.state.value}")
     workspace = root / ".factoria" / "work" / flow_id
     session_path = workspace / "agent-flow.json"
@@ -257,8 +279,12 @@ def _cmd_status(root: Path) -> int:
         session_path = item.workspace.root / "agent-flow.json"
         phase = ""
         if session_path.exists():
-            phase_name = json.loads(session_path.read_text(encoding="utf-8")).get("phase")
+            session = json.loads(session_path.read_text(encoding="utf-8"))
+            phase_name = session.get("phase")
+            profile = session.get("permission_profile")
             phase = f" / {phase_name}" if phase_name else ""
+            if profile:
+                phase += f" / profile={profile}"
         print(f"- {item.flow.flow_id}: {item.flow.kind} / {item.flow.state.value}{phase}{label}")
     return 0
 
@@ -299,6 +325,19 @@ def _cmd_pause(args: argparse.Namespace, root: Path) -> int:
 def _cmd_cancel(args: argparse.Namespace, root: Path) -> int:
     if args.read_only:
         raise PermissionError("--read-only forbids cancellation")
+    base_profile, requested_profile = _permission_profiles(args, root)
+    decision = ExecutionGovernor().evaluate(
+        GovernedAction.DESTRUCTIVE,
+        ExecutionContext(
+            base_profile=base_profile,
+            requested_profile=requested_profile,
+            flow_authorized=True,
+            destructive_confirmed=args.yes,
+        ),
+    )
+    if not decision.allowed:
+        raise PermissionError(decision.reason or "Cancellation blocked by permission policy")
+    # Cancellation keeps its stronger product-level confirmation even in power profile.
     if not args.yes:
         print("Cancelación no ejecutada. Usa --yes para confirmar la eliminación del workspace temporal.")
         return 2
