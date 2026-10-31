@@ -67,11 +67,20 @@ ROLE_SPECS: Mapping[AgentRole, RoleSpec] = MappingProxyType(
 )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class ModelRouter:
-    models: Mapping[str, Mapping[ModelProfile, str]] = field(
-        default_factory=lambda: MappingProxyType({})
-    )
+    models: Mapping[str, Mapping[ModelProfile, str]]
+
+    def __init__(
+        self,
+        models: Mapping[str, Mapping[ModelProfile, str]] | None = None,
+        *,
+        mapping: Mapping[str, Mapping[ModelProfile, str]] | None = None,
+    ) -> None:
+        if models is not None and mapping is not None:
+            raise ValueError("Provide either models or mapping, not both")
+        selected = mapping if mapping is not None else models
+        object.__setattr__(self, "models", MappingProxyType(dict(selected or {})))
 
     def resolve(self, adapter: str, profile: ModelProfile) -> str | None:
         mapping = self.models.get(adapter)
