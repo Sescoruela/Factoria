@@ -10,8 +10,10 @@ from pathlib import Path
 from factoria.application.agent_flow_runtime import LiveAgentFlowError, build_live_runner
 from factoria.application.artifacts import FlowArtifactStore
 from factoria.application.flow_service import FlowService
+from factoria.application.history import LocalExecutionHistoryStore
 from factoria.application.memory_flows import MemoryInitFlow, MemoryUpdateFlow
 from factoria.application.state_store import LocalFlowStateStore
+from factoria.cli_lifecycle import archive_terminal, register_lifecycle_commands, run_commit, run_history
 from factoria.config.loader import ConfigError, load_project_config
 from factoria.memory.detectors import BasicTechnologyDetector, DirectoryModuleDetector, GitActivityAnalyzer
 from factoria.memory.git_staleness import GitMemoryStalenessInspector
@@ -67,6 +69,8 @@ def build_parser() -> argparse.ArgumentParser:
     cancel.add_argument("flow_id")
     cancel.add_argument("--reason")
     cancel.add_argument("--yes", action="store_true", help="Confirm workspace deletion")
+
+    register_lifecycle_commands(sub)
 
     plugins = sub.add_parser("plugins", help="List discovered plugins")
     plugins.add_argument("--personal", action="append", default=[])
@@ -264,6 +268,8 @@ def _cmd_resume(args: argparse.Namespace, root: Path) -> int:
         raise PermissionError("--read-only forbids changing flow state")
     service, store, _ = _services(root)
     execution = _choose_execution(store, args.flow_id)
+    history = LocalExecutionHistoryStore(root)
+    snapshot = history.snapshot(execution.workspace.root)
     session_path = execution.workspace.root / "agent-flow.json"
     if session_path.exists():
         runner = build_live_runner(root)
@@ -275,6 +281,7 @@ def _cmd_resume(args: argparse.Namespace, root: Path) -> int:
         )
     else:
         updated = service.resume(execution)
+    archive_terminal(root, updated, snapshot)
     print(f"Reanudado: {updated.flow.flow_id} -> {updated.flow.state.value}")
     return 0
 
@@ -297,7 +304,10 @@ def _cmd_cancel(args: argparse.Namespace, root: Path) -> int:
         return 2
     service, store, _ = _services(root)
     execution = store.load(args.flow_id)
-    service.cancel(execution, reason=args.reason)
+    history = LocalExecutionHistoryStore(root)
+    snapshot = history.snapshot(execution.workspace.root)
+    updated = service.cancel(execution, reason=args.reason)
+    archive_terminal(root, updated, snapshot)
     print(f"Cancelado: {args.flow_id}")
     print("Nota: esta versión no elimina ramas Git asociadas.")
     return 0
@@ -342,6 +352,11 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_pause(args, root)
         if args.command == "cancel":
             return _cmd_cancel(args, root)
+        if args.command == "commit":
+            _, store, _ = _services(root)
+            return run_commit(args, root, _choose_execution(store, args.flow_id))
+        if args.command == "history":
+            return run_history(args, root)
         if args.command == "plugins":
             return _cmd_plugins(args)
         parser.error(f"Unknown command: {args.command}")
