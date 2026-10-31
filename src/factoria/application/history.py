@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import subprocess
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Mapping
@@ -22,6 +22,8 @@ class HistoryRecord:
     ended_at: str
     duration_seconds: float | None
     artifacts: Mapping[str, str]
+    permission_profile: str | None = None
+    permission_escalated: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,6 +58,7 @@ class LocalExecutionHistoryStore:
             "memory-proposal.md",
             "agents.log",
             "agent-flow.json",
+            "permissions.json",
             "state.toml",
         }
         for path in sorted(workspace.iterdir()):
@@ -77,6 +80,16 @@ class LocalExecutionHistoryStore:
         ended = ended_at or datetime.now(UTC)
         started = execution.flow.history[0].occurred_at if execution.flow.history else None
         duration = (ended - started).total_seconds() if started is not None else None
+        permission_profile = None
+        permission_escalated = False
+        raw_permissions = artifacts.get("permissions.json")
+        if raw_permissions:
+            try:
+                permissions = json.loads(raw_permissions)
+                permission_profile = permissions.get("effective_profile")
+                permission_escalated = bool(permissions.get("temporary_escalation", False))
+            except (json.JSONDecodeError, TypeError):
+                pass
         record = HistoryRecord(
             flow_id=execution.flow.flow_id,
             kind=execution.flow.kind,
@@ -88,6 +101,8 @@ class LocalExecutionHistoryStore:
             ended_at=ended.isoformat(),
             duration_seconds=duration,
             artifacts=dict(artifacts),
+            permission_profile=permission_profile,
+            permission_escalated=permission_escalated,
         )
         root = self.history_root()
         root.mkdir(parents=True, exist_ok=True)
@@ -157,6 +172,8 @@ class LocalExecutionHistoryStore:
             f"started_at: {record.started_at or '-'}",
             f"ended_at: {record.ended_at}",
             f"duration: {duration}",
+            f"permission_profile: {record.permission_profile or '-'}",
+            f"permission_escalated: {str(record.permission_escalated).lower()}",
             "artifacts:",
         ]
         lines.extend(f"- {name}" for name in sorted(record.artifacts))
