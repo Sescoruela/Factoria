@@ -11,5 +11,8 @@ requires-python = ">=3.11"
 authors = [{ name = "Sergi Escoruela" }]
 dependencies = []
 
+[project.scripts]
+factoria = "factoria.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
