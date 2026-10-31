@@ -8,11 +8,21 @@ from typing import Any
 from factoria.domain.models import MemoryDocumentKind, ProjectKind
 from factoria.domain.permissions import PermissionProfile
 
-from .models import GlobalConfig, MemoryConfig, ProjectConfig, ResolvedConfig, RuntimeOverrides
+from .models import (
+    GlobalConfig,
+    MemoryConfig,
+    OrganizationConfig,
+    ProjectConfig,
+    ResolvedConfig,
+    RuntimeOverrides,
+)
 
 
 class ConfigError(ValueError):
     """Raised when configuration is malformed or unsafe."""
+
+
+_ALLOWED_ACTIONS = {"read", "write", "command", "destructive"}
 
 
 def _read_toml(path: Path) -> dict[str, Any]:
@@ -59,6 +69,20 @@ def _paths(values: object, *, base: Path) -> tuple[Path, ...]:
     return tuple(result)
 
 
+def _blocked_actions(values: object, *, field_name: str) -> tuple[str, ...]:
+    if values is None:
+        return ()
+    if not isinstance(values, list) or not all(isinstance(item, str) for item in values):
+        raise ConfigError(f"{field_name} must be a list of strings")
+    unknown = sorted(set(values) - _ALLOWED_ACTIONS)
+    if unknown:
+        raise ConfigError(
+            f"{field_name} contains unknown actions: {', '.join(unknown)}; "
+            f"expected: {', '.join(sorted(_ALLOWED_ACTIONS))}"
+        )
+    return tuple(dict.fromkeys(values))
+
+
 def _memory_config(data: object) -> MemoryConfig:
     if data is None:
         return MemoryConfig()
@@ -96,6 +120,19 @@ def _memory_config(data: object) -> MemoryConfig:
     return MemoryConfig(
         project_kind=project_kind,
         stale_after_commits=MappingProxyType(thresholds),
+    )
+
+
+def load_organization_config(path: Path) -> OrganizationConfig:
+    data = _read_toml(path)
+    permissions = data.get("permissions", {})
+    if not isinstance(permissions, dict):
+        raise ConfigError("[permissions] must be a TOML table")
+    return OrganizationConfig(
+        blocked_actions=_blocked_actions(
+            permissions.get("blocked_actions"),
+            field_name="permissions.blocked_actions",
+        )
     )
 
 
@@ -144,11 +181,19 @@ def load_project_config(path: Path) -> ProjectConfig:
         joined = ", ".join(sorted(overlap))
         raise ConfigError(f"Flows cannot be both allowed and blocked: {joined}")
 
+    permissions = data.get("permissions", {})
+    if not isinstance(permissions, dict):
+        raise ConfigError("[permissions] must be a TOML table")
+
     return ProjectConfig(
         profile=_profile(data.get("profile"), field_name="profile"),
         max_agents=_positive_int(data.get("max_agents"), field_name="max_agents"),
         allowed_flows=tuple(allowed),
         blocked_flows=tuple(blocked),
+        blocked_actions=_blocked_actions(
+            permissions.get("blocked_actions"),
+            field_name="permissions.blocked_actions",
+        ),
         memory=_memory_config(data.get("memory")),
     )
 
@@ -167,6 +212,7 @@ def resolve_config(
         max_agents=overrides.max_agents or project_config.max_agents or global_config.max_agents,
         allowed_flows=project_config.allowed_flows,
         blocked_flows=project_config.blocked_flows,
+        blocked_actions=project_config.blocked_actions,
         personal_plugin_paths=global_config.personal_plugin_paths,
         organization_plugin_paths=global_config.organization_plugin_paths,
         memory=project_config.memory,
