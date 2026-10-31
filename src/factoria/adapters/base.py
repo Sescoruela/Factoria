@@ -10,6 +10,7 @@ from types import MappingProxyType
 from typing import Mapping, Protocol, Sequence
 
 from factoria.domain.models import CheckResult
+from factoria.security import SecretFinding, SecretScanner
 
 
 class ToolCapability(StrEnum):
@@ -46,10 +47,11 @@ class AgentResult:
     stdout: str = ""
     stderr: str = ""
     error: str | None = None
+    secret_findings: tuple[SecretFinding, ...] = field(default_factory=tuple)
 
     @property
     def passed(self) -> bool:
-        return self.returncode == 0 and self.error is None
+        return self.returncode == 0 and self.error is None and not self.secret_findings
 
 
 class ToolAdapter(Protocol):
@@ -74,6 +76,7 @@ class ToolAdapter(Protocol):
 class SubprocessToolAdapter:
     executable: str
     max_output_chars: int = 50000
+    secret_scanner: SecretScanner = SecretScanner()
 
     def available(self) -> bool:
         return shutil.which(self.executable) is not None
@@ -123,12 +126,15 @@ class SubprocessToolAdapter:
                 error=f"Agent could not start: {exc}",
             )
 
+        stdout, stdout_findings = self.secret_scanner.redact(completed.stdout[-self.max_output_chars :])
+        stderr, stderr_findings = self.secret_scanner.redact(completed.stderr[-self.max_output_chars :])
         return AgentResult(
             adapter=adapter_name,
             command=command,
             returncode=completed.returncode,
-            stdout=completed.stdout[-self.max_output_chars :],
-            stderr=completed.stderr[-self.max_output_chars :],
+            stdout=stdout,
+            stderr=stderr,
+            secret_findings=stdout_findings + stderr_findings,
         )
 
     def _version_check(self, *, adapter_name: str) -> CheckResult:
@@ -157,9 +163,17 @@ class SubprocessToolAdapter:
                 details=str(exc),
             )
         output = (completed.stdout or completed.stderr).strip()
+        sanitized, findings = self.secret_scanner.redact(output)
+        if findings:
+            return CheckResult(
+                name=f"{adapter_name}:version",
+                passed=False,
+                required=True,
+                details="Potential secret detected in tool version output; value redacted",
+            )
         return CheckResult(
             name=f"{adapter_name}:version",
             passed=completed.returncode == 0,
             required=True,
-            details=output or f"exit={completed.returncode}",
+            details=sanitized or f"exit={completed.returncode}",
         )
