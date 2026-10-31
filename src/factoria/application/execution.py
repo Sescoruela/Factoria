@@ -9,6 +9,7 @@ from typing import Protocol
 from factoria.application.quality import CheckPlanner, CheckSpec
 from factoria.domain.fix import VerificationResult
 from factoria.domain.models import ConfirmedCommand, ProjectMemory
+from factoria.security import SecretFinding, SecretScanner
 
 
 class ExecutionMode(StrEnum):
@@ -28,14 +29,17 @@ class CommandExecution:
     stdout: str = ""
     stderr: str = ""
     error: str | None = None
+    secret_findings: tuple[SecretFinding, ...] = field(default_factory=tuple)
 
     @property
     def passed(self) -> bool:
-        return self.returncode == 0 and self.error is None
+        return self.returncode == 0 and self.error is None and not self.secret_findings
 
     def to_verification_result(self) -> VerificationResult:
         detail = self.error
-        if detail is None and not self.passed:
+        if self.secret_findings:
+            detail = "Potential secret detected in command output; output was redacted and the flow must remain blocked"
+        elif detail is None and not self.passed:
             detail = f"Command exited with code {self.returncode}"
         return VerificationResult(
             name=self.name,
@@ -52,6 +56,7 @@ class CommandRunner(Protocol):
 @dataclass(frozen=True, slots=True)
 class SubprocessCommandRunner:
     max_output_chars: int = 8000
+    secret_scanner: SecretScanner = SecretScanner()
 
     def run(self, command: ConfirmedCommand, *, cwd: Path, timeout_seconds: int) -> CommandExecution:
         name = _command_name(command)
@@ -85,6 +90,8 @@ class SubprocessCommandRunner:
                 error=f"Command could not start: {exc}",
             )
 
+        stdout, stdout_findings = self.secret_scanner.redact(result.stdout[-self.max_output_chars :])
+        stderr, stderr_findings = self.secret_scanner.redact(result.stderr[-self.max_output_chars :])
         return CommandExecution(
             name=name,
             category=command.category,
@@ -92,8 +99,9 @@ class SubprocessCommandRunner:
             command=command.command,
             required=command.required,
             returncode=result.returncode,
-            stdout=result.stdout[-self.max_output_chars :],
-            stderr=result.stderr[-self.max_output_chars :],
+            stdout=stdout,
+            stderr=stderr,
+            secret_findings=stdout_findings + stderr_findings,
         )
 
 
@@ -111,6 +119,10 @@ class SafeCheckSummary:
     @property
     def verification_results(self) -> tuple[VerificationResult, ...]:
         return tuple(item.to_verification_result() for item in self.executions)
+
+    @property
+    def secret_findings(self) -> tuple[SecretFinding, ...]:
+        return tuple(finding for execution in self.executions for finding in execution.secret_findings)
 
 
 @dataclass(frozen=True, slots=True)
