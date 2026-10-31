@@ -10,6 +10,11 @@ from factoria.domain.permissions import PermissionProfile
 
 
 @dataclass(frozen=True, slots=True)
+class OrganizationConfig:
+    blocked_actions: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True, slots=True)
 class GlobalConfig:
     default_profile: PermissionProfile = PermissionProfile.NORMAL
     default_tool: str | None = None
@@ -32,6 +37,7 @@ class ProjectConfig:
     max_agents: int | None = None
     allowed_flows: tuple[str, ...] = field(default_factory=tuple)
     blocked_flows: tuple[str, ...] = field(default_factory=tuple)
+    blocked_actions: tuple[str, ...] = field(default_factory=tuple)
     memory: MemoryConfig = field(default_factory=MemoryConfig)
 
 
@@ -49,6 +55,7 @@ class ResolvedConfig:
     max_agents: int
     allowed_flows: tuple[str, ...]
     blocked_flows: tuple[str, ...]
+    blocked_actions: tuple[str, ...]
     personal_plugin_paths: tuple[Path, ...]
     organization_plugin_paths: tuple[Path, ...]
     memory: MemoryConfig
