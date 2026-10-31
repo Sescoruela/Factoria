@@ -10,12 +10,13 @@ from pathlib import Path
 from factoria.application.agent_flow_runtime import LiveAgentFlowError, build_live_runner
 from factoria.application.artifacts import FlowArtifactStore
 from factoria.application.flow_service import FlowService
-from factoria.application.governance import ExecutionContext, ExecutionGovernor, GovernedAction
+from factoria.application.governance import ExecutionGovernor, GovernedAction
 from factoria.application.history import LocalExecutionHistoryStore
 from factoria.application.memory_flows import MemoryInitFlow, MemoryUpdateFlow
+from factoria.application.policy_runtime import build_execution_context
 from factoria.application.state_store import LocalFlowStateStore
 from factoria.cli_lifecycle import archive_terminal, register_lifecycle_commands, run_commit, run_history
-from factoria.config.loader import ConfigError, load_global_config, load_project_config
+from factoria.config.loader import ConfigError, load_project_config
 from factoria.domain.permissions import PermissionProfile
 from factoria.memory.detectors import BasicTechnologyDetector, DirectoryModuleDetector, GitActivityAnalyzer
 from factoria.memory.git_staleness import GitMemoryStalenessInspector
@@ -128,12 +129,25 @@ def _memory_thresholds(root: Path):
     return config.memory.stale_after_commits
 
 
-def _permission_profiles(args: argparse.Namespace, root: Path) -> tuple[PermissionProfile, PermissionProfile | None]:
-    global_config = load_global_config(Path.home() / ".factoria" / "config.toml")
-    project_config = load_project_config(root / ".factoria" / "config.toml")
-    base = project_config.profile or global_config.default_profile
-    requested = PermissionProfile(args.profile) if args.profile else None
-    return base, requested
+def _requested_profile(args: argparse.Namespace) -> PermissionProfile | None:
+    return PermissionProfile(args.profile) if args.profile else None
+
+
+def _govern(
+    args: argparse.Namespace,
+    root: Path,
+    action: GovernedAction,
+    *,
+    flow_authorized: bool = False,
+    destructive_confirmed: bool = False,
+):
+    context = build_execution_context(
+        root,
+        requested_profile=_requested_profile(args),
+        flow_authorized=flow_authorized,
+        destructive_confirmed=destructive_confirmed,
+    )
+    return ExecutionGovernor().assert_allowed(action, context)
 
 
 def _cmd_memory_init(args: argparse.Namespace, root: Path) -> int:
@@ -164,6 +178,7 @@ def _cmd_memory_init(args: argparse.Namespace, root: Path) -> int:
     if not args.yes:
         print("Propuesta no escrita. Repite con --yes tras revisarla.")
         return 0
+    _govern(args, root, GovernedAction.WRITE)
     written = flow.apply(root, proposal.confirm())
     for item in written:
         print(f"Escrito: {item.path.relative_to(root)}")
@@ -210,6 +225,7 @@ def _cmd_memory_update(args: argparse.Namespace, root: Path) -> int:
         print("Propuesta no escrita. Repite con --yes tras revisarla.")
         return 0
 
+    _govern(args, root, GovernedAction.WRITE)
     written = flow.apply(root, proposal.confirm())
     for path in written:
         print(f"Actualizado: {path.relative_to(root)}")
@@ -219,8 +235,11 @@ def _cmd_memory_update(args: argparse.Namespace, root: Path) -> int:
 def _cmd_start_flow(args: argparse.Namespace, root: Path, kind: str) -> int:
     if args.read_only:
         raise PermissionError("--read-only forbids creating or executing agent flows")
+    context = build_execution_context(root, requested_profile=_requested_profile(args))
+    governor = ExecutionGovernor()
+    governor.assert_allowed(GovernedAction.WRITE, context)
+    governor.assert_allowed(GovernedAction.COMMAND, context)
     flow_id = str(uuid.uuid4())
-    base_profile, requested_profile = _permission_profiles(args, root)
     runner = build_live_runner(root)
     execution = runner.start(
         kind=kind,
@@ -232,14 +251,14 @@ def _cmd_start_flow(args: argparse.Namespace, root: Path, kind: str) -> int:
         label=args.label,
         large_fix=bool(getattr(args, "large", False)),
         update_memory=bool(getattr(args, "update_memory", False)),
-        base_permission_profile=base_profile,
-        requested_permission_profile=requested_profile,
+        base_permission_profile=context.base_profile,
+        requested_permission_profile=context.requested_profile,
     )
-    effective = requested_profile or base_profile
+    effective = context.effective_profile
     print(f"{kind} iniciado: {execution.flow.flow_id}")
     print(f"Perfil de permisos: {effective.value}")
-    if requested_profile is not None and requested_profile != base_profile:
-        print(f"Perfil base: {base_profile.value} (override temporal registrado)")
+    if context.escalated:
+        print(f"Perfil base: {context.base_profile.value} (escalado temporal registrado)")
     print(f"Estado: {execution.flow.state.value}")
     workspace = root / ".factoria" / "work" / flow_id
     session_path = workspace / "agent-flow.json"
@@ -292,12 +311,14 @@ def _cmd_status(root: Path) -> int:
 def _cmd_resume(args: argparse.Namespace, root: Path) -> int:
     if args.read_only:
         raise PermissionError("--read-only forbids changing flow state")
+    _govern(args, root, GovernedAction.WRITE, flow_authorized=True)
     service, store, _ = _services(root)
     execution = _choose_execution(store, args.flow_id)
     history = LocalExecutionHistoryStore(root)
     snapshot = history.snapshot(execution.workspace.root)
     session_path = execution.workspace.root / "agent-flow.json"
     if session_path.exists():
+        _govern(args, root, GovernedAction.COMMAND, flow_authorized=True)
         runner = build_live_runner(root)
         updated = runner.resume(
             flow_id=execution.flow.flow_id,
@@ -315,6 +336,7 @@ def _cmd_resume(args: argparse.Namespace, root: Path) -> int:
 def _cmd_pause(args: argparse.Namespace, root: Path) -> int:
     if args.read_only:
         raise PermissionError("--read-only forbids changing flow state")
+    _govern(args, root, GovernedAction.WRITE, flow_authorized=True)
     service, store, _ = _services(root)
     execution = store.load(args.flow_id)
     updated = service.pause(execution, reason=args.reason)
@@ -325,16 +347,13 @@ def _cmd_pause(args: argparse.Namespace, root: Path) -> int:
 def _cmd_cancel(args: argparse.Namespace, root: Path) -> int:
     if args.read_only:
         raise PermissionError("--read-only forbids cancellation")
-    base_profile, requested_profile = _permission_profiles(args, root)
-    decision = ExecutionGovernor().evaluate(
-        GovernedAction.DESTRUCTIVE,
-        ExecutionContext(
-            base_profile=base_profile,
-            requested_profile=requested_profile,
-            flow_authorized=True,
-            destructive_confirmed=args.yes,
-        ),
+    context = build_execution_context(
+        root,
+        requested_profile=_requested_profile(args),
+        flow_authorized=True,
+        destructive_confirmed=args.yes,
     )
+    decision = ExecutionGovernor().evaluate(GovernedAction.DESTRUCTIVE, context)
     if not decision.allowed:
         raise PermissionError(decision.reason or "Cancellation blocked by permission policy")
     # Cancellation keeps its stronger product-level confirmation even in power profile.
