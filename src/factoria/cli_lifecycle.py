@@ -5,7 +5,10 @@ from pathlib import Path
 
 from .application.agent_flow_runtime import build_live_runner
 from .application.git_lifecycle import GitLifecycle
+from .application.governance import ExecutionGovernor, GovernedAction
 from .application.history import LocalExecutionHistoryStore
+from .application.policy_runtime import build_execution_context
+from .domain.permissions import PermissionProfile
 
 
 def register_lifecycle_commands(sub) -> None:
@@ -35,6 +38,16 @@ def archive_terminal(root: Path, execution, snapshot: dict[str, str]) -> None:
 def run_commit(args, root: Path, execution) -> int:
     if args.read_only:
         raise PermissionError("--read-only forbids staging or committing changes")
+    requested = PermissionProfile(args.profile) if getattr(args, "profile", None) else None
+    context = build_execution_context(
+        root,
+        requested_profile=requested,
+        flow_authorized=True,
+    )
+    governor = ExecutionGovernor()
+    governor.assert_allowed(GovernedAction.WRITE, context)
+    governor.assert_allowed(GovernedAction.COMMAND, context)
+
     session_path = execution.workspace.root / "agent-flow.json"
     if not session_path.exists():
         raise RuntimeError("This flow does not have live-agent metadata")
@@ -79,9 +92,11 @@ def run_history(args, root: Path) -> int:
         print(f"Duración media: {average:.1f}s")
     for record in visible:
         duration = f"{record.duration_seconds:.1f}s" if record.duration_seconds is not None else "-"
+        profile = record.permission_profile or "-"
+        escalated = " escalated" if record.permission_escalated else ""
         print(
             f"- {record.flow_id} | {record.kind} | {record.state} | "
-            f"{record.branch or '-'} | {duration} | {record.label or '-'}"
+            f"{record.branch or '-'} | {duration} | profile={profile}{escalated} | {record.label or '-'}"
         )
     if not visible:
         print("Sin ejecuciones registradas")
