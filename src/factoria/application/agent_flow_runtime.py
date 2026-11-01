@@ -11,6 +11,12 @@ from factoria.adapters import AdapterRegistry, CodexAdapter, OpenCodeAdapter
 from factoria.application.artifacts import FlowArtifactStore
 from factoria.application.execution import ExecutionMode, SafeCheckExecutor, SubprocessCommandRunner
 from factoria.application.flow_service import FlowExecution, FlowService
+from factoria.application.quality import ReviewAction, ReviewGate
+from factoria.application.review_runtime import (
+    ReviewParseError,
+    parse_structured_review,
+    render_structured_review,
+)
 from factoria.application.state_store import LocalFlowStateStore
 from factoria.domain.models import ProjectMemory
 from factoria.domain.permissions import PermissionProfile
@@ -148,7 +154,7 @@ class LiveAgentFlowRunner:
         self._save_session(session)
         return self.service.pause(
             execution,
-            reason="Agent work and review completed; inspect changes and commit manually",
+            reason="Agent work and structured review completed; inspect changes and commit manually",
         )
 
     def resume(
@@ -192,7 +198,7 @@ class LiveAgentFlowRunner:
             self._save_session(session)
             return self.service.pause(
                 execution,
-                reason="Implementation and review finished; explicit final approval is required",
+                reason="Implementation and structured review finished; explicit final approval is required",
             )
 
         if session.phase == "awaiting_final_approval":
@@ -228,6 +234,18 @@ class LiveAgentFlowRunner:
         memory: ProjectMemory,
     ) -> tuple[FlowExecution, bool]:
         for step in steps:
+            if step.role is AgentRole.REVIEWER:
+                execution, accepted = self._run_review_with_corrections(
+                    execution,
+                    session,
+                    reviewer_step=step,
+                    project_root=project_root,
+                    memory=memory,
+                )
+                if not accepted:
+                    return execution, False
+                continue
+
             result = self.orchestrator.run(
                 AgentStage(
                     role=step.role,
@@ -239,7 +257,6 @@ class LiveAgentFlowRunner:
             )
             filename = {
                 "plan": "plan.md",
-                "review": "review.md",
                 "document": "memory-proposal.md",
             }.get(step.name, f"{step.name}.txt")
             self.artifacts.write_text(
@@ -249,28 +266,181 @@ class LiveAgentFlowRunner:
             )
             self._append_trace(session.flow_id, step.name, result.trace.attempts)
             if not result.trace.passed:
-                blocked = replace(session, phase="blocked")
-                self._save_session(blocked)
-                return (
-                    self.service.block(
-                        execution,
-                        reason=f"Agent stage failed: {step.name}",
-                    ),
-                    False,
+                return self._block(
+                    execution,
+                    session,
+                    reason=f"Agent stage failed: {step.name}",
                 )
             if step.role is AgentRole.IMPLEMENTER:
-                verification_ok = self._verify(project_root, memory, session.flow_id)
-                if not verification_ok:
-                    blocked = replace(session, phase="blocked")
-                    self._save_session(blocked)
-                    return (
-                        self.service.block(
-                            execution,
-                            reason="A required confirmed verification failed",
-                        ),
-                        False,
+                if not self._verify(project_root, memory, session.flow_id):
+                    return self._block(
+                        execution,
+                        session,
+                        reason="A required confirmed verification failed",
                     )
         return execution, True
+
+    def _run_review_with_corrections(
+        self,
+        execution: FlowExecution,
+        session: LiveFlowSession,
+        *,
+        reviewer_step: AgentStep,
+        project_root: Path,
+        memory: ProjectMemory,
+    ) -> tuple[FlowExecution, bool]:
+        gate = ReviewGate(max_cycles=2)
+        current_cycle = 0
+        while True:
+            result = self.orchestrator.run(
+                AgentStage(
+                    role=reviewer_step.role,
+                    prompt=self._prompt(reviewer_step, session, memory),
+                    profile=reviewer_step.profile,
+                    preferred_tool=session.preferred_tool,
+                ),
+                project_root=project_root,
+            )
+            output = result.result.stdout or result.result.stderr or result.result.error or ""
+            self.artifacts.write_text(session.flow_id, "review.md", output)
+            self.artifacts.write_text(
+                session.flow_id,
+                f"review-cycle-{current_cycle}.md",
+                output,
+            )
+            self._append_trace(
+                session.flow_id,
+                f"review-{current_cycle}",
+                result.trace.attempts,
+            )
+            if not result.trace.passed:
+                return self._block(
+                    execution,
+                    session,
+                    reason=f"Reviewer agent failed during cycle {current_cycle}",
+                )
+
+            try:
+                structured = parse_structured_review(output)
+            except ReviewParseError as exc:
+                self.artifacts.write_text(
+                    session.flow_id,
+                    "review-error.txt",
+                    f"{exc}\n",
+                )
+                return self._block(
+                    execution,
+                    session,
+                    reason=f"Reviewer output did not satisfy the structured contract: {exc}",
+                )
+
+            normalized = render_structured_review(structured)
+            self.artifacts.write_text(session.flow_id, "review.json", normalized)
+            self.artifacts.write_text(
+                session.flow_id,
+                f"review-cycle-{current_cycle}.json",
+                normalized,
+            )
+            decision = gate.evaluate(structured.review, current_cycle=current_cycle)
+            if decision.action is ReviewAction.ACCEPT:
+                return execution, True
+            if decision.action is ReviewAction.BLOCK:
+                return self._block(
+                    execution,
+                    session,
+                    reason=decision.reason or "Structured review still blocks closure",
+                )
+
+            correction_cycle = decision.next_cycle
+            implementer = self._implementer_step(session)
+            correction = self.orchestrator.run(
+                AgentStage(
+                    role=implementer.role,
+                    prompt=self._correction_prompt(
+                        implementer,
+                        session,
+                        memory,
+                        structured=structured,
+                        cycle=correction_cycle,
+                    ),
+                    profile=implementer.profile,
+                    preferred_tool=session.preferred_tool,
+                ),
+                project_root=project_root,
+            )
+            self.artifacts.write_text(
+                session.flow_id,
+                f"correction-{correction_cycle}.txt",
+                correction.result.stdout
+                or correction.result.stderr
+                or correction.result.error
+                or "",
+            )
+            self._append_trace(
+                session.flow_id,
+                f"correction-{correction_cycle}",
+                correction.trace.attempts,
+            )
+            if not correction.trace.passed:
+                return self._block(
+                    execution,
+                    session,
+                    reason=f"Correction cycle {correction_cycle} failed",
+                )
+            if not self._verify(project_root, memory, session.flow_id):
+                return self._block(
+                    execution,
+                    session,
+                    reason=f"Verification failed after correction cycle {correction_cycle}",
+                )
+            current_cycle = correction_cycle
+
+    def _implementer_step(self, session: LiveFlowSession) -> AgentStep:
+        for step in self._workflow(session).steps:
+            if step.role is AgentRole.IMPLEMENTER:
+                return step
+        raise LiveAgentFlowError("Workflow does not define an implementer for review correction")
+
+    def _correction_prompt(
+        self,
+        step: AgentStep,
+        session: LiveFlowSession,
+        memory: ProjectMemory,
+        *,
+        structured,
+        cycle: int,
+    ) -> str:
+        findings = [
+            f"- {finding.severity.value}: {finding.message}"
+            + (f" (rule: {finding.rule})" if finding.rule else "")
+            for finding in structured.review.findings
+            if finding.severity.value in {"critical", "important"}
+        ]
+        findings.extend(
+            f"- mandatory rule violated: {rule}"
+            for rule in structured.review.mandatory_rules_violated
+        )
+        if not structured.review.acceptance_criteria_met:
+            findings.append("- acceptance criteria are not fully satisfied")
+        blocking = "\n".join(findings) or "- reviewer requested changes"
+        return (
+            self._prompt(step, session, memory)
+            + f"\nThis is automatic review correction cycle {cycle} of 2.\n"
+            + "Correct only the blocking reviewer findings below; do not expand scope.\n"
+            + blocking
+            + "\nAfter editing, stop. Factoria will run confirmed verification and review again."
+        )
+
+    def _block(
+        self,
+        execution: FlowExecution,
+        session: LiveFlowSession,
+        *,
+        reason: str,
+    ) -> tuple[FlowExecution, bool]:
+        blocked = replace(session, phase="blocked")
+        self._save_session(blocked)
+        return self.service.block(execution, reason=reason), False
 
     def _verify(self, project_root: Path, memory: ProjectMemory, flow_id: str) -> bool:
         changed = self._changed_files(project_root)
@@ -318,11 +488,21 @@ class LiveAgentFlowRunner:
             "explore": "Inspect the repository and explain the relevant code, likely impact, and risks. Do not modify files.",
             "plan": "Produce an implementation plan with acceptance criteria, affected modules, risks, and verification. Do not modify files.",
             "implement": "Implement only the approved task with the smallest maintainable change. Do not run project commands; Factoria runs confirmed checks separately.",
-            "review": "Review the current diff against the task, mandatory rules, and verification evidence. Report critical, important, and minor findings. Do not modify files.",
+            "review": (
+                "Review the current diff against the task, plan/acceptance criteria when present, mandatory rules, "
+                "and verification evidence. Do not modify files. Return ONLY one JSON object with exactly these "
+                "fields: result ('approved' or 'changes_required'), acceptance_criteria_met (boolean), "
+                "mandatory_rules_violated (array of strings), findings (array of objects with severity "
+                "'critical'|'important'|'minor', message, rule string or null), risks (array of strings), and "
+                "recommendation (non-empty string). Critical, important, mandatory-rule violations, or unmet "
+                "acceptance criteria require result='changes_required'; minor findings alone do not block."
+            ),
             "document": "Propose memory/documentation updates caused by the change. Do not write files; Factoria will handle approved memory updates separately.",
         }
         if step.name == "implement" and self.artifacts.workspace(session.flow_id).plan_file.exists():
             base += f"Read .factoria/work/{session.flow_id}/plan.md before implementing.\n"
+        if step.name == "review":
+            base += f"Read .factoria/work/{session.flow_id}/verification.md and plan.md if it exists.\n"
         return base + instructions[step.name]
 
     def _prepare_branch(self, project_root: Path, *, requested: str | None) -> str:
