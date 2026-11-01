@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from factoria.plugins.registry import PluginConflictError, PluginRegistry, PluginSource, PluginState
+from factoria.plugins.registry import PluginRegistry, PluginSource, PluginState
 
 
 class PluginRegistryTests(unittest.TestCase):
@@ -70,8 +70,14 @@ class PluginRegistryTests(unittest.TestCase):
             self._write_plugin(personal, "first", name="duplicate")
             self._write_plugin(personal, "second", name="duplicate")
 
-            with self.assertRaises(PluginConflictError):
-                PluginRegistry().discover([(PluginSource.PERSONAL, personal)])
+            registry = PluginRegistry()
+            plugins = registry.discover([(PluginSource.PERSONAL, personal)])
+
+            self.assertEqual(plugins, ())
+            self.assertEqual(len(registry.problems), 2)
+            self.assertTrue(
+                all(item.state is PluginState.ERROR for item in registry.problems)
+            )
 
     def test_invalid_manifest_is_reported_as_problem_not_loaded(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

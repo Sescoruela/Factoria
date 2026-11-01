@@ -119,7 +119,7 @@ class PluginRuntimeTests(unittest.TestCase):
             write_plugin(source, "demo", name="demo", executable=True)
             runtime = PluginRuntime(factoria_version="0.2.0")
 
-            with patch.object(runtime, "configured_roots", return_value=[]):
+            with patch.object(PluginRuntime, "configured_roots", return_value=[]):
                 report = runtime.discover_and_load(
                     extra_roots=[(PluginSource.PERSONAL, source)]
                 )
@@ -139,7 +139,7 @@ class PluginRuntimeTests(unittest.TestCase):
             (plugin / "plugin.py").write_text("VALUE = 1\n", encoding="utf-8")
             runtime = PluginRuntime(factoria_version="0.2.0")
 
-            with patch.object(runtime, "configured_roots", return_value=[]):
+            with patch.object(PluginRuntime, "configured_roots", return_value=[]):
                 report = runtime.discover_and_load(
                     extra_roots=[(PluginSource.PERSONAL, source)]
                 )
