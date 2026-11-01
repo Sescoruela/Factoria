@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from factoria.adapters.base import AgentRequest, AgentResult, ToolCapability
@@ -36,16 +36,12 @@ class AgentOrchestrator:
     model_router: ModelRouter
     safety_policy: AdapterSafetyPolicy
     retry_policy: RetryPolicy = RetryPolicy()
-    runtime_validator: AdapterRuntimeValidator | None = None
+    runtime_validator: AdapterRuntimeValidator = field(default_factory=AdapterRuntimeValidator)
 
     def run(self, stage: AgentStage, *, project_root: Path) -> AgentStageResult:
         spec = ROLE_SPECS[stage.role]
         base_profile = stage.profile or spec.default_profile
-        structured = (
-            spec.structured_output
-            if stage.structured_output is None
-            else stage.structured_output
-        )
+        structured = spec.structured_output if stage.structured_output is None else stage.structured_output
 
         traces: list[AgentAttemptTrace] = []
         last_result: AgentResult | None = None
@@ -80,26 +76,17 @@ class AgentOrchestrator:
                     adapter=adapter.name,
                     profile=profile,
                     model=model,
-                    fallback=(
-                        stage.preferred_tool is not None
-                        and adapter.name != stage.preferred_tool
-                    ),
+                    fallback=stage.preferred_tool is not None and adapter.name != stage.preferred_tool,
                     passed=result.passed,
                     error=result.error,
                 )
             )
             if result.passed:
-                return AgentStageResult(
-                    result=result,
-                    trace=AgentStageTrace(stage.role, tuple(traces)),
-                )
+                return AgentStageResult(result=result, trace=AgentStageTrace(stage.role, tuple(traces)))
 
         if last_result is None:
             raise AgentOrchestrationError("No agent attempt was executed")
-        return AgentStageResult(
-            result=last_result,
-            trace=AgentStageTrace(stage.role, tuple(traces)),
-        )
+        return AgentStageResult(result=last_result, trace=AgentStageTrace(stage.role, tuple(traces)))
 
     def _select_adapter(
         self,
@@ -136,24 +123,14 @@ class AgentOrchestrator:
                 required.add(ToolCapability.STRUCTURED_OUTPUT)
             if model is not None or self.model_router.strict:
                 required.add(ToolCapability.MODEL_SELECTION)
-            required_capabilities = frozenset(required)
-
-            if self.runtime_validator is not None:
-                if not self.runtime_validator.supports(adapter, required_capabilities):
-                    continue
-            elif not required_capabilities.issubset(adapter.capabilities()):
+            if not self.runtime_validator.supports(adapter, frozenset(required)):
                 continue
             candidates.append((adapter, model))
 
         if not candidates:
-            mapping_hint = (
-                " and an explicit model mapping"
-                if self.model_router.strict
-                else ""
-            )
+            mapping_hint = " and an explicit model mapping" if self.model_router.strict else ""
             raise AgentOrchestrationError(
-                f"No safe verified adapter available for role={role.value}, "
-                f"profile={profile.value}{mapping_hint}"
+                f"No safe verified adapter available for role={role.value}, profile={profile.value}{mapping_hint}"
             )
 
         for adapter, model in candidates:
@@ -161,11 +138,7 @@ class AgentOrchestrator:
                 return adapter, model
         return candidates[0]
 
-    def _profile_for_attempt(
-        self,
-        base: ModelProfile,
-        attempt: int,
-    ) -> ModelProfile:
+    def _profile_for_attempt(self, base: ModelProfile, attempt: int) -> ModelProfile:
         if not self.retry_policy.escalate_profile or attempt <= 1:
             return base
         order = [ModelProfile.RAPIDO, ModelProfile.EQUILIBRADO, ModelProfile.POTENTE]
