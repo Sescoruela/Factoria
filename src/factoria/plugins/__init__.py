@@ -8,7 +8,14 @@ from .registry import (
     PluginState,
     ShadowedPlugin,
 )
-from .runtime import LoadedPlugin, PluginLoadError, load_plugin, load_plugins
+from .runtime import (
+    LoadedPlugin,
+    PluginLoadError,
+    PluginRuntime,
+    PluginRuntimeReport,
+    load_plugin,
+    load_plugins,
+)
 
 __all__ = [
     "LoadedPlugin",
@@ -16,6 +23,8 @@ __all__ = [
     "PluginLoadError",
     "PluginRecord",
     "PluginRegistry",
+    "PluginRuntime",
+    "PluginRuntimeReport",
     "PluginSource",
     "PluginState",
     "ShadowedPlugin",

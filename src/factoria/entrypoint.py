@@ -63,6 +63,10 @@ def main(argv: list[str] | None = None) -> int:
         from factoria.status_cli import run_status_cli
 
         return run_status_cli(argv)
+    if command == "plugins":
+        from factoria.plugins_cli import run_plugins_cli
+
+        return run_plugins_cli(argv)
     if not argv or argv[0] not in {"update", "rollback"}:
         from factoria.cli import main as cli_main
 

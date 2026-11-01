@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import tomllib
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import IntEnum, StrEnum
 from pathlib import Path
 
@@ -15,7 +15,7 @@ _VERSION_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 
 
 class PluginConflictError(RuntimeError):
-    """Raised when two plugins with the same priority register the same name."""
+    """Backward-compatible error type for callers that handle plugin conflicts."""
 
 
 class PluginSource(IntEnum):
@@ -51,6 +51,7 @@ class PluginRegistry:
         self._plugins: dict[str, PluginRecord] = {}
         self._problems: list[PluginRecord] = []
         self._shadowed: list[ShadowedPlugin] = []
+        self._blocked_priority: dict[str, PluginSource] = {}
 
     @property
     def plugins(self) -> tuple[PluginRecord, ...]:
@@ -69,25 +70,47 @@ class PluginRegistry:
             self._problems.append(record)
             return
 
-        existing = self._plugins.get(record.manifest.name)
+        name = record.manifest.name
+        blocked = self._blocked_priority.get(name)
+        if blocked is not None:
+            if record.source > blocked:
+                del self._blocked_priority[name]
+            else:
+                self._problems.append(
+                    self._as_error(
+                        record,
+                        f"Plugin '{name}' remains blocked by a same-priority collision at "
+                        f"{blocked.name.lower()} priority",
+                    )
+                )
+                return
+
+        existing = self._plugins.get(name)
         if existing is None:
-            self._plugins[record.manifest.name] = record
+            self._plugins[name] = record
             return
 
         if existing.source == record.source:
-            raise PluginConflictError(
-                f"Plugin '{record.manifest.name}' is defined more than once at priority "
-                f"{record.source.name.lower()}"
+            self._plugins.pop(name, None)
+            message = (
+                f"Plugin '{name}' is defined more than once at priority "
+                f"{record.source.name.lower()}; neither definition will load"
             )
+            self._problems.extend(
+                (self._as_error(existing, message), self._as_error(record, message))
+            )
+            self._blocked_priority[name] = record.source
+            return
 
         if record.source > existing.source:
             self._shadowed.append(ShadowedPlugin(selected=record, shadowed=existing))
-            self._plugins[record.manifest.name] = record
+            self._plugins[name] = record
         else:
             self._shadowed.append(ShadowedPlugin(selected=existing, shadowed=record))
 
     def discover(self, roots: list[tuple[PluginSource, Path]]) -> tuple[PluginRecord, ...]:
         for source, root in roots:
+            root = root.expanduser().resolve()
             if not root.exists():
                 continue
             if not root.is_dir():
@@ -157,13 +180,24 @@ class PluginRegistry:
                 not isinstance(entrypoint, str) or not entrypoint.strip()
             ):
                 raise ValueError("entrypoint must be a non-empty string")
-            if entrypoint is not None and not (path.parent / entrypoint).is_file():
-                raise ValueError(f"Entrypoint does not exist: {entrypoint}")
+            if entrypoint is not None:
+                plugin_root = path.parent.resolve()
+                target = (plugin_root / entrypoint).resolve()
+                try:
+                    target.relative_to(plugin_root)
+                except ValueError as exc:
+                    raise ValueError("entrypoint must stay inside the plugin directory") from exc
+                if not target.is_file():
+                    raise ValueError(f"Entrypoint does not exist: {entrypoint}")
 
             warnings: list[str] = []
             if deprecated_layout:
                 warnings.append(
                     "Top-level plugin fields are deprecated; move them under [plugin]"
+                )
+            if entrypoint is not None and source is not PluginSource.BUILTIN:
+                warnings.append(
+                    "External entrypoint is trusted Python code and will execute in the Factoria process"
                 )
 
             manifest = PluginManifest(
@@ -177,13 +211,17 @@ class PluginRegistry:
             )
             return PluginRecord(
                 manifest=manifest,
-                path=path.parent,
+                path=path.parent.resolve(),
                 source=source,
                 state=PluginState.WARNING if warnings else PluginState.VALID,
                 warnings=tuple(warnings),
             )
         except (OSError, tomllib.TOMLDecodeError, ValueError) as exc:
             return self._error_record(path.parent, source, str(exc))
+
+    @staticmethod
+    def _as_error(record: PluginRecord, message: str) -> PluginRecord:
+        return replace(record, state=PluginState.ERROR, warnings=record.warnings + (message,))
 
     def _error_record(
         self,
@@ -199,7 +237,7 @@ class PluginRegistry:
         )
         return PluginRecord(
             manifest=fallback,
-            path=path,
+            path=path.resolve(),
             source=source,
             state=PluginState.ERROR,
             warnings=(message,),
