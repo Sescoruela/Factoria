@@ -39,4 +39,11 @@ class OpenCodeAdapter(SubprocessToolAdapter):
         return self._execute(request, self.build_command(request), adapter_name=self.name)
 
     def self_test(self) -> tuple[CheckResult, ...]:
-        return (self._version_check(adapter_name=self.name),)
+        return (
+            self._version_check(adapter_name=self.name),
+            self._help_capability_check(
+                adapter_name=self.name,
+                args=("run", "--help"),
+                required_tokens=("--dir", "--format", "--model"),
+            ),
+        )

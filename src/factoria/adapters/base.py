@@ -177,3 +177,57 @@ class SubprocessToolAdapter:
             required=True,
             details=sanitized or f"exit={completed.returncode}",
         )
+
+    def _help_capability_check(
+        self,
+        *,
+        adapter_name: str,
+        args: tuple[str, ...],
+        required_tokens: tuple[str, ...],
+    ) -> CheckResult:
+        if not self.available():
+            return CheckResult(
+                name=f"{adapter_name}:capabilities",
+                passed=False,
+                required=True,
+                details=f"Executable not found: {self.executable}",
+            )
+        try:
+            completed = subprocess.run(
+                [self.executable, *args],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=False,
+                timeout=10,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return CheckResult(
+                name=f"{adapter_name}:capabilities",
+                passed=False,
+                required=True,
+                details=str(exc),
+            )
+        output = (completed.stdout or "") + "\n" + (completed.stderr or "")
+        sanitized, findings = self.secret_scanner.redact(output)
+        if findings:
+            return CheckResult(
+                name=f"{adapter_name}:capabilities",
+                passed=False,
+                required=True,
+                details="Potential secret detected in tool help output; value redacted",
+            )
+        missing = tuple(token for token in required_tokens if token not in sanitized)
+        passed = completed.returncode == 0 and not missing
+        details = "supported" if passed else (
+            "missing expected CLI flags: " + ", ".join(missing)
+            if missing
+            else f"help command exited with code {completed.returncode}"
+        )
+        return CheckResult(
+            name=f"{adapter_name}:capabilities",
+            passed=passed,
+            required=True,
+            details=details,
+        )

@@ -14,6 +14,7 @@ from factoria.application.governance import ExecutionGovernor, GovernedAction
 from factoria.application.history import LocalExecutionHistoryStore
 from factoria.application.memory_flows import MemoryInitFlow, MemoryUpdateFlow
 from factoria.application.policy_runtime import build_execution_context
+from factoria.application.setup import SetupError, SetupService
 from factoria.application.state_store import LocalFlowStateStore
 from factoria.cli_lifecycle import archive_terminal, register_lifecycle_commands, run_commit, run_history
 from factoria.config.loader import ConfigError, load_project_config
@@ -38,6 +39,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Temporary execution permission profile for this command",
     )
     sub = parser.add_subparsers(dest="command", required=True)
+
+    install = sub.add_parser("install", help="Inspect tools and propose portable global setup")
+    install.add_argument("--default-tool", choices=("codex", "opencode"))
+    install.add_argument(
+        "--default-profile",
+        choices=tuple(profile.value for profile in PermissionProfile),
+        help="Default permission profile to store globally",
+    )
+    install.add_argument("--check-only", action="store_true", help="Run setup diagnostics without writing configuration")
+    install.add_argument("--yes", action="store_true", help="Confirm writing the proposed global configuration")
 
     memory_init = sub.add_parser("memoria-init", help="Propose and initialize project memory")
     memory_init.add_argument("--name")
@@ -148,6 +159,42 @@ def _govern(
         destructive_confirmed=destructive_confirmed,
     )
     return ExecutionGovernor().assert_allowed(action, context)
+
+
+def _cmd_install(args: argparse.Namespace) -> int:
+    target = Path.home() / ".factoria" / "config.toml"
+    profile = PermissionProfile(args.default_profile) if args.default_profile else None
+    service = SetupService()
+    plan = service.propose(
+        target,
+        requested_tool=args.default_tool,
+        requested_profile=profile,
+    )
+    print(f"Python: {plan.python_version} ({'compatible' if plan.python_supported else 'unsupported'})")
+    print(f"Capability matrix: v{service.matrix.version}")
+    print("Herramientas:")
+    for tool in plan.tools:
+        status = "READY" if tool.passed else ("FOUND" if tool.available else "MISSING")
+        capabilities = ", ".join(sorted(cap.value for cap in tool.expected_capabilities)) or "none"
+        print(f"- {tool.name}: {status} | capacidades esperadas: {capabilities}")
+        for check in tool.checks:
+            outcome = "PASS" if check.passed else "FAIL"
+            details = f" - {check.details}" if check.details else ""
+            print(f"  - {outcome} {check.name}{details}")
+    print(f"Configuración global: {plan.target_path}")
+    print(f"Perfil propuesto: {plan.proposed.default_profile.value}")
+    print(f"Herramienta por defecto: {plan.proposed.default_tool or 'ninguna'}")
+    for warning in plan.warnings:
+        print(f"Aviso: {warning}")
+    if args.check_only:
+        print("Diagnóstico completado; no se ha escrito configuración.")
+        return 0 if plan.python_supported else 1
+    if not args.yes:
+        print("Configuración no escrita. Repite con --yes tras revisar la propuesta.")
+        return 0
+    written = service.apply(plan, confirmed=True)
+    print(f"Configuración escrita: {written}")
+    return 0
 
 
 def _cmd_memory_init(args: argparse.Namespace, root: Path) -> int:
@@ -356,7 +403,6 @@ def _cmd_cancel(args: argparse.Namespace, root: Path) -> int:
     decision = ExecutionGovernor().evaluate(GovernedAction.DESTRUCTIVE, context)
     if not decision.allowed:
         raise PermissionError(decision.reason or "Cancellation blocked by permission policy")
-    # Cancellation keeps its stronger product-level confirmation even in power profile.
     if not args.yes:
         print("Cancelación no ejecutada. Usa --yes para confirmar la eliminación del workspace temporal.")
         return 2
@@ -396,6 +442,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         root = _root(args)
+        if args.command == "install":
+            return _cmd_install(args)
         if args.command == "memoria-init":
             return _cmd_memory_init(args, root)
         if args.command == "memoria-update":
@@ -425,6 +473,7 @@ def main(argv: list[str] | None = None) -> int:
         MemoryFormatError,
         PermissionError,
         RuntimeError,
+        SetupError,
         ValueError,
         subprocess.CalledProcessError,
     ) as exc:

@@ -1,0 +1,17 @@
+version = 1
+
+[tools.codex]
+capabilities = [
+  "non_interactive",
+  "structured_output",
+  "model_selection",
+  "project_directory",
+]
+
+[tools.opencode]
+capabilities = [
+  "non_interactive",
+  "structured_output",
+  "model_selection",
+  "project_directory",
+]
