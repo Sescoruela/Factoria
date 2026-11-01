@@ -17,6 +17,7 @@ from .models import (
     ROLE_SPECS,
     RetryPolicy,
 )
+from .runtime_validation import AdapterRuntimeValidator
 
 
 class AgentOrchestrationError(RuntimeError):
@@ -35,6 +36,7 @@ class AgentOrchestrator:
     model_router: ModelRouter
     safety_policy: AdapterSafetyPolicy
     retry_policy: RetryPolicy = RetryPolicy()
+    runtime_validator: AdapterRuntimeValidator | None = None
 
     def run(self, stage: AgentStage, *, project_root: Path) -> AgentStageResult:
         spec = ROLE_SPECS[stage.role]
@@ -123,21 +125,35 @@ class AgentOrchestrator:
                 continue
 
             model = self.model_router.resolve(name, profile)
+            if self.model_router.strict and model is None:
+                continue
+
             required = {
                 ToolCapability.NON_INTERACTIVE,
                 ToolCapability.PROJECT_DIRECTORY,
             }
             if structured:
                 required.add(ToolCapability.STRUCTURED_OUTPUT)
-            if model is not None:
+            if model is not None or self.model_router.strict:
                 required.add(ToolCapability.MODEL_SELECTION)
-            if not frozenset(required).issubset(adapter.capabilities()):
+            required_capabilities = frozenset(required)
+
+            if self.runtime_validator is not None:
+                if not self.runtime_validator.supports(adapter, required_capabilities):
+                    continue
+            elif not required_capabilities.issubset(adapter.capabilities()):
                 continue
             candidates.append((adapter, model))
 
         if not candidates:
+            mapping_hint = (
+                " and an explicit model mapping"
+                if self.model_router.strict
+                else ""
+            )
             raise AgentOrchestrationError(
-                f"No safe adapter available for role={role.value}, profile={profile.value}"
+                f"No safe verified adapter available for role={role.value}, "
+                f"profile={profile.value}{mapping_hint}"
             )
 
         for adapter, model in candidates:
