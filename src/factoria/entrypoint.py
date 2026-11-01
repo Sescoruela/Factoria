@@ -31,15 +31,38 @@ def build_update_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _primary_command(argv: list[str]) -> str | None:
+    """Locate the CLI subcommand while respecting Factoria global options."""
+    index = 0
+    while index < len(argv):
+        value = argv[index]
+        if value in {"--project", "--profile"}:
+            index += 2
+            continue
+        if value == "--read-only":
+            index += 1
+            continue
+        if value.startswith("-"):
+            return None
+        return value
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv == ["--version"]:
         print(f"factoria {installed_version()}")
         return 0
-    if "memoria-init" in argv:
+
+    command = _primary_command(argv)
+    if command == "memoria-init":
         from factoria.memory_bootstrap_cli import run_memory_init_cli
 
         return run_memory_init_cli(argv)
+    if command == "status":
+        from factoria.status_cli import run_status_cli
+
+        return run_status_cli(argv)
     if not argv or argv[0] not in {"update", "rollback"}:
         from factoria.cli import main as cli_main
 
