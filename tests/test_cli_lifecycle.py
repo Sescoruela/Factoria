@@ -11,6 +11,13 @@ class LifecycleCliParserTests(unittest.TestCase):
         self.assertEqual(args.command, "commit")
         self.assertEqual(args.flow_id, "flow-1")
 
+    def test_commit_exposes_manual_verification_confirmation(self) -> None:
+        args = build_parser().parse_args(
+            ["commit", "flow-1", "--confirm-manual-verification", "--yes"]
+        )
+        self.assertTrue(args.confirm_manual_verification)
+        self.assertTrue(args.yes)
+
     def test_history_command_is_available(self) -> None:
         args = build_parser().parse_args(["history", "--kind", "fix", "--limit", "5"])
         self.assertEqual(args.command, "history")
