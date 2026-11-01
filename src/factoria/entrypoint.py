@@ -67,6 +67,10 @@ def main(argv: list[str] | None = None) -> int:
         from factoria.plugins_cli import run_plugins_cli
 
         return run_plugins_cli(argv)
+    if command in {"resume", "cancel"}:
+        from factoria.robust_lifecycle_cli import run_robust_lifecycle_cli
+
+        return run_robust_lifecycle_cli(argv)
     if not argv or argv[0] not in {"update", "rollback"}:
         from factoria.cli import main as cli_main
 
