@@ -69,6 +69,13 @@ def render_agents_md(memory: ProjectMemory) -> str:
     lines.extend(rendered_commands or ["- Ninguno confirmado todavía"])
 
     lines.extend(["", "## Reglas obligatorias", _bullet_list(memory.mandatory_rules)])
+    lines.extend(
+        [
+            "",
+            "## Prioridades no funcionales",
+            _bullet_list(memory.non_functional_priorities),
+        ]
+    )
     lines.extend(["", "## Dependencias"])
     if memory.dependencies:
         for source, targets in memory.dependencies.items():
@@ -134,6 +141,13 @@ def render_memory_document(memory: ProjectMemory, document: MemoryDocumentKind) 
                 lines.append(f"- **{source}** → {', '.join(targets)}")
         else:
             lines.append("- Pendiente de documentar")
+        lines.extend(
+            [
+                "",
+                "## Prioridades no funcionales",
+                _bullet_list(memory.non_functional_priorities),
+            ]
+        )
 
     elif document is MemoryDocumentKind.FLOWS:
         lines.extend(

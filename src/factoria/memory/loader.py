@@ -208,19 +208,28 @@ def load_project_memory(project_root: Path) -> ProjectMemory:
         sections.get("Reglas obligatorias", []),
         ignore_prefixes=("Sin datos confirmados",),
     )
+    non_functional_priorities = _bullets(
+        sections.get("Prioridades no funcionales", []),
+        ignore_prefixes=("Sin datos confirmados",),
+    )
     dependencies = _dependencies(sections.get("Dependencias", []))
 
     docs = root / "docs" / "memoria"
     architecture = docs / "arquitectura.md"
     if architecture.exists():
-        architecture_modules = _modules(
-            _sections(architecture.read_text(encoding="utf-8")).get("Módulos", [])
-        )
+        architecture_sections = _sections(architecture.read_text(encoding="utf-8"))
+        architecture_modules = _modules(architecture_sections.get("Módulos", []))
         if architecture_modules:
             by_name = {module.name: module for module in modules}
             for module in architecture_modules:
                 by_name[module.name] = module
             modules = tuple(by_name.values())
+        architecture_priorities = _bullets(
+            architecture_sections.get("Prioridades no funcionales", []),
+            ignore_prefixes=("Sin datos confirmados",),
+        )
+        if architecture_priorities:
+            non_functional_priorities = architecture_priorities
 
     decisions = _root_bullets(docs / "decisiones.md")
     manual_verification = _document_bullets(
@@ -237,6 +246,7 @@ def load_project_memory(project_root: Path) -> ProjectMemory:
         confirmed_commands=legacy_commands,
         confirmed_check_commands=commands,
         mandatory_rules=mandatory_rules,
+        non_functional_priorities=non_functional_priorities,
         decisions=decisions,
         manual_verification=manual_verification,
     )

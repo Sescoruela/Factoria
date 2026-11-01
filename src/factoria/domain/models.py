@@ -91,5 +91,6 @@ class ProjectMemory:
     )
     confirmed_check_commands: tuple[ConfirmedCommand, ...] = field(default_factory=tuple)
     mandatory_rules: tuple[str, ...] = field(default_factory=tuple)
+    non_functional_priorities: tuple[str, ...] = field(default_factory=tuple)
     decisions: tuple[str, ...] = field(default_factory=tuple)
     manual_verification: tuple[str, ...] = field(default_factory=tuple)

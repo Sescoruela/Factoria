@@ -36,6 +36,10 @@ def main(argv: list[str] | None = None) -> int:
     if argv == ["--version"]:
         print(f"factoria {installed_version()}")
         return 0
+    if "memoria-init" in argv:
+        from factoria.memory_bootstrap_cli import run_memory_init_cli
+
+        return run_memory_init_cli(argv)
     if not argv or argv[0] not in {"update", "rollback"}:
         from factoria.cli import main as cli_main
 
