@@ -7,8 +7,13 @@ from .application.agent_flow_runtime import build_live_runner
 from .application.git_lifecycle import GitLifecycle
 from .application.governance import ExecutionGovernor, GovernedAction
 from .application.history import LocalExecutionHistoryStore
+from .application.manual_verification import (
+    inspect_manual_verification,
+    record_manual_verification,
+)
 from .application.policy_runtime import build_execution_context
 from .domain.permissions import PermissionProfile
+from .memory.loader import load_project_memory
 
 
 def register_lifecycle_commands(sub) -> None:
@@ -16,6 +21,11 @@ def register_lifecycle_commands(sub) -> None:
     commit.add_argument("flow_id", nargs="?")
     commit.add_argument("--message", help="Override the proposed commit message")
     commit.add_argument("--yes", action="store_true", help="Confirm staging and creating the commit")
+    commit.add_argument(
+        "--confirm-manual-verification",
+        action="store_true",
+        help="Confirm that all persisted manual verification steps were completed",
+    )
 
     history = sub.add_parser("history", help="Show local execution history")
     history.add_argument("--kind", choices=("fix", "feature"))
@@ -57,6 +67,24 @@ def run_commit(args, root: Path, execution) -> int:
             f"Flow is not ready for commit; current phase is {session.get('phase', 'unknown')}"
         )
 
+    memory = load_project_memory(root)
+    manual = inspect_manual_verification(execution.workspace.root, memory)
+    if manual.required:
+        if not manual.available:
+            raise RuntimeError(manual.reason or "No valid verification path is available")
+        print("Verificación manual requerida:")
+        for step in manual.steps:
+            print(f"- {step}")
+        if not args.confirm_manual_verification:
+            if args.yes:
+                raise RuntimeError(
+                    "Manual verification is required; repeat with --confirm-manual-verification only after completing every listed step"
+                )
+            print(
+                "La verificación manual aún no está confirmada. "
+                "Completa los pasos y usa --confirm-manual-verification al confirmar el commit."
+            )
+
     lifecycle = GitLifecycle(root)
     proposal = lifecycle.prepare(execution, message=args.message)
     print(f"Rama: {proposal.branch}")
@@ -68,6 +96,11 @@ def run_commit(args, root: Path, execution) -> int:
         print("Commit no ejecutado. Repite con --yes después de revisar archivos y mensaje.")
         return 0
 
+    if manual.required:
+        if not args.confirm_manual_verification:
+            raise RuntimeError("Manual verification confirmation is required before commit")
+        record_manual_verification(execution.workspace.root, manual)
+
     result = lifecycle.commit(proposal, confirmed=True, message=args.message)
     history = LocalExecutionHistoryStore(root)
     snapshot = history.snapshot(execution.workspace.root)
@@ -75,6 +108,8 @@ def run_commit(args, root: Path, execution) -> int:
     archive_terminal(root, updated, snapshot)
     print(f"Commit creado: {result.sha}")
     print(f"Mensaje: {result.message}")
+    if manual.required:
+        print("Verificación manual: confirmada y archivada.")
     print("Flujo cerrado. Push y PR siguen siendo manuales.")
     return 0
 
