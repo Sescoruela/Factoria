@@ -36,33 +36,11 @@ class RoleSpec:
 
 ROLE_SPECS: Mapping[AgentRole, RoleSpec] = MappingProxyType(
     {
-        AgentRole.EXPLORER: RoleSpec(
-            AgentRole.EXPLORER,
-            ModelProfile.EQUILIBRADO,
-            RoleAccess.READ_ONLY,
-        ),
-        AgentRole.PLANNER: RoleSpec(
-            AgentRole.PLANNER,
-            ModelProfile.POTENTE,
-            RoleAccess.READ_ONLY,
-            structured_output=True,
-        ),
-        AgentRole.IMPLEMENTER: RoleSpec(
-            AgentRole.IMPLEMENTER,
-            ModelProfile.POTENTE,
-            RoleAccess.PROJECT_WRITE,
-        ),
-        AgentRole.REVIEWER: RoleSpec(
-            AgentRole.REVIEWER,
-            ModelProfile.POTENTE,
-            RoleAccess.READ_ONLY,
-            structured_output=True,
-        ),
-        AgentRole.DOCUMENTER: RoleSpec(
-            AgentRole.DOCUMENTER,
-            ModelProfile.EQUILIBRADO,
-            RoleAccess.READ_ONLY,
-        ),
+        AgentRole.EXPLORER: RoleSpec(AgentRole.EXPLORER, ModelProfile.EQUILIBRADO, RoleAccess.READ_ONLY),
+        AgentRole.PLANNER: RoleSpec(AgentRole.PLANNER, ModelProfile.POTENTE, RoleAccess.READ_ONLY, structured_output=True),
+        AgentRole.IMPLEMENTER: RoleSpec(AgentRole.IMPLEMENTER, ModelProfile.POTENTE, RoleAccess.PROJECT_WRITE),
+        AgentRole.REVIEWER: RoleSpec(AgentRole.REVIEWER, ModelProfile.POTENTE, RoleAccess.READ_ONLY, structured_output=True),
+        AgentRole.DOCUMENTER: RoleSpec(AgentRole.DOCUMENTER, ModelProfile.EQUILIBRADO, RoleAccess.READ_ONLY),
     }
 )
 
@@ -77,7 +55,7 @@ class ModelRouter:
         models: Mapping[str, Mapping[ModelProfile, str]] | None = None,
         *,
         mapping: Mapping[str, Mapping[ModelProfile, str]] | None = None,
-        strict: bool = False,
+        strict: bool | None = None,
     ) -> None:
         if models is not None and mapping is not None:
             raise ValueError("Provide either models or mapping, not both")
@@ -87,7 +65,10 @@ class ModelRouter:
             for name, profiles in dict(selected or {}).items()
         }
         object.__setattr__(self, "models", MappingProxyType(normalized))
-        object.__setattr__(self, "strict", strict)
+        # The `mapping=` form is used by the live environment router. Treat it as
+        # strict unless explicitly overridden so live flows never fall through to
+        # an agent tool's implicit/default model.
+        object.__setattr__(self, "strict", (mapping is not None) if strict is None else strict)
 
     def resolve(self, adapter: str, profile: ModelProfile) -> str | None:
         mapping = self.models.get(adapter)
@@ -106,18 +87,10 @@ class ModelRouter:
 
 @dataclass(frozen=True, slots=True)
 class AdapterSafetyPolicy:
-    restricted_access: Mapping[str, frozenset[RoleAccess]] = field(
-        default_factory=lambda: MappingProxyType({})
-    )
-    denied_access: Mapping[str, frozenset[RoleAccess]] = field(
-        default_factory=lambda: MappingProxyType({})
-    )
-    role_args: Mapping[str, Mapping[AgentRole, tuple[str, ...]]] = field(
-        default_factory=lambda: MappingProxyType({})
-    )
-    role_environment: Mapping[str, Mapping[AgentRole, Mapping[str, str]]] = field(
-        default_factory=lambda: MappingProxyType({})
-    )
+    restricted_access: Mapping[str, frozenset[RoleAccess]] = field(default_factory=lambda: MappingProxyType({}))
+    denied_access: Mapping[str, frozenset[RoleAccess]] = field(default_factory=lambda: MappingProxyType({}))
+    role_args: Mapping[str, Mapping[AgentRole, tuple[str, ...]]] = field(default_factory=lambda: MappingProxyType({}))
+    role_environment: Mapping[str, Mapping[AgentRole, Mapping[str, str]]] = field(default_factory=lambda: MappingProxyType({}))
 
     def supports(self, adapter: str, access: RoleAccess) -> bool:
         if access in self.denied_access.get(adapter, frozenset()):
@@ -128,15 +101,11 @@ class AdapterSafetyPolicy:
 
     def args_for(self, adapter: str, role: AgentRole) -> tuple[str, ...]:
         mapping = self.role_args.get(adapter)
-        if mapping is None:
-            return ()
-        return mapping.get(role, ())
+        return () if mapping is None else mapping.get(role, ())
 
     def environment_for(self, adapter: str, role: AgentRole) -> Mapping[str, str]:
         mapping = self.role_environment.get(adapter)
-        if mapping is None:
-            return MappingProxyType({})
-        return mapping.get(role, MappingProxyType({}))
+        return MappingProxyType({}) if mapping is None else mapping.get(role, MappingProxyType({}))
 
 
 @dataclass(frozen=True, slots=True)
