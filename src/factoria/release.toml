@@ -1,0 +1,7 @@
+version = "0.2.0"
+notes = [
+  "Adds portable installation diagnostics and self-update/rollback infrastructure.",
+  "Keeps project memory migrations manual and explicit.",
+]
+memory_changes = []
+config_changes = []

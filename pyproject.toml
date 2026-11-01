@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "factoria"
-version = "0.1.0"
+version = "0.2.0"
 description = "Extensible development-flow factory for agent-assisted software delivery."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -12,7 +12,7 @@ authors = [{ name = "Sergi Escoruela" }]
 dependencies = []
 
 [project.scripts]
-factoria = "factoria.cli:main"
+factoria = "factoria.entrypoint:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
