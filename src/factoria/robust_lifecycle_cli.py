@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import subprocess
 import sys
 from pathlib import Path
@@ -13,6 +12,7 @@ from factoria.application.flow_service import FlowService
 from factoria.application.governance import ExecutionGovernor, GovernedAction
 from factoria.application.history import LocalExecutionHistoryStore
 from factoria.application.policy_runtime import build_execution_context
+from factoria.application.runtime_state import RuntimeStage, RuntimeStateError, load_live_session
 from factoria.application.state_store import LocalFlowStateStore
 from factoria.cli_lifecycle import archive_terminal
 from factoria.domain.permissions import PermissionProfile
@@ -73,11 +73,11 @@ def _requested_profile(args: argparse.Namespace) -> PermissionProfile | None:
     return PermissionProfile(args.profile) if args.profile else None
 
 
-def _session(execution) -> dict[str, object] | None:
+def _session(execution):
     path = execution.workspace.root / "agent-flow.json"
     if not path.exists():
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    return load_live_session(path, execution=execution)
 
 
 def _list_incomplete(store: LocalFlowStateStore) -> int:
@@ -87,13 +87,13 @@ def _list_incomplete(store: LocalFlowStateStore) -> int:
         return 0
     print("Flujos interrumpidos:")
     for execution in executions:
-        session = _session(execution) or {}
-        branch = session.get("branch") or "-"
-        phase = session.get("phase") or "-"
+        session = _session(execution)
+        branch = session.branch if session else "-"
+        stage = session.runtime_stage.value if session and session.runtime_stage else "-"
         label = execution.label or "-"
         print(
             f"- {execution.flow.flow_id} | {execution.flow.kind} | "
-            f"{execution.flow.state.value} | branch={branch} | phase={phase} | {label}"
+            f"{execution.flow.state.value} | branch={branch} | stage={stage} | {label}"
         )
     print("Elige un flow_id explícito para continuar.")
     return 2
@@ -130,8 +130,8 @@ def _cmd_resume(args: argparse.Namespace, root: Path) -> int:
         print(f"Reanudado: {updated.flow.flow_id} -> {updated.flow.state.value}")
         return 0
 
-    flow_branch = str(session.get("branch") or "")
-    phase = str(session.get("phase") or "unknown")
+    flow_branch = session.branch
+    stage = session.runtime_stage
     branches = GitBranchLifecycle(root)
     if not flow_branch or not branches.branch_exists(flow_branch):
         raise BranchLifecycleError(
@@ -159,7 +159,7 @@ def _cmd_resume(args: argparse.Namespace, root: Path) -> int:
         print("Aviso: el árbol de trabajo contiene cambios pendientes:")
         for line in inspection.worktree_changes:
             print(f"- {line}")
-        if phase == "awaiting_plan_approval":
+        if stage is RuntimeStage.AWAITING_PLAN_APPROVAL:
             raise BranchLifecycleError(
                 "El repositorio cambió mientras el plan esperaba aprobación. "
                 "No se ejecutará un plan potencialmente obsoleto; revisa los cambios o cancela y regenera el flujo."
@@ -195,8 +195,8 @@ def _cmd_cancel(args: argparse.Namespace, root: Path) -> int:
         return _list_incomplete(store)
 
     execution = store.load(args.flow_id)
-    session = _session(execution) or {}
-    flow_branch = str(session.get("branch") or "")
+    session = _session(execution)
+    flow_branch = session.branch if session else ""
     files = _workspace_files(execution)
 
     print(f"Flujo: {execution.flow.flow_id}")
@@ -257,7 +257,6 @@ def _cmd_cancel(args: argparse.Namespace, root: Path) -> int:
         )
         return 2
 
-    # Re-inspect after workspace cleanup because .factoria/work may have changed.
     inspection = branches.inspect(flow_branch)
     if inspection.unique_commits and not args.backup_branch:
         print("Rama NO eliminada: contiene commits únicos.")
@@ -286,6 +285,7 @@ def run_robust_lifecycle_cli(argv: list[str]) -> int:
         FileNotFoundError,
         PermissionError,
         RuntimeError,
+        RuntimeStateError,
         subprocess.CalledProcessError,
     ) as exc:
         print(f"error: {exc}", file=sys.stderr)
