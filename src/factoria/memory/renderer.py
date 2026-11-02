@@ -43,6 +43,28 @@ def _render_commands(memory: ProjectMemory) -> list[str]:
     return lines
 
 
+def _render_contracts(memory: ProjectMemory) -> list[str]:
+    lines: list[str] = []
+    for item in memory.contracts:
+        modules = ", ".join(item.affects_modules) or "-"
+        external = ", ".join(item.affects_external) or "-"
+        lines.append(
+            f"- **{item.name}**: paths={', '.join(item.paths)}; "
+            f"modules={modules}; external={external}"
+        )
+    return lines
+
+
+def _render_external_dependencies(memory: ProjectMemory) -> list[str]:
+    lines: list[str] = []
+    for item in memory.external_dependencies:
+        relationship = item.relationship or "unspecified"
+        lines.append(
+            f"- **{item.name}**: repository={item.repository}; relationship={relationship}"
+        )
+    return lines
+
+
 def render_agents_md(memory: ProjectMemory) -> str:
     lines: list[str] = [
         _metadata_header(memory),
@@ -69,13 +91,7 @@ def render_agents_md(memory: ProjectMemory) -> str:
     lines.extend(rendered_commands or ["- Ninguno confirmado todavía"])
 
     lines.extend(["", "## Reglas obligatorias", _bullet_list(memory.mandatory_rules)])
-    lines.extend(
-        [
-            "",
-            "## Prioridades no funcionales",
-            _bullet_list(memory.non_functional_priorities),
-        ]
-    )
+    lines.extend(["", "## Prioridades no funcionales", _bullet_list(memory.non_functional_priorities)])
     lines.extend(["", "## Dependencias"])
     if memory.dependencies:
         for source, targets in memory.dependencies.items():
@@ -83,36 +99,35 @@ def render_agents_md(memory: ProjectMemory) -> str:
     else:
         lines.append("- Sin dependencias confirmadas")
 
-    if memory.metadata and memory.metadata.project_kind is ProjectKind.ACTIVE:
-        lines.extend(
-            [
-                "",
-                "## Memoria detallada",
-                "- Arquitectura: `docs/memoria/arquitectura.md`",
-                "- Flujos: `docs/memoria/flujos.md`",
-                "- Decisiones: `docs/memoria/decisiones.md`",
-                "- Verificación: `docs/memoria/testing.md`",
-            ]
-        )
-    else:
-        lines.extend(
-            [
-                "",
-                "## Memoria detallada",
-                "Proyecto de mantenimiento: consultar `docs/memoria/testing.md` cuando sea necesario.",
-            ]
-        )
+    lines.extend(["", "## Contratos"])
+    lines.extend(_render_contracts(memory) or ["- Sin contratos confirmados"])
+    lines.extend(["", "## Dependencias externas"])
+    lines.extend(_render_external_dependencies(memory) or ["- Sin dependencias externas confirmadas"])
 
-    lines.extend(
-        [
+    if memory.metadata and memory.metadata.project_kind is ProjectKind.ACTIVE:
+        lines.extend([
             "",
-            "## Uso por agentes",
-            "Consulta primero este archivo. Abre solo la memoria detallada relevante para la tarea.",
-            "Si el código contradice comportamiento o estructura descritos aquí, marca la memoria como potencialmente desactualizada.",
-            "Las reglas obligatorias no se ignoran automáticamente aunque el código actual las contradiga.",
+            "## Memoria detallada",
+            "- Arquitectura: `docs/memoria/arquitectura.md`",
+            "- Flujos: `docs/memoria/flujos.md`",
+            "- Decisiones: `docs/memoria/decisiones.md`",
+            "- Verificación: `docs/memoria/testing.md`",
+        ])
+    else:
+        lines.extend([
             "",
-        ]
-    )
+            "## Memoria detallada",
+            "Proyecto de mantenimiento: consultar `docs/memoria/testing.md` cuando sea necesario.",
+        ])
+
+    lines.extend([
+        "",
+        "## Uso por agentes",
+        "Consulta primero este archivo. Abre solo la memoria detallada relevante para la tarea.",
+        "Si el código contradice comportamiento o estructura descritos aquí, marca la memoria como potencialmente desactualizada.",
+        "Las reglas obligatorias no se ignoran automáticamente aunque el código actual las contradiga.",
+        "",
+    ])
     return "\n".join(lines)
 
 
@@ -141,21 +156,17 @@ def render_memory_document(memory: ProjectMemory, document: MemoryDocumentKind) 
                 lines.append(f"- **{source}** → {', '.join(targets)}")
         else:
             lines.append("- Pendiente de documentar")
-        lines.extend(
-            [
-                "",
-                "## Prioridades no funcionales",
-                _bullet_list(memory.non_functional_priorities),
-            ]
-        )
+        lines.extend(["", "## Contratos"])
+        lines.extend(_render_contracts(memory) or ["- Sin contratos confirmados"])
+        lines.extend(["", "## Dependencias externas"])
+        lines.extend(_render_external_dependencies(memory) or ["- Sin dependencias externas confirmadas"])
+        lines.extend(["", "## Prioridades no funcionales", _bullet_list(memory.non_functional_priorities)])
 
     elif document is MemoryDocumentKind.FLOWS:
-        lines.extend(
-            [
-                "Documenta únicamente los flujos relevantes y estables del proyecto.",
-                "No incluir detalles efímeros de implementación.",
-            ]
-        )
+        lines.extend([
+            "Documenta únicamente los flujos relevantes y estables del proyecto.",
+            "No incluir detalles efímeros de implementación.",
+        ])
 
     elif document is MemoryDocumentKind.DECISIONS:
         lines.append(_bullet_list(memory.decisions, empty="- Sin decisiones registradas"))
