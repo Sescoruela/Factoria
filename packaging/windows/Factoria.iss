@@ -5,10 +5,9 @@
 #define MyAppName "Factoria"
 #define MyAppPublisher "Sergi Escoruela"
 #define MyAppExeName "Factoria.exe"
-#define MyAppId "{C23F0F33-5A4F-4C34-BE7A-6CB663AA5A88}"
 
 [Setup]
-AppId={#MyAppId}
+AppId={{C23F0F33-5A4F-4C34-BE7A-6CB663AA5A88}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
