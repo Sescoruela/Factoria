@@ -102,6 +102,46 @@ class ProjectPostCreateFlowTests(unittest.TestCase):
             self.assertIn("Memoria Factoria preparada", rendered)
             self.assertIn("Volviendo al dashboard del proyecto", rendered)
 
+    def test_console_accepts_bare_command(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            commands: list[list[str]] = []
+            ui = ProjectFlowTerminalUI(
+                Path(temp),
+                output_fn=lambda _line: None,
+                command_runner=lambda args: commands.append(list(args)) or 0,
+            )
+
+            ui._execute_console_command("status --all")
+
+            self.assertEqual(commands, [["status", "--all"]])
+
+    def test_console_accepts_factoria_prefix_and_quoted_values(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            commands: list[list[str]] = []
+            ui = ProjectFlowTerminalUI(
+                Path(temp),
+                output_fn=lambda _line: None,
+                command_runner=lambda args: commands.append(list(args)) or 0,
+            )
+
+            ui._execute_console_command('factoria feature "Calendario semanal" --tool opencode')
+
+            self.assertEqual(commands, [["feature", "Calendario semanal", "--tool", "opencode"]])
+
+    def test_command_help_lists_core_commands(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            output: list[str] = []
+            ui = ProjectFlowTerminalUI(Path(temp), output_fn=output.append, command_runner=lambda _args: 0)
+
+            ui._show_command_help()
+
+            rendered = "\n".join(output)
+            self.assertIn("status [--all]", rendered)
+            self.assertIn("memoria-init", rendered)
+            self.assertIn("feature", rendered)
+            self.assertIn("security incidents", rendered)
+            self.assertIn("update", rendered)
+
 
 if __name__ == "__main__":
     unittest.main()
