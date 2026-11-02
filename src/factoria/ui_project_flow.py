@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shlex
 import shutil
 import subprocess
 from pathlib import Path
@@ -9,8 +10,29 @@ from factoria.ui_cli import _slug, build_parser
 from factoria.ui_workspace import UiWorkspaceSettings
 
 
+COMMAND_HELP: tuple[tuple[str, str], ...] = (
+    ("status [--all]", "Ver el estado del proyecto"),
+    ("memoria-init [--name NOMBRE] [--purpose TEXTO] [--yes]", "Inicializar la memoria del proyecto"),
+    ("memoria-update [--yes]", "Revisar/actualizar la memoria existente"),
+    ("feature \"título\" [--branch rama] [--tool codex|opencode]", "Iniciar una feature"),
+    ("fix \"título\" [--branch rama] [--tool codex|opencode] [--large]", "Iniciar un fix"),
+    ("resume [flow_id] [--approve-plan|--approve-final]", "Reanudar un flujo"),
+    ("pause FLOW_ID [--reason texto]", "Pausar un flujo"),
+    ("cancel FLOW_ID [--reason texto] [--yes]", "Cancelar un flujo"),
+    ("commit [flow_id] [--yes]", "Previsualizar o confirmar un commit"),
+    ("history [--limit N] [--report]", "Ver el historial local"),
+    ("security incidents", "Listar incidentes de seguridad"),
+    ("security resolve ID --confirm-rotation", "Resolver un incidente ya rotado/revocado"),
+    ("plugins", "Listar plugins descubiertos"),
+    ("install --check-only", "Diagnosticar Git/Codex/OpenCode y configuración"),
+    ("update", "Comprobar una actualización de Factoria"),
+    ("rollback", "Revisar/restaurar la versión anterior"),
+    ("onboarding", "Repetir la guía interactiva"),
+)
+
+
 class ProjectFlowTerminalUI(ManagedTerminalUI):
-    """Managed UI with a direct project-creation -> preparation -> dashboard flow."""
+    """Managed UI with project navigation plus a safe interactive command console."""
 
     def run(self) -> int:
         if not self._onboarding_complete():
@@ -34,8 +56,11 @@ class ProjectFlowTerminalUI(ManagedTerminalUI):
             self.output("  9. Gestionar proyectos")
             if self._is_git_project() and not (self.root / "AGENTS.md").exists() and not self.read_only:
                 self.output("  M. Inicializar memoria del proyecto")
+            self.output("  H. Ver todos los comandos disponibles")
             self.output("  0. Salir")
-            choice = self.input("\nElige una opción: ").strip().lower()
+            self.output("\nTambién puedes escribir directamente un comando, por ejemplo: status")
+            raw_choice = self.input("\nElige una opción o escribe un comando: ").strip()
+            choice = raw_choice.lower()
             if choice == "0":
                 self.output("Hasta la próxima.")
                 return 0
@@ -62,8 +87,59 @@ class ProjectFlowTerminalUI(ManagedTerminalUI):
                 self._manage_projects()
             elif choice == "m" and self._is_git_project() and not (self.root / "AGENTS.md").exists() and not self.read_only:
                 self._initialize_memory_from_dashboard()
+            elif choice in {"h", "help", "ayuda", "comandos"}:
+                self._show_command_help()
+                self._pause()
+            elif raw_choice:
+                self._execute_console_command(raw_choice)
+                self._pause()
             else:
                 self.output("Opción no válida.")
+
+    def _show_command_help(self) -> None:
+        self.output("\nComandos disponibles desde esta misma pantalla")
+        self.output("Puedes escribirlos con o sin el prefijo `factoria`.")
+        for command, description in COMMAND_HELP:
+            self.output(f"  {command}")
+            self.output(f"    {description}")
+        self.output("\nEjemplos:")
+        self.output("  status")
+        self.output("  memoria-init --name Organizador --purpose \"Organizar turnos por medias horas\"")
+        self.output("  feature \"Añadir calendario semanal\" --tool opencode")
+        self.output("  factoria history --limit 20")
+        self.output("\nLas confirmaciones y políticas de seguridad siguen aplicándose igual que en el CLI.")
+
+    def _execute_console_command(self, raw: str) -> None:
+        try:
+            args = shlex.split(raw, posix=False)
+        except ValueError as exc:
+            self.output(f"Comando no válido: {exc}")
+            return
+        if args and args[0].lower() == "factoria":
+            args = args[1:]
+        if not args:
+            self._show_command_help()
+            return
+
+        command = args[0].lower()
+        if command == "ui":
+            self.output("Ya estás dentro de la UI de Factoria.")
+            return
+        if command == "onboarding":
+            self.run_onboarding()
+            return
+        if command in {"help", "ayuda", "comandos"}:
+            self._show_command_help()
+            return
+
+        try:
+            self._run_command(args)
+        except SystemExit as exc:
+            # argparse uses SystemExit for malformed command syntax; keep the TUI alive.
+            if exc.code not in {None, 0}:
+                self.output("El comando no se pudo interpretar. Escribe H para ver ejemplos y comandos disponibles.")
+        except (OSError, RuntimeError, ValueError, PermissionError) as exc:
+            self.output(f"El comando no pudo completarse: {exc}")
 
     def _render_dashboard(self) -> None:
         original_output = self.output
