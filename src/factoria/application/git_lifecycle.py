@@ -4,7 +4,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from factoria.security import SecretBlockedError, SecretScanner
+from factoria.security import SecretBlockedError, SecretIncidentStore, SecretScanner
 
 from .flow_service import FlowExecution
 
@@ -39,7 +39,25 @@ class GitLifecycle:
     project_root: Path
     secret_scanner: SecretScanner = SecretScanner()
 
+    def _assert_no_open_incidents(self) -> None:
+        incidents = SecretIncidentStore(self.project_root).open()
+        if incidents:
+            labels = ", ".join(
+                f"{item.incident_id[:8]}:{item.secret_type}@{item.location}" for item in incidents
+            )
+            raise GitLifecycleError(
+                "Open secret incident(s) block commit until rotation/revocation is confirmed and absence is verified: "
+                + labels
+            )
+
+    def _scan_and_persist(self, paths: tuple[str, ...]) -> None:
+        findings = self.secret_scanner.scan_files(self.project_root, paths)
+        if findings:
+            SecretIncidentStore(self.project_root).record(findings)
+            raise SecretBlockedError(findings)
+
     def prepare(self, execution: FlowExecution, *, message: str | None = None) -> CommitProposal:
+        self._assert_no_open_incidents()
         branch = self._git("branch", "--show-current").strip()
         if not branch:
             raise GitLifecycleError("Detached HEAD is not supported")
@@ -48,12 +66,7 @@ class GitLifecycle:
         changes = self.changes()
         if not changes:
             raise GitLifecycleError("No pending changes to commit")
-        findings = self.secret_scanner.scan_files(
-            self.project_root,
-            tuple(item.path for item in changes),
-        )
-        if findings:
-            raise SecretBlockedError(findings)
+        self._scan_and_persist(tuple(item.path for item in changes))
         proposed = message or self._default_message(execution)
         if not proposed.strip():
             raise GitLifecycleError("Commit message cannot be empty")
@@ -86,6 +99,7 @@ class GitLifecycle:
     ) -> CommitResult:
         if not confirmed:
             raise GitLifecycleError("Explicit confirmation is required before committing")
+        self._assert_no_open_incidents()
         current_branch = self._git("branch", "--show-current").strip()
         if current_branch != proposal.branch:
             raise GitLifecycleError(
@@ -96,12 +110,7 @@ class GitLifecycle:
             raise GitLifecycleError(
                 "Working tree changed after the commit preview; generate a new preview before committing"
             )
-        findings = self.secret_scanner.scan_files(
-            self.project_root,
-            tuple(item.path for item in current_changes),
-        )
-        if findings:
-            raise SecretBlockedError(findings)
+        self._scan_and_persist(tuple(item.path for item in current_changes))
         final_message = (message or proposal.message).strip()
         if not final_message:
             raise GitLifecycleError("Commit message cannot be empty")
