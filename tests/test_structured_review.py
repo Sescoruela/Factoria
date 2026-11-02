@@ -9,6 +9,7 @@ from factoria.adapters.base import AgentResult
 from factoria.application.agent_flow_runtime import LiveAgentFlowRunner, LiveFlowSession
 from factoria.application.artifacts import FlowArtifactStore
 from factoria.application.review_runtime import ReviewParseError, parse_structured_review
+from factoria.application.runtime_state import RuntimeStage
 from factoria.domain.models import ProjectMemory
 from factoria.orchestration import AgentRole, AgentWorkflowPlanner, ModelProfile
 from factoria.orchestration.models import AgentAttemptTrace, AgentStageTrace
@@ -139,7 +140,7 @@ class StructuredReviewLoopTests(unittest.TestCase):
                 title="Fix condition",
                 branch="work",
                 preferred_tool=None,
-                phase="running",
+                runtime_stage=RuntimeStage.RUNNING,
             )
             reviewer = next(
                 step
