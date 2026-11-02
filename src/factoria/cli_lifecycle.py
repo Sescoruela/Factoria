@@ -31,6 +31,12 @@ def register_lifecycle_commands(sub) -> None:
     history.add_argument("--kind", choices=("fix", "feature"))
     history.add_argument("--state", choices=("completed", "cancelled"))
     history.add_argument("--limit", type=int, default=20)
+    history.add_argument("--flow-id", help="Show only one execution")
+    history.add_argument(
+        "--report",
+        action="store_true",
+        help="Render the full persisted final report for the selected execution",
+    )
 
 
 def archive_terminal(root: Path, execution, snapshot: dict[str, str]) -> None:
@@ -102,6 +108,19 @@ def run_commit(args, root: Path, execution) -> int:
         record_manual_verification(execution.workspace.root, manual)
 
     result = lifecycle.commit(proposal, confirmed=True, message=args.message)
+    (execution.workspace.root / "commit.json").write_text(
+        json.dumps(
+            {
+                "sha": result.sha,
+                "message": result.message,
+                "files": list(result.files),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     history = LocalExecutionHistoryStore(root)
     snapshot = history.snapshot(execution.workspace.root)
     updated = build_live_runner(root).resume(flow_id=execution.flow.flow_id, project_root=root)
@@ -117,21 +136,38 @@ def run_commit(args, root: Path, execution) -> int:
 def run_history(args, root: Path) -> int:
     store = LocalExecutionHistoryStore(root)
     all_records = store.list(kind=args.kind, state=args.state)
+    if args.flow_id:
+        all_records = tuple(item for item in all_records if item.flow_id == args.flow_id)
+    if args.report:
+        if not args.flow_id:
+            raise RuntimeError("--report requires --flow-id")
+        if not all_records:
+            raise RuntimeError(f"Execution not found in local history: {args.flow_id}")
+        print(store.render_report(all_records[0]), end="")
+        return 0
+
     visible = all_records[: max(0, args.limit)]
     completed = sum(item.state == "completed" for item in all_records)
     cancelled = sum(item.state == "cancelled" for item in all_records)
     durations = [item.duration_seconds for item in all_records if item.duration_seconds is not None]
     average = sum(durations) / len(durations) if durations else None
+    attempts = sum(item.agent_attempts for item in all_records)
+    fallbacks = sum(item.agent_fallbacks for item in all_records)
     print(f"Ejecuciones: {len(all_records)} | completadas: {completed} | canceladas: {cancelled}")
     if average is not None:
         print(f"Duración media: {average:.1f}s")
+    print(f"Intentos de agente: {attempts} | fallbacks: {fallbacks}")
     for record in visible:
         duration = f"{record.duration_seconds:.1f}s" if record.duration_seconds is not None else "-"
         profile = record.permission_profile or "-"
         escalated = " escalated" if record.permission_escalated else ""
+        adapters = ",".join(record.agent_adapters) or "-"
+        models = ",".join(record.agent_models) or "-"
         print(
             f"- {record.flow_id} | {record.kind} | {record.state} | "
-            f"{record.branch or '-'} | {duration} | profile={profile}{escalated} | {record.label or '-'}"
+            f"{record.branch or '-'} | {duration} | profile={profile}{escalated} | "
+            f"attempts={record.agent_attempts} fallbacks={record.agent_fallbacks} | "
+            f"adapters={adapters} models={models} | {record.label or '-'}"
         )
     if not visible:
         print("Sin ejecuciones registradas")
