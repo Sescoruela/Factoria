@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -43,21 +44,43 @@ class UiWorkspaceSettings:
         )
 
 
+_IGNORED_DISCOVERY_DIRS = {
+    ".git",
+    ".factoria",
+    ".venv",
+    "venv",
+    "node_modules",
+    "bin",
+    "obj",
+    "dist",
+    "build",
+    "vendor",
+}
+
+
 def discover_projects(root: Path) -> tuple[Path, ...]:
+    """Return every Git repository below the configured project root.
+
+    Discovery is recursive so projects can be grouped in subfolders. Heavy generated
+    directories are pruned, but there is no artificial result limit.
+    """
     root = root.expanduser().resolve()
     if not root.is_dir():
         return ()
+
     projects: list[Path] = []
-    if (root / ".git").exists():
-        projects.append(root)
-    try:
-        children = sorted((item for item in root.iterdir() if item.is_dir()), key=lambda item: item.name.lower())
-    except OSError:
-        return tuple(projects)
-    for child in children:
-        if (child / ".git").exists():
-            projects.append(child.resolve())
-    return tuple(projects)
+    seen: set[Path] = set()
+    for current, dirs, _files in os.walk(root):
+        current_path = Path(current)
+        dirs[:] = [name for name in dirs if name not in _IGNORED_DISCOVERY_DIRS]
+        git_marker = current_path / ".git"
+        if git_marker.exists():
+            resolved = current_path.resolve()
+            if resolved not in seen:
+                projects.append(resolved)
+                seen.add(resolved)
+
+    return tuple(sorted(projects, key=lambda path: str(path).lower()))
 
 
 def choose_folder(initial: Path | None = None) -> Path | None:
