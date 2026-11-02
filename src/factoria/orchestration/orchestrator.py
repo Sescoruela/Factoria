@@ -22,6 +22,7 @@ from .models import (
     ModelRouter,
     ROLE_SPECS,
     RetryPolicy,
+    RoleAccess,
 )
 from .runtime_validation import AdapterRuntimeValidator
 
@@ -126,6 +127,10 @@ class AgentOrchestrator:
                 ToolCapability.NON_INTERACTIVE,
                 ToolCapability.PROJECT_DIRECTORY,
             }
+            if spec.access is RoleAccess.READ_ONLY:
+                required.add(ToolCapability.READ_ONLY_ENFORCEMENT)
+            elif spec.access in {RoleAccess.PROJECT_WRITE, RoleAccess.MEMORY_WRITE}:
+                required.add(ToolCapability.PROJECT_WRITE_ENFORCEMENT)
             if structured:
                 required.add(ToolCapability.STRUCTURED_OUTPUT)
             if model is not None or self.model_router.strict:
