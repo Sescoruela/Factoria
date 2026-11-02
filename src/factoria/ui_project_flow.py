@@ -31,6 +31,12 @@ COMMAND_HELP: tuple[tuple[str, str], ...] = (
 )
 
 
+def _normalize_console_token(token: str) -> str:
+    if len(token) >= 2 and token[0] == token[-1] and token[0] in {'"', "'"}:
+        return token[1:-1]
+    return token
+
+
 class ProjectFlowTerminalUI(ManagedTerminalUI):
     """Managed UI with project navigation plus a safe interactive command console."""
 
@@ -111,7 +117,7 @@ class ProjectFlowTerminalUI(ManagedTerminalUI):
 
     def _execute_console_command(self, raw: str) -> None:
         try:
-            args = shlex.split(raw, posix=False)
+            args = [_normalize_console_token(item) for item in shlex.split(raw, posix=False)]
         except ValueError as exc:
             self.output(f"Comando no válido: {exc}")
             return
@@ -135,7 +141,6 @@ class ProjectFlowTerminalUI(ManagedTerminalUI):
         try:
             self._run_command(args)
         except SystemExit as exc:
-            # argparse uses SystemExit for malformed command syntax; keep the TUI alive.
             if exc.code not in {None, 0}:
                 self.output("El comando no se pudo interpretar. Escribe H para ver ejemplos y comandos disponibles.")
         except (OSError, RuntimeError, ValueError, PermissionError) as exc:
