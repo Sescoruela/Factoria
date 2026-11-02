@@ -105,6 +105,7 @@ def render_final_report(record) -> str:
     review_name = _latest_review_name(artifacts)
     review = _summary_lines(artifacts.get(review_name, ""), limit=14) if review_name else ()
     security = _security_summary(artifacts)
+    impact = _summary_lines(artifacts.get("impact.md", ""), limit=20)
     metrics = parse_agent_metrics(artifacts.get("agents.log", ""))
 
     duration = (
@@ -143,6 +144,14 @@ def render_final_report(record) -> str:
 
     lines.extend(["", "Security"])
     lines.extend(f"- {item}" for item in security)
+
+    lines.extend(["", "Impact"])
+    if impact:
+        lines.extend(f"- {item}" for item in impact)
+        if "external-impact-review.json" in artifacts:
+            lines.append("- Declared external impact was manually reviewed before closure.")
+    else:
+        lines.append("- No persisted dependency/contract impact analysis is available.")
 
     lines.extend(
         [
