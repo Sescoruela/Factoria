@@ -53,9 +53,11 @@ La acción **Crear proyecto nuevo** pide nombre y descripción opcional. Antes d
 2. ejecuta `git init -b main`;
 3. crea un `README.md` inicial;
 4. ofrece crear un commit `Initial commit` mediante una segunda confirmación;
-5. selecciona automáticamente el proyecto recién creado.
+5. selecciona automáticamente el proyecto recién creado;
+6. ofrece preparar inmediatamente la memoria Factoria;
+7. vuelve directamente al dashboard del nuevo proyecto, sin regresar al submenú de gestión.
 
-Si el commit inicial falla por falta de `user.name` o `user.email`, el repositorio se conserva y la UI muestra el diagnóstico; no se borra el proyecto ya creado.
+Si se pospone la memoria, el dashboard muestra la acción **M. Inicializar memoria del proyecto** para continuar sin tener que salir de la TUI. Si el commit inicial falla por falta de `user.name` o `user.email`, el repositorio se conserva y la UI muestra el diagnóstico; no se borra el proyecto ya creado.
 
 ## Dashboard
 
@@ -69,6 +71,8 @@ La pantalla principal resume:
 - incidentes de secretos abiertos;
 - flujo activo y runtime stage;
 - siguiente recomendación operativa.
+
+Si la memoria todavía no existe, la recomendación se presenta en lenguaje de UI y se ofrece la acción directa para inicializarla.
 
 Si Git no está instalado o no está en `PATH`, el dashboard ya no falla con `WinError 2`: entra en modo diagnóstico, informa de que Git falta y mantiene disponibles la navegación, el onboarding y la selección de proyectos. Las operaciones que necesitan Git quedan bloqueadas con un mensaje explícito.
 
@@ -86,9 +90,30 @@ La UI permite:
 6. revisar/resolver incidentes de seguridad;
 7. repetir el onboarding;
 8. actualizar el dashboard;
-9. gestionar proyectos: seleccionar, crear o cambiar la carpeta raíz.
+9. gestionar proyectos: seleccionar, crear o cambiar la carpeta raíz;
+10. inicializar la memoria directamente cuando el proyecto aún no la tiene;
+11. consultar la ayuda completa de comandos con `H`.
 
 Cada acción reutiliza las mismas rutas gobernadas del CLI. La TUI no crea un segundo motor de ejecución ni relaja permisos.
+
+## Modo comandos dentro de la TUI
+
+El prompt principal acepta tanto las opciones del menú como comandos de Factoria. No es necesario cerrar el `.exe` ni abrir otra consola.
+
+Por ejemplo:
+
+```text
+status
+memoria-init --name Organizador --purpose "Organizar turnos por medias horas"
+feature "Añadir calendario semanal" --tool opencode
+factoria history --limit 20
+```
+
+El prefijo `factoria` es opcional. Los argumentos entre comillas se conservan como una sola unidad, también en Windows.
+
+La opción **H. Ver todos los comandos disponibles** muestra el catálogo de comandos y ejemplos de uso desde la propia UI. También se aceptan `help`, `ayuda` y `comandos`.
+
+Los comandos escritos manualmente pasan por el mismo `entrypoint`, permisos, perfiles, confirmaciones y gates que el CLI normal. La consola interactiva no es una vía para saltarse seguridad.
 
 ## Onboarding
 
