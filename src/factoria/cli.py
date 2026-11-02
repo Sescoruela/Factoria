@@ -311,8 +311,10 @@ def _cmd_start_flow(args: argparse.Namespace, root: Path, kind: str) -> int:
     workspace = root / ".factoria" / "work" / flow_id
     session_path = workspace / "agent-flow.json"
     if session_path.exists():
-        phase = json.loads(session_path.read_text(encoding="utf-8"))["phase"]
-        print(f"Fase: {phase}")
+        session = json.loads(session_path.read_text(encoding="utf-8"))
+        runtime_stage = session.get("runtime_stage") or session.get("phase")
+        if runtime_stage:
+            print(f"Fase: {runtime_stage}")
     if execution.flow.state.value == "paused":
         print("Revisa los artefactos del flujo antes de continuar con `factoria resume`.")
     return 0
@@ -347,7 +349,7 @@ def _cmd_status(root: Path) -> int:
         phase = ""
         if session_path.exists():
             session = json.loads(session_path.read_text(encoding="utf-8"))
-            phase_name = session.get("phase")
+            phase_name = session.get("runtime_stage") or session.get("phase")
             profile = session.get("permission_profile")
             phase = f" / {phase_name}" if phase_name else ""
             if profile:
