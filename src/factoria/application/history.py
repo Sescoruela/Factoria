@@ -73,6 +73,8 @@ class LocalExecutionHistoryStore:
             "manual-verification.json",
             "commit.json",
             "security-incident.json",
+            "impact.md",
+            "external-impact-review.json",
         }
         for path in sorted(workspace.iterdir()):
             if not path.is_file():
