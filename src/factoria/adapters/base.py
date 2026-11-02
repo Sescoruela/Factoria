@@ -12,6 +12,8 @@ from typing import Mapping, Protocol, Sequence
 from factoria.domain.models import CheckResult
 from factoria.security import SecretFinding, SecretScanner
 
+from .argument_policy import AdapterArgumentPolicy, ArgumentPolicyError, DENY_ALL_ARGUMENTS
+
 
 class ToolCapability(StrEnum):
     NON_INTERACTIVE = "non_interactive"
@@ -27,6 +29,8 @@ class AgentRequest:
     model: str | None = None
     structured_output: bool = False
     timeout_seconds: int = 1800
+    # Compatibility field: these are never free-form. Every adapter must validate
+    # them through an explicit AdapterArgumentPolicy before command construction.
     extra_args: tuple[str, ...] = field(default_factory=tuple)
     environment: Mapping[str, str] = field(
         default_factory=lambda: MappingProxyType({})
@@ -65,11 +69,32 @@ class ToolAdapter(Protocol):
 
     def available(self) -> bool: ...
 
+    def argument_policy(self) -> AdapterArgumentPolicy: ...
+
     def build_command(self, request: AgentRequest) -> tuple[str, ...]: ...
 
     def run(self, request: AgentRequest) -> AgentResult: ...
 
     def self_test(self) -> Sequence[CheckResult]: ...
+
+
+def validate_adapter_args(adapter: object, args: tuple[str, ...]) -> tuple[str, ...]:
+    """Validate externally supplied CLI arguments without trusting adapter defaults.
+
+    Third-party adapters are trusted Python code, but Factoria will still never pass
+    orchestration-supplied arguments to them unless they expose an explicit policy.
+    """
+    if not args:
+        return ()
+    policy_factory = getattr(adapter, "argument_policy", None)
+    if not callable(policy_factory):
+        raise ArgumentPolicyError(
+            "Adapter does not declare an argument policy; Factoria refuses to pass extra arguments"
+        )
+    policy = policy_factory()
+    if not isinstance(policy, AdapterArgumentPolicy):
+        raise ArgumentPolicyError("Adapter returned an invalid argument policy")
+    return policy.validate(args)
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,6 +105,12 @@ class SubprocessToolAdapter:
 
     def available(self) -> bool:
         return shutil.which(self.executable) is not None
+
+    def argument_policy(self) -> AdapterArgumentPolicy:
+        return DENY_ALL_ARGUMENTS
+
+    def _validated_extra_args(self, request: AgentRequest) -> tuple[str, ...]:
+        return self.argument_policy().validate(request.extra_args)
 
     def _execute(self, request: AgentRequest, command: tuple[str, ...], *, adapter_name: str) -> AgentResult:
         root = request.project_root.expanduser().resolve()
