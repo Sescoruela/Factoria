@@ -7,6 +7,7 @@ from pathlib import Path
 
 from factoria.application.status import OperationalStatusService
 from factoria.config.loader import ConfigError
+from factoria.security import SecretIncidentStore, SecretScanner
 
 
 def build_status_parser() -> argparse.ArgumentParser:
@@ -29,6 +30,11 @@ def run_status_cli(argv: list[str]) -> int:
         return 1
     try:
         report = OperationalStatusService().inspect(root, include_history=args.all)
+        scanner = SecretScanner()
+        incident_store = SecretIncidentStore(root)
+        current_findings = scanner.scan_files(root, scanner.changed_paths(root))
+        incident_store.record(current_findings)
+        open_incidents = incident_store.open()
     except (ConfigError, FileNotFoundError, RuntimeError, ValueError, subprocess.CalledProcessError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -82,12 +88,16 @@ def run_status_cli(argv: list[str]) -> int:
         print(f"- {flow.flow_id}{label}: " + " / ".join(details))
 
     print("\nSeguridad")
-    if not report.security.blocked:
-        print("- Sin posibles secretos detectados en archivos modificados")
+    if not open_incidents:
+        print("- Sin incidentes de secretos abiertos")
     else:
-        print(f"- BLOQUEO: {report.security.finding_count} posible(s) secreto(s)")
-        for item in report.security.summaries:
-            print(f"  - {item}")
+        print(f"- BLOQUEO: {len(open_incidents)} incidente(s) de secreto abiertos")
+        for item in open_incidents:
+            print(
+                f"  - {item.incident_id[:8]} {item.secret_type}@{item.location} "
+                f"fingerprint={item.fingerprint}"
+            )
+        print("- Resolver solo después de rotar/revocar: factoria security resolve <id> --confirm-rotation")
 
     print("\nResultados recientes")
     if not report.recent_results:
@@ -113,4 +123,4 @@ def run_status_cli(argv: list[str]) -> int:
     else:
         for recommendation in report.recommendations:
             print(f"- {recommendation}")
-    return 0
+    return 1 if open_incidents else 0
