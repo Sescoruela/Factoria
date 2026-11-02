@@ -3,7 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from factoria.adapters.base import AgentRequest, AgentResult, ToolCapability
+from factoria.adapters.base import (
+    AgentRequest,
+    AgentResult,
+    ArgumentPolicyError,
+    ToolCapability,
+    validate_adapter_args,
+)
 from factoria.adapters.registry import AdapterRegistry
 
 from .models import (
@@ -49,7 +55,7 @@ class AgentOrchestrator:
 
         for attempt in range(1, self.retry_policy.max_attempts + 1):
             profile = self._profile_for_attempt(base_profile, attempt)
-            adapter, model = self._select_adapter(
+            adapter, model, validated_args = self._select_adapter(
                 role=stage.role,
                 profile=profile,
                 preferred=stage.preferred_tool,
@@ -64,7 +70,7 @@ class AgentOrchestrator:
                 model=model,
                 structured_output=structured,
                 timeout_seconds=stage.timeout_seconds,
-                extra_args=self.safety_policy.args_for(adapter.name, stage.role),
+                extra_args=validated_args,
                 environment=self.safety_policy.environment_for(adapter.name, stage.role),
             )
             result = adapter.run(request)
@@ -104,6 +110,7 @@ class AgentOrchestrator:
         names.extend(name for name in self.registry.adapters if name != preferred)
 
         candidates = []
+        policy_rejections: list[str] = []
         for name in names:
             adapter = self.registry.adapters.get(name)
             if adapter is None or not adapter.available():
@@ -125,17 +132,29 @@ class AgentOrchestrator:
                 required.add(ToolCapability.MODEL_SELECTION)
             if not self.runtime_validator.supports(adapter, frozenset(required)):
                 continue
-            candidates.append((adapter, model))
+
+            raw_args = self.safety_policy.args_for(name, role)
+            try:
+                validated_args = validate_adapter_args(adapter, raw_args)
+            except ArgumentPolicyError as exc:
+                policy_rejections.append(f"{name}: {exc}")
+                continue
+            candidates.append((adapter, model, validated_args))
 
         if not candidates:
             mapping_hint = " and an explicit model mapping" if self.model_router.strict else ""
+            policy_hint = (
+                "; argument policy rejected: " + " | ".join(policy_rejections)
+                if policy_rejections
+                else ""
+            )
             raise AgentOrchestrationError(
-                f"No safe verified adapter available for role={role.value}, profile={profile.value}{mapping_hint}"
+                f"No safe verified adapter available for role={role.value}, profile={profile.value}{mapping_hint}{policy_hint}"
             )
 
-        for adapter, model in candidates:
+        for adapter, model, validated_args in candidates:
             if adapter.name not in used_adapters:
-                return adapter, model
+                return adapter, model, validated_args
         return candidates[0]
 
     def _profile_for_attempt(self, base: ModelProfile, attempt: int) -> ModelProfile:
