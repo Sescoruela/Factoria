@@ -20,6 +20,8 @@ class ToolCapability(StrEnum):
     STRUCTURED_OUTPUT = "structured_output"
     MODEL_SELECTION = "model_selection"
     PROJECT_DIRECTORY = "project_directory"
+    READ_ONLY_ENFORCEMENT = "read_only_enforcement"
+    PROJECT_WRITE_ENFORCEMENT = "project_write_enforcement"
 
 
 @dataclass(frozen=True, slots=True)
