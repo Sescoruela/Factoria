@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Mapping
 
+from .final_report import parse_agent_metrics, render_final_report
 from .flow_service import FlowExecution
 
 
@@ -24,6 +25,15 @@ class HistoryRecord:
     artifacts: Mapping[str, str]
     permission_profile: str | None = None
     permission_escalated: bool = False
+    transitions: tuple[Mapping[str, str | None], ...] = field(default_factory=tuple)
+    agent_attempts: int = 0
+    agent_fallbacks: int = 0
+    agent_adapters: tuple[str, ...] = field(default_factory=tuple)
+    agent_models: tuple[str, ...] = field(default_factory=tuple)
+    usage_source: str = "unavailable"
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    cost_usd: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,9 +70,20 @@ class LocalExecutionHistoryStore:
             "agent-flow.json",
             "permissions.json",
             "state.toml",
+            "manual-verification.json",
+            "commit.json",
+            "security-incident.json",
         }
         for path in sorted(workspace.iterdir()):
-            if path.name not in allowed or not path.is_file():
+            if not path.is_file():
+                continue
+            dynamic = (
+                path.name.startswith("review-cycle-")
+                or path.name.startswith("correction-")
+                or "security" in path.name.lower()
+                or "secret" in path.name.lower()
+            )
+            if path.name not in allowed and not dynamic:
                 continue
             text = path.read_text(encoding="utf-8", errors="replace")
             result[path.name] = text[-self.max_artifact_chars :]
@@ -90,6 +111,17 @@ class LocalExecutionHistoryStore:
                 permission_escalated = bool(permissions.get("temporary_escalation", False))
             except (json.JSONDecodeError, TypeError):
                 pass
+
+        metrics = parse_agent_metrics(artifacts.get("agents.log", ""))
+        transitions = tuple(
+            {
+                "source": item.source.value,
+                "target": item.target.value,
+                "occurred_at": item.occurred_at.isoformat(),
+                "reason": item.reason,
+            }
+            for item in execution.flow.history
+        )
         record = HistoryRecord(
             flow_id=execution.flow.flow_id,
             kind=execution.flow.kind,
@@ -103,6 +135,15 @@ class LocalExecutionHistoryStore:
             artifacts=dict(artifacts),
             permission_profile=permission_profile,
             permission_escalated=permission_escalated,
+            transitions=transitions,
+            agent_attempts=metrics.attempts,
+            agent_fallbacks=metrics.fallback_attempts,
+            agent_adapters=metrics.adapters,
+            agent_models=metrics.models,
+            usage_source=metrics.usage_source,
+            input_tokens=metrics.input_tokens,
+            output_tokens=metrics.output_tokens,
+            cost_usd=metrics.cost_usd,
         )
         root = self.history_root()
         root.mkdir(parents=True, exist_ok=True)
@@ -158,23 +199,4 @@ class LocalExecutionHistoryStore:
 
     @staticmethod
     def render_report(record: HistoryRecord) -> str:
-        duration = (
-            f"{record.duration_seconds:.1f}s" if record.duration_seconds is not None else "unknown"
-        )
-        lines = [
-            "FACTORIA EXECUTION REPORT",
-            f"flow_id: {record.flow_id}",
-            f"kind: {record.kind}",
-            f"state: {record.state}",
-            f"label: {record.label or '-'}",
-            f"branch: {record.branch or '-'}",
-            f"commit: {record.commit_sha or '-'}",
-            f"started_at: {record.started_at or '-'}",
-            f"ended_at: {record.ended_at}",
-            f"duration: {duration}",
-            f"permission_profile: {record.permission_profile or '-'}",
-            f"permission_escalated: {str(record.permission_escalated).lower()}",
-            "artifacts:",
-        ]
-        lines.extend(f"- {name}" for name in sorted(record.artifacts))
-        return "\n".join(lines) + "\n"
+        return render_final_report(record)
