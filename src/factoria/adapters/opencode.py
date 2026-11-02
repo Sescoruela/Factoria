@@ -31,7 +31,9 @@ class OpenCodeAdapter(SubprocessToolAdapter):
             args.extend(["--format", "json"])
         if request.model:
             args.extend(["--model", request.model])
-        args.extend(request.extra_args)
+        # OpenCode permissions are currently enforced through OPENCODE_PERMISSION.
+        # No orchestration-supplied CLI arguments are approved at this boundary.
+        args.extend(self._validated_extra_args(request))
         args.append(request.prompt)
         return tuple(args)
 
