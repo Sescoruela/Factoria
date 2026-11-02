@@ -3,7 +3,9 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from types import MappingProxyType
 
+from factoria.adapters import AdapterArgumentPolicy
 from factoria.adapters.base import AgentRequest, AgentResult, ToolCapability
 from factoria.adapters.registry import AdapterRegistry
 from factoria.orchestration import (
@@ -39,6 +41,11 @@ class FakeAdapter:
 
     def available(self) -> bool:
         return True
+
+    def argument_policy(self) -> AdapterArgumentPolicy:
+        return AdapterArgumentPolicy(
+            allowed=MappingProxyType({"--read-only-policy": ()})
+        )
 
     def build_command(self, request: AgentRequest) -> tuple[str, ...]:
         return (self._name, request.prompt)
