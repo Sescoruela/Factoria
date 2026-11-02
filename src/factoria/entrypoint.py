@@ -20,11 +20,19 @@ def build_update_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="factoria")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    update = sub.add_parser("update", help="Check for and apply a newer Factoria version")
+    update = sub.add_parser("update", help="Check for and apply a newer tagged Factoria release")
     update.add_argument("--source", type=Path, help="Factoria Git clone used to inspect releases")
     update.add_argument("--remote", default="origin", help="Git remote to inspect (default: origin)")
-    update.add_argument("--branch", default="main", help="Remote branch to inspect (default: main)")
-    update.add_argument("--yes", action="store_true", help="Confirm installation of the proposed version")
+    update.add_argument(
+        "--branch",
+        default="main",
+        help="Release channel branch; selected tags must be reachable from it (default: main)",
+    )
+    update.add_argument(
+        "--tag",
+        help="Specific SemVer release tag to inspect (for example v0.3.0); defaults to newest newer tag",
+    )
+    update.add_argument("--yes", action="store_true", help="Confirm installation of the reviewed tagged release")
 
     rollback = sub.add_parser("rollback", help="Restore the previous Factoria version")
     rollback.add_argument("--yes", action="store_true", help="Confirm rollback and managed-config restoration")
@@ -87,10 +95,14 @@ def main(argv: list[str] | None = None) -> int:
                 branch=args.branch,
                 current_version=installed_version(),
                 provenance_path=provenance_path,
+                release_tag=args.tag,
             )
             print(f"Versión actual: {plan.current_version}")
+            print(f"Release objetivo: {plan.release_tag}")
             print(f"Versión objetivo: {plan.target_version}")
             print(f"Commit objetivo: {plan.target_sha[:12]}")
+            print(f"Tree objetivo: {plan.target_tree_sha[:12]}")
+            print(f"Canal verificado: {plan.remote}/{plan.branch}")
             if plan.current_sha:
                 print(f"Commit instalado: {plan.current_sha[:12]} (procedencia verificada)")
             else:
@@ -124,7 +136,7 @@ def main(argv: list[str] | None = None) -> int:
                 print("Actualización bloqueada: no existe evidencia del commit exacto instalado para un rollback seguro.")
                 return 1
             if not args.yes:
-                print("Actualización no aplicada. Repite con --yes después de revisar los cambios.")
+                print("Actualización no aplicada. Repite con --yes después de revisar la release y su integridad.")
                 return 0
 
             result = service.apply(
