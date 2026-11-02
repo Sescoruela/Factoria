@@ -7,6 +7,7 @@ from .application.agent_flow_runtime import build_live_runner
 from .application.git_lifecycle import GitLifecycle
 from .application.governance import ExecutionGovernor, GovernedAction
 from .application.history import LocalExecutionHistoryStore
+from .application.impact import ImpactAnalyzer
 from .application.manual_verification import (
     inspect_manual_verification,
     record_manual_verification,
@@ -25,6 +26,11 @@ def register_lifecycle_commands(sub) -> None:
         "--confirm-manual-verification",
         action="store_true",
         help="Confirm that all persisted manual verification steps were completed",
+    )
+    commit.add_argument(
+        "--confirm-external-impact-review",
+        action="store_true",
+        help="Confirm manual review of declared external contract/dependency impact",
     )
 
     history = sub.add_parser("history", help="Show local execution history")
@@ -55,11 +61,7 @@ def run_commit(args, root: Path, execution) -> int:
     if args.read_only:
         raise PermissionError("--read-only forbids staging or committing changes")
     requested = PermissionProfile(args.profile) if getattr(args, "profile", None) else None
-    context = build_execution_context(
-        root,
-        requested_profile=requested,
-        flow_authorized=True,
-    )
+    context = build_execution_context(root, requested_profile=requested, flow_authorized=True)
     governor = ExecutionGovernor()
     governor.assert_allowed(GovernedAction.WRITE, context)
     governor.assert_allowed(GovernedAction.COMMAND, context)
@@ -93,6 +95,23 @@ def run_commit(args, root: Path, execution) -> int:
 
     lifecycle = GitLifecycle(root)
     proposal = lifecycle.prepare(execution, message=args.message)
+    impact = ImpactAnalyzer().analyze(memory, tuple(change.path for change in proposal.changes))
+    (execution.workspace.root / "impact.md").write_text(
+        ImpactAnalyzer.render(impact), encoding="utf-8", newline=""
+    )
+    if impact.items:
+        print("Impacto detectado:")
+        for item in impact.items:
+            print(f"- {item.kind}: {item.name} [{item.confidence}] {item.evidence}")
+    if impact.blocking and not args.confirm_external_impact_review:
+        message = (
+            "External contract impact requires manual review; repeat with "
+            "--confirm-external-impact-review only after checking the affected repository/consumer"
+        )
+        if args.yes:
+            raise RuntimeError(message)
+        print(message)
+
     print(f"Rama: {proposal.branch}")
     print("Archivos que se incluirán:")
     for change in proposal.changes:
@@ -102,6 +121,9 @@ def run_commit(args, root: Path, execution) -> int:
         print("Commit no ejecutado. Repite con --yes después de revisar archivos y mensaje.")
         return 0
 
+    if impact.blocking and not args.confirm_external_impact_review:
+        raise RuntimeError("External impact review confirmation is required before commit")
+
     if manual.required:
         if not args.confirm_manual_verification:
             raise RuntimeError("Manual verification confirmation is required before commit")
@@ -110,17 +132,28 @@ def run_commit(args, root: Path, execution) -> int:
     result = lifecycle.commit(proposal, confirmed=True, message=args.message)
     (execution.workspace.root / "commit.json").write_text(
         json.dumps(
-            {
-                "sha": result.sha,
-                "message": result.message,
-                "files": list(result.files),
-            },
+            {"sha": result.sha, "message": result.message, "files": list(result.files)},
             ensure_ascii=False,
             indent=2,
         )
         + "\n",
         encoding="utf-8",
     )
+    if impact.blocking:
+        (execution.workspace.root / "external-impact-review.json").write_text(
+            json.dumps(
+                {
+                    "confirmed": True,
+                    "external_dependencies": [item.name for item in impact.external_impacts],
+                    "contracts": [item.name for item in impact.contract_impacts],
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
     history = LocalExecutionHistoryStore(root)
     snapshot = history.snapshot(execution.workspace.root)
     updated = build_live_runner(root).resume(flow_id=execution.flow.flow_id, project_root=root)
@@ -129,6 +162,8 @@ def run_commit(args, root: Path, execution) -> int:
     print(f"Mensaje: {result.message}")
     if manual.required:
         print("Verificación manual: confirmada y archivada.")
+    if impact.blocking:
+        print("Impacto externo: revisión manual confirmada y archivada.")
     print("Flujo cerrado. Push y PR siguen siendo manuales.")
     return 0
 
