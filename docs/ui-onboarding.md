@@ -35,7 +35,27 @@ La configuración recuerda:
 - la carpeta raíz de proyectos;
 - el último repositorio seleccionado.
 
-Factoria detecta como proyectos los repositorios Git ubicados directamente dentro de la carpeta raíz. Desde la opción **9. Cambiar proyecto / carpeta de proyectos** se puede cambiar de repositorio o modificar la carpeta raíz.
+Factoria detecta todos los repositorios Git dentro de la carpeta raíz, también cuando están agrupados en subcarpetas. Durante el escaneo evita directorios generados pesados como `node_modules`, `.venv`, `bin`, `obj`, `dist` o `vendor`.
+
+Desde **9. Gestionar proyectos** se puede:
+
+- seleccionar un proyecto existente;
+- crear un proyecto nuevo desde cero dentro de la carpeta raíz;
+- cambiar la carpeta raíz de proyectos.
+
+El selector no tiene un límite artificial de resultados. Muestra 10 proyectos por página para mantener la terminal legible, con navegación siguiente/anterior y búsqueda por nombre o ruta. La búsqueda se aplica sobre todos los proyectos encontrados.
+
+### Crear un proyecto
+
+La acción **Crear proyecto nuevo** pide nombre y descripción opcional. Antes de escribir nada muestra la ruta y pide confirmación explícita. Después:
+
+1. crea la carpeta dentro de la raíz configurada;
+2. ejecuta `git init -b main`;
+3. crea un `README.md` inicial;
+4. ofrece crear un commit `Initial commit` mediante una segunda confirmación;
+5. selecciona automáticamente el proyecto recién creado.
+
+Si el commit inicial falla por falta de `user.name` o `user.email`, el repositorio se conserva y la UI muestra el diagnóstico; no se borra el proyecto ya creado.
 
 ## Dashboard
 
@@ -66,7 +86,7 @@ La UI permite:
 6. revisar/resolver incidentes de seguridad;
 7. repetir el onboarding;
 8. actualizar el dashboard;
-9. cambiar proyecto o carpeta raíz de proyectos.
+9. gestionar proyectos: seleccionar, crear o cambiar la carpeta raíz.
 
 Cada acción reutiliza las mismas rutas gobernadas del CLI. La TUI no crea un segundo motor de ejecución ni relaja permisos.
 
@@ -89,6 +109,7 @@ La UI conserva los gates del núcleo:
 - aprobar plan;
 - aprobar resultado final;
 - confirmar commit;
+- confirmar creación de un proyecto y, por separado, su commit inicial;
 - confirmar verificación manual cuando aplique;
 - confirmar revisión de impacto externo cuando aplique;
 - confirmar que un secreto fue rotado/revocado antes de resolver un incidente.
