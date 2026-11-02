@@ -62,11 +62,17 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if not argv:
-        from factoria.ui_agent_tools import run_agent_aware_ui_cli
-        return run_agent_aware_ui_cli(["ui"])
+        from factoria.web_app import run_web_ui
+        return run_web_ui()
 
     command = _primary_command(argv)
-    if command in {"ui", "onboarding"}:
+    if command in {"ui", "web"}:
+        from factoria.web_app import run_web_ui
+        return run_web_ui()
+    if command == "tui":
+        from factoria.ui_agent_tools import run_agent_aware_ui_cli
+        return run_agent_aware_ui_cli(["ui"])
+    if command == "onboarding":
         from factoria.ui_agent_tools import run_agent_aware_ui_cli
         return run_agent_aware_ui_cli(argv)
     if command == "memoria-init":
