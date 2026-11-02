@@ -32,7 +32,6 @@ def build_update_parser() -> argparse.ArgumentParser:
 
 
 def _primary_command(argv: list[str]) -> str | None:
-    """Locate the CLI subcommand while respecting Factoria global options."""
     index = 0
     while index < len(argv):
         value = argv[index]
@@ -57,29 +56,26 @@ def main(argv: list[str] | None = None) -> int:
     command = _primary_command(argv)
     if command == "memoria-init":
         from factoria.memory_bootstrap_cli import run_memory_init_cli
-
         return run_memory_init_cli(argv)
     if command == "status":
         from factoria.status_cli import run_status_cli
-
         return run_status_cli(argv)
     if command == "plugins":
         from factoria.plugins_cli import run_plugins_cli
-
         return run_plugins_cli(argv)
     if command in {"resume", "cancel"}:
         from factoria.robust_lifecycle_cli import run_robust_lifecycle_cli
-
         return run_robust_lifecycle_cli(argv)
     if not argv or argv[0] not in {"update", "rollback"}:
         from factoria.cli import main as cli_main
-
         return cli_main(argv)
 
     parser = build_update_parser()
     args = parser.parse_args(argv)
     service = UpdateService()
-    state_path = Path.home() / ".factoria" / "update-state" / "previous.json"
+    base = Path.home() / ".factoria" / "update-state"
+    state_path = base / "previous.json"
+    provenance_path = base / "installed.json"
     config_path = Path.home() / ".factoria" / "config.toml"
 
     try:
@@ -90,10 +86,15 @@ def main(argv: list[str] | None = None) -> int:
                 remote=args.remote,
                 branch=args.branch,
                 current_version=installed_version(),
+                provenance_path=provenance_path,
             )
             print(f"Versión actual: {plan.current_version}")
             print(f"Versión objetivo: {plan.target_version}")
             print(f"Commit objetivo: {plan.target_sha[:12]}")
+            if plan.current_sha:
+                print(f"Commit instalado: {plan.current_sha[:12]} (procedencia verificada)")
+            else:
+                print("Commit instalado: desconocido (rollback seguro no disponible)")
             if not plan.available:
                 print("Factoria ya está en la versión más reciente disponible.")
                 return 0
@@ -103,7 +104,7 @@ def main(argv: list[str] | None = None) -> int:
                 for change in plan.changes:
                     print(f"- {change}")
             else:
-                print("- No hay resumen de commits disponible.")
+                print("- No hay resumen fiable de commits disponible.")
             if plan.release and plan.release.notes:
                 print("Notas de la versión:")
                 for note in plan.release.notes:
@@ -119,6 +120,9 @@ def main(argv: list[str] | None = None) -> int:
                     for note in plan.release.config_changes:
                         print(f"- {note}")
                 print("Factoria no migra automáticamente la memoria del proyecto en esta versión.")
+            if not plan.provenance_verified:
+                print("Actualización bloqueada: no existe evidencia del commit exacto instalado para un rollback seguro.")
+                return 1
             if not args.yes:
                 print("Actualización no aplicada. Repite con --yes después de revisar los cambios.")
                 return 0
@@ -127,6 +131,7 @@ def main(argv: list[str] | None = None) -> int:
                 plan,
                 state_path=state_path,
                 config_path=config_path,
+                provenance_path=provenance_path,
                 confirmed=True,
             )
             print(f"Factoria actualizada a {result.version} ({result.commit_sha[:12]}).")
@@ -143,6 +148,7 @@ def main(argv: list[str] | None = None) -> int:
         result = service.rollback(
             state_path=state_path,
             config_path=config_path,
+            provenance_path=provenance_path,
             confirmed=True,
         )
         print(f"Factoria restaurada a {result.version} ({result.commit_sha[:12]}).")
