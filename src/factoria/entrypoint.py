@@ -71,6 +71,9 @@ def main(argv: list[str] | None = None) -> int:
     if command == "plugins":
         from factoria.plugins_cli import run_plugins_cli
         return run_plugins_cli(argv)
+    if command == "security":
+        from factoria.security_cli import run_security_cli
+        return run_security_cli(argv)
     if command in {"resume", "cancel"}:
         from factoria.robust_lifecycle_cli import run_robust_lifecycle_cli
         return run_robust_lifecycle_cli(argv)
