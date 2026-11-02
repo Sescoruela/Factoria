@@ -61,7 +61,14 @@ def main(argv: list[str] | None = None) -> int:
         print(f"factoria {installed_version()}")
         return 0
 
+    if not argv:
+        from factoria.ui_cli import run_ui_cli
+        return run_ui_cli(["ui"])
+
     command = _primary_command(argv)
+    if command in {"ui", "onboarding"}:
+        from factoria.ui_cli import run_ui_cli
+        return run_ui_cli(argv)
     if command == "memoria-init":
         from factoria.memory_bootstrap_cli import run_memory_init_cli
         return run_memory_init_cli(argv)
@@ -77,7 +84,7 @@ def main(argv: list[str] | None = None) -> int:
     if command in {"resume", "cancel"}:
         from factoria.robust_lifecycle_cli import run_robust_lifecycle_cli
         return run_robust_lifecycle_cli(argv)
-    if not argv or argv[0] not in {"update", "rollback"}:
+    if argv[0] not in {"update", "rollback"}:
         from factoria.cli import main as cli_main
         return cli_main(argv)
 
