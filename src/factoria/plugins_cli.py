@@ -1,18 +1,11 @@
 from __future__ import annotations
 
 import argparse
-from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
+from factoria.package_version import installed_version_text
 from factoria.plugins.registry import PluginSource
 from factoria.plugins.runtime import PluginRuntime
-
-
-def _installed_version() -> str:
-    try:
-        return version("factoria")
-    except PackageNotFoundError:
-        return "0.2.0"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -31,7 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
 def run_plugins_cli(argv: list[str]) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    runtime = PluginRuntime(factoria_version=_installed_version())
+    runtime = PluginRuntime(factoria_version=installed_version_text())
     extras: list[tuple[PluginSource, Path]] = []
     extras.extend(
         (PluginSource.PERSONAL, Path(item).expanduser().resolve())
