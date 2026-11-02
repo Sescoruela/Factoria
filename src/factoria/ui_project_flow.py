@@ -12,6 +12,87 @@ from factoria.ui_workspace import UiWorkspaceSettings
 class ProjectFlowTerminalUI(ManagedTerminalUI):
     """Managed UI with a direct project-creation -> preparation -> dashboard flow."""
 
+    def run(self) -> int:
+        if not self._onboarding_complete():
+            self.output("\nPrimera ejecución de la UI de Factoria.")
+            if self._confirm("¿Quieres hacer el onboarding guiado ahora?", default=True):
+                self.run_onboarding()
+
+        self._ensure_project_context()
+        while True:
+            self._render_dashboard()
+            self.output("\nAcciones")
+            if not self.read_only:
+                self.output("  1. Nueva feature")
+                self.output("  2. Nuevo fix")
+                self.output("  3. Reanudar flujo")
+                self.output("  4. Revisar / crear commit")
+            self.output("  5. Historial")
+            self.output("  6. Incidentes de seguridad")
+            self.output("  7. Onboarding / guía")
+            self.output("  8. Actualizar dashboard")
+            self.output("  9. Gestionar proyectos")
+            if self._is_git_project() and not (self.root / "AGENTS.md").exists() and not self.read_only:
+                self.output("  M. Inicializar memoria del proyecto")
+            self.output("  0. Salir")
+            choice = self.input("\nElige una opción: ").strip().lower()
+            if choice == "0":
+                self.output("Hasta la próxima.")
+                return 0
+            if choice == "1" and not self.read_only:
+                self._start_flow("feature")
+            elif choice == "2" and not self.read_only:
+                self._start_flow("fix")
+            elif choice == "3" and not self.read_only:
+                self._resume_flow()
+            elif choice == "4" and not self.read_only:
+                self._commit_flow()
+            elif choice == "5":
+                if self._require_git_project():
+                    self._run_command(["history", "--limit", "10"])
+                    self._pause()
+            elif choice == "6":
+                if self._require_git_project():
+                    self._security()
+            elif choice == "7":
+                self.run_onboarding()
+            elif choice == "8":
+                continue
+            elif choice == "9":
+                self._manage_projects()
+            elif choice == "m" and self._is_git_project() and not (self.root / "AGENTS.md").exists() and not self.read_only:
+                self._initialize_memory_from_dashboard()
+            else:
+                self.output("Opción no válida.")
+
+    def _render_dashboard(self) -> None:
+        original_output = self.output
+
+        def translated_output(line: str) -> None:
+            if line.strip() == "Run `factoria memoria-init` and review the proposal.":
+                original_output("  Inicializa la memoria del proyecto antes del primer flujo.")
+                return
+            original_output(line)
+
+        self.output = translated_output
+        try:
+            super()._render_dashboard()
+        finally:
+            self.output = original_output
+
+    def _initialize_memory_from_dashboard(self) -> None:
+        if not self._require_git_project():
+            return
+        if (self.root / "AGENTS.md").exists():
+            self.output("La memoria Factoria ya está inicializada.")
+            return
+        name = self.input(f"Nombre del proyecto [{self.root.name}]: ").strip() or self.root.name
+        purpose = self.input("Propósito breve del proyecto (opcional): ").strip()
+        if not self._confirm("¿Confirmas preparar la memoria Factoria ahora?", default=True):
+            self.output("Inicialización cancelada.")
+            return
+        self._prepare_project_memory(name=name, purpose=purpose)
+
     def _manage_projects(self) -> None:
         while True:
             self.output("\nGestión de proyectos")
@@ -115,7 +196,7 @@ class ProjectFlowTerminalUI(ManagedTerminalUI):
         if self._confirm("¿Quieres preparar ahora el proyecto para trabajar con Factoria?", default=True):
             self._prepare_project_memory(name=name, purpose=purpose)
         else:
-            self.output("Memoria Factoria pendiente. Podrás inicializarla más adelante desde el dashboard/onboarding.")
+            self.output("Memoria Factoria pendiente. Podrás inicializarla más adelante desde el dashboard.")
 
         self.output("Volviendo al dashboard del proyecto…")
         return True
