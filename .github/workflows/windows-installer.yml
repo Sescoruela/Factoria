@@ -61,6 +61,7 @@ jobs:
             --name Factoria `
             --copy-metadata factoria `
             --collect-data factoria.adapters `
+            --collect-data factoria.web `
             packaging/windows/factoria_launcher.py
 
       - name: Smoke test standalone executable
