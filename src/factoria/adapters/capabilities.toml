@@ -1,4 +1,4 @@
-version = 1
+version = 2
 
 [tools.codex]
 capabilities = [
@@ -6,6 +6,7 @@ capabilities = [
   "structured_output",
   "model_selection",
   "project_directory",
+  "read_only_enforcement",
 ]
 
 [tools.opencode]
@@ -14,4 +15,6 @@ capabilities = [
   "structured_output",
   "model_selection",
   "project_directory",
+  "read_only_enforcement",
+  "project_write_enforcement",
 ]
