@@ -2,9 +2,30 @@
 
 Factoria es una fábrica portable de flujos de desarrollo asistidos por agentes. Mantiene memoria por repositorio, aplica permisos y políticas, coordina Codex/OpenCode, ejecuta verificaciones confirmadas, estructura el review y deja trazabilidad local de cada ejecución.
 
-> Estado: MVP funcional con CLI, TUI interactiva, onboarding, seguridad, historial y validación end-to-end hermética.
+> Estado: MVP funcional con CLI, TUI interactiva, onboarding, seguridad, historial, instalador Windows y validación end-to-end hermética.
 
 ## Inicio rápido
+
+### Windows
+
+La distribución de Windows genera dos artefactos:
+
+- `Factoria.exe`: ejecutable standalone; no requiere Python instalado.
+- `Factoria-Setup-<version>.exe`: instalador por usuario, sin permisos de administrador.
+
+El instalador instala Factoria en `%LOCALAPPDATA%\Programs\Factoria`, crea accesos del menú Inicio y ofrece añadir el directorio de instalación al `PATH` del usuario. El desinstalador elimina únicamente la entrada de Factoria que haya añadido al `PATH`.
+
+Tras instalar, abre una terminal nueva y ejecuta:
+
+```powershell
+factoria
+```
+
+La primera ejecución abre la TUI y ofrece el onboarding guiado. Codex/OpenCode no se incluyen dentro del instalador: Factoria los detecta y valida durante el onboarding.
+
+Los instaladores generados por CI todavía no están firmados digitalmente. La firma Authenticode queda fuera del MVP y debe añadirse antes de distribuir binarios como release de confianza amplia.
+
+### Python / desarrollo
 
 Requisitos: Python 3.11+ y un repositorio Git.
 
@@ -69,3 +90,5 @@ factoria update              # actualización por release etiquetada
 ## Portabilidad
 
 El runtime principal se mantiene sin dependencias externas obligatorias. La TUI usa únicamente la biblioteca estándar de Python y funciona como una capa sobre los mismos servicios y comandos del núcleo.
+
+En Windows, PyInstaller empaqueta ese runtime en un único `Factoria.exe`; Inno Setup envuelve el ejecutable en un instalador por usuario. Las dependencias de build (`pyinstaller` e Inno Setup) solo son necesarias en CI/desarrollo, no en el equipo del usuario final.
