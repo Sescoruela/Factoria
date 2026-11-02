@@ -2,18 +2,18 @@ from __future__ import annotations
 
 import argparse
 import sys
-from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from factoria.application.self_update import UpdateError, UpdateService
+from factoria.package_version import PackageVersionError, installed_semver
 from factoria.versioning import SemVer
 
 
 def installed_version() -> SemVer:
     try:
-        return SemVer.parse(version("factoria"))
-    except PackageNotFoundError as exc:
-        raise UpdateError("Factoria package metadata is unavailable") from exc
+        return installed_semver()
+    except PackageVersionError as exc:
+        raise UpdateError(str(exc)) from exc
 
 
 def build_update_parser() -> argparse.ArgumentParser:
