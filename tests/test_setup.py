@@ -52,9 +52,19 @@ class FakeAdapter:
 class SetupTests(unittest.TestCase):
     def test_builtin_capability_matrix_matches_supported_tools(self) -> None:
         matrix = load_builtin_capability_matrix()
-        self.assertGreaterEqual(matrix.version, 1)
-        self.assertEqual(matrix.capabilities_for("codex"), frozenset(ToolCapability))
-        self.assertEqual(matrix.capabilities_for("opencode"), frozenset(ToolCapability))
+        self.assertGreaterEqual(matrix.version, 2)
+        common = {
+            ToolCapability.NON_INTERACTIVE,
+            ToolCapability.STRUCTURED_OUTPUT,
+            ToolCapability.MODEL_SELECTION,
+            ToolCapability.PROJECT_DIRECTORY,
+            ToolCapability.READ_ONLY_ENFORCEMENT,
+        }
+        self.assertEqual(matrix.capabilities_for("codex"), frozenset(common))
+        self.assertEqual(
+            matrix.capabilities_for("opencode"),
+            frozenset(common | {ToolCapability.PROJECT_WRITE_ENFORCEMENT}),
+        )
 
     def test_setup_selects_first_ready_tool_and_writes_managed_config(self) -> None:
         matrix = load_builtin_capability_matrix()
