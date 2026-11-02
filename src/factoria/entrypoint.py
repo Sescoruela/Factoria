@@ -118,44 +118,71 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print("Commit instalado: desconocido (rollback seguro no disponible)")
             if not plan.available:
-                print("No hay una release más reciente disponible para este canal.")
+                print("Factoria ya está en la versión más reciente disponible.")
                 return 0
+
+            print("Cambios detectados:")
+            if plan.changes:
+                for change in plan.changes:
+                    print(f"- {change}")
+            else:
+                print("- No hay resumen fiable de commits disponible.")
+            if plan.release and plan.release.notes:
+                print("Notas de la versión:")
+                for note in plan.release.notes:
+                    print(f"- {note}")
+            if plan.major_update:
+                print("Aviso: actualización MAJOR; revisa compatibilidad antes de continuar.")
+                if plan.release and plan.release.memory_changes:
+                    print("Cambios de memoria:")
+                    for note in plan.release.memory_changes:
+                        print(f"- {note}")
+                if plan.release and plan.release.config_changes:
+                    print("Cambios de configuración:")
+                    for note in plan.release.config_changes:
+                        print(f"- {note}")
+                print("Factoria no migra automáticamente la memoria del proyecto en esta versión.")
+            if not plan.provenance_verified:
+                print("Actualización bloqueada: no existe evidencia del commit exacto instalado para un rollback seguro.")
+                return 1
             if not args.yes:
-                print("Actualización no aplicada. Repite con --yes después de revisar el plan.")
+                print("Actualización no aplicada. Repite con --yes después de revisar la release y su integridad.")
                 return 0
+
             result = service.apply(
                 plan,
                 state_path=state_path,
-                provenance_path=provenance_path,
                 config_path=config_path,
+                provenance_path=provenance_path,
                 confirmed=True,
             )
-            print(f"Actualización completada: {result.previous_version} -> {result.installed_version}")
-            return 0
+            print(f"Factoria actualizada a {result.version} ({result.commit_sha[:12]}).")
+            if result.health_ok:
+                print("Health check: PASS")
+                return 0
+            print(f"Health check: FAIL ({result.health_details})")
+            print("El rollback queda disponible con `factoria rollback --yes`.")
+            return 1
 
-        plan = service.inspect_rollback(
-            state_path=state_path,
-            provenance_path=provenance_path,
-            config_path=config_path,
-        )
-        print(f"Versión actual: {plan.current_version}")
-        print(f"Versión a restaurar: {plan.previous_version}")
-        print(f"Commit a restaurar: {plan.previous_sha[:12]}")
         if not args.yes:
-            print("Rollback no aplicado. Repite con --yes después de revisar el plan.")
+            print("Rollback no aplicado. Repite con --yes para confirmar.")
             return 0
         result = service.rollback(
-            plan,
             state_path=state_path,
-            provenance_path=provenance_path,
             config_path=config_path,
+            provenance_path=provenance_path,
             confirmed=True,
         )
-        print(f"Rollback completado: {result.previous_version} -> {result.installed_version}")
-        return 0
-    except (UpdateError, OSError, ValueError) as exc:
-        print(f"Error: {exc}", file=sys.stderr)
-        return 2
+        print(f"Factoria restaurada a {result.version} ({result.commit_sha[:12]}).")
+        if result.health_ok:
+            print("Health check: PASS")
+            return 0
+        print(f"Health check: FAIL ({result.health_details})")
+        print("El estado de rollback se conserva para diagnóstico manual.")
+        return 1
+    except UpdateError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
