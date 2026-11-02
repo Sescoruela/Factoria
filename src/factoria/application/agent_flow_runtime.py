@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
-from dataclasses import asdict, dataclass, replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Iterable
 
@@ -17,7 +17,16 @@ from factoria.application.review_runtime import (
     parse_structured_review,
     render_structured_review,
 )
+from factoria.application.runtime_state import (
+    LiveFlowSession,
+    RuntimeStage,
+    RuntimeStateError,
+    load_live_session,
+    save_live_session,
+    validate_runtime_state,
+)
 from factoria.application.state_store import LocalFlowStateStore
+from factoria.domain.flow import FlowState
 from factoria.domain.models import ProjectMemory
 from factoria.domain.permissions import PermissionProfile
 from factoria.memory.loader import load_project_memory
@@ -33,21 +42,6 @@ from factoria.orchestration import (
     RetryPolicy,
     RoleAccess,
 )
-
-
-@dataclass(frozen=True, slots=True)
-class LiveFlowSession:
-    flow_id: str
-    kind: str
-    title: str
-    branch: str
-    preferred_tool: str | None
-    phase: str
-    large_fix: bool = False
-    update_memory: bool = False
-    base_permission_profile: str = PermissionProfile.NORMAL.value
-    permission_profile: str = PermissionProfile.NORMAL.value
-    permission_escalated: bool = False
 
 
 class LiveAgentFlowError(RuntimeError):
@@ -97,14 +91,14 @@ class LiveAgentFlowRunner:
             title=title,
             branch=flow_branch,
             preferred_tool=preferred_tool,
-            phase="running",
+            runtime_stage=RuntimeStage.RUNNING,
             large_fix=large_fix,
             update_memory=update_memory,
             base_permission_profile=base_permission_profile.value,
             permission_profile=effective_profile.value,
             permission_escalated=escalated,
         )
-        self._save_session(session)
+        self._save_session(session, execution=execution)
         self.artifacts.write_text(
             flow_id,
             "permissions.json",
@@ -134,12 +128,13 @@ class LiveAgentFlowRunner:
             )
             if not passed:
                 return execution
-            session = replace(session, phase="awaiting_plan_approval")
-            self._save_session(session)
-            return self.service.pause(
+            execution = self.service.pause(
                 execution,
                 reason="Plan generated; explicit approval is required before implementation",
             )
+            session = replace(session, runtime_stage=RuntimeStage.AWAITING_PLAN_APPROVAL)
+            self._save_session(session, execution=execution)
+            return execution
 
         execution, passed = self._run_steps(
             execution,
@@ -150,12 +145,13 @@ class LiveAgentFlowRunner:
         )
         if not passed:
             return execution
-        session = replace(session, phase="ready_for_commit")
-        self._save_session(session)
-        return self.service.pause(
+        execution = self.service.pause(
             execution,
             reason="Agent work and structured review completed; inspect changes and commit manually",
         )
+        session = replace(session, runtime_stage=RuntimeStage.READY_FOR_COMMIT)
+        self._save_session(session, execution=execution)
+        return execution
 
     def resume(
         self,
@@ -165,21 +161,25 @@ class LiveAgentFlowRunner:
         approve_plan: bool = False,
         approve_final: bool = False,
     ) -> FlowExecution:
-        session = self._load_session(flow_id)
         execution = self.store.load(flow_id)
+        session = self._load_session(flow_id, execution=execution)
         current_branch = _git(project_root, "branch", "--show-current").strip()
         if current_branch != session.branch:
             raise LiveAgentFlowError(
                 f"Flow {flow_id} belongs to branch {session.branch!r}; current branch is {current_branch!r}"
             )
-        if session.phase == "blocked":
+        if execution.flow.state is FlowState.BLOCKED:
             raise LiveAgentFlowError("Flow is blocked; inspect its artifacts before resuming")
 
         memory = load_project_memory(project_root)
-        if session.phase == "awaiting_plan_approval":
+        if session.runtime_stage is RuntimeStage.AWAITING_PLAN_APPROVAL:
             if not approve_plan:
-                raise LiveAgentFlowError("Plan approval required; resume with --approve-plan after reviewing plan.md")
+                raise LiveAgentFlowError(
+                    "Plan approval required; resume with --approve-plan after reviewing plan.md"
+                )
             execution = self.service.resume(execution)
+            session = replace(session, runtime_stage=RuntimeStage.RUNNING)
+            self._save_session(session, execution=execution)
             remaining = tuple(
                 step
                 for step in self._workflow(session).steps
@@ -194,35 +194,45 @@ class LiveAgentFlowRunner:
             )
             if not passed:
                 return execution
-            session = replace(session, phase="awaiting_final_approval")
-            self._save_session(session)
-            return self.service.pause(
+            execution = self.service.pause(
                 execution,
                 reason="Implementation and structured review finished; explicit final approval is required",
             )
+            session = replace(session, runtime_stage=RuntimeStage.AWAITING_FINAL_APPROVAL)
+            self._save_session(session, execution=execution)
+            return execution
 
-        if session.phase == "awaiting_final_approval":
+        if session.runtime_stage is RuntimeStage.AWAITING_FINAL_APPROVAL:
             if not approve_final:
-                raise LiveAgentFlowError("Final approval required; resume with --approve-final after reviewing the result")
+                raise LiveAgentFlowError(
+                    "Final approval required; resume with --approve-final after reviewing the result"
+                )
             execution = self.service.resume(execution)
+            session = replace(session, runtime_stage=RuntimeStage.RUNNING)
+            self._save_session(session, execution=execution)
             if self._has_pending_changes(project_root):
-                session = replace(session, phase="ready_for_commit")
-                self._save_session(session)
-                return self.service.pause(
+                execution = self.service.pause(
                     execution,
                     reason="Final result approved; commit the reviewed changes manually",
                 )
+                session = replace(session, runtime_stage=RuntimeStage.READY_FOR_COMMIT)
+                self._save_session(session, execution=execution)
+                return execution
+            self._save_session(replace(session, runtime_stage=None))
             return self.service.complete(execution)
 
-        if session.phase == "ready_for_commit":
+        if session.runtime_stage is RuntimeStage.READY_FOR_COMMIT:
             if self._has_pending_changes(project_root):
                 raise LiveAgentFlowError(
                     "Working tree still has pending changes; commit or intentionally resolve them before closing the flow"
                 )
             execution = self.service.resume(execution)
+            self._save_session(replace(session, runtime_stage=None))
             return self.service.complete(execution)
 
-        raise LiveAgentFlowError(f"Unsupported persisted live-flow phase: {session.phase}")
+        raise LiveAgentFlowError(
+            f"Unsupported persisted runtime stage: {session.runtime_stage.value if session.runtime_stage else '-'}"
+        )
 
     def _run_steps(
         self,
@@ -438,9 +448,9 @@ class LiveAgentFlowRunner:
         *,
         reason: str,
     ) -> tuple[FlowExecution, bool]:
-        blocked = replace(session, phase="blocked")
-        self._save_session(blocked)
-        return self.service.block(execution, reason=reason), False
+        blocked_execution = self.service.block(execution, reason=reason)
+        self._save_session(replace(session, runtime_stage=None), execution=blocked_execution)
+        return blocked_execution, False
 
     def _verify(self, project_root: Path, memory: ProjectMemory, flow_id: str) -> bool:
         changed = self._changed_files(project_root)
@@ -513,7 +523,9 @@ class LiveAgentFlowRunner:
             raise LiveAgentFlowError("Detached HEAD is not supported for Factoria flows")
         if current == "main":
             if not requested:
-                raise LiveAgentFlowError("Flows never modify main directly; provide --branch with the branch name to create")
+                raise LiveAgentFlowError(
+                    "Flows never modify main directly; provide --branch with the branch name to create"
+                )
             _git(project_root, "switch", "-c", requested)
             return requested
         if requested and requested != current:
@@ -540,18 +552,33 @@ class LiveAgentFlowRunner:
     def _session_path(self, flow_id: str) -> Path:
         return self.artifacts.workspace(flow_id).root / "agent-flow.json"
 
-    def _save_session(self, session: LiveFlowSession) -> None:
+    def _save_session(
+        self,
+        session: LiveFlowSession,
+        *,
+        execution: FlowExecution | None = None,
+    ) -> None:
         workspace = self.artifacts.ensure(session.flow_id)
-        (workspace.root / "agent-flow.json").write_text(
-            json.dumps(asdict(session), ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        if execution is not None:
+            try:
+                validate_runtime_state(execution, session)
+            except RuntimeStateError as exc:
+                raise LiveAgentFlowError(str(exc)) from exc
+        save_live_session(workspace.root / "agent-flow.json", session)
 
-    def _load_session(self, flow_id: str) -> LiveFlowSession:
+    def _load_session(
+        self,
+        flow_id: str,
+        *,
+        execution: FlowExecution | None = None,
+    ) -> LiveFlowSession:
         path = self._session_path(flow_id)
         if not path.exists():
             raise LiveAgentFlowError(f"Flow {flow_id} does not have live-agent session metadata")
-        return LiveFlowSession(**json.loads(path.read_text(encoding="utf-8")))
+        try:
+            return load_live_session(path, execution=execution)
+        except (RuntimeStateError, FileNotFoundError) as exc:
+            raise LiveAgentFlowError(str(exc)) from exc
 
     def _append_trace(self, flow_id: str, step_name: str, attempts) -> None:
         path = self.artifacts.ensure(flow_id).root / "agents.log"
