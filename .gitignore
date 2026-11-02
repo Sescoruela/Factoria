@@ -15,3 +15,4 @@ build/
 !.env.example
 .factoria/work/
 .factoria/security/
+.factoria/ui-state.json
