@@ -8,6 +8,8 @@ from types import MappingProxyType
 
 from factoria.domain.models import (
     ConfirmedCommand,
+    ContractMemory,
+    ExternalDependency,
     MemoryMetadata,
     ModuleMemory,
     ProjectKind,
@@ -26,6 +28,14 @@ _COMMAND_RE = re.compile(
 _LEGACY_COMMAND_RE = re.compile(r"^- \*\*(?P<category>[^*]+)\*\*: (?P<commands>.+)$")
 _MODULE_RE = re.compile(r"^- \*\*(?P<name>[^*]+)\*\*: (?P<body>.+)$")
 _DEP_RE = re.compile(r"^- \*\*(?P<source>[^*]+)\*\* → (?P<targets>.+)$")
+_CONTRACT_RE = re.compile(
+    r"^- \*\*(?P<name>[^*]+)\*\*: paths=(?P<paths>[^;]+); "
+    r"modules=(?P<modules>[^;]+); external=(?P<external>.+)$"
+)
+_EXTERNAL_DEP_RE = re.compile(
+    r"^- \*\*(?P<name>[^*]+)\*\*: repository=(?P<repository>[^;]+); "
+    r"relationship=(?P<relationship>.+)$"
+)
 
 
 class MemoryFormatError(ValueError):
@@ -137,10 +147,9 @@ def _commands(lines: list[str]) -> tuple[tuple[ConfirmedCommand, ...], MappingPr
                 raise MemoryFormatError(f"Invalid legacy command quoting: {line}") from exc
             if argv:
                 legacy.setdefault(category, []).append(argv)
-    frozen_legacy = MappingProxyType(
+    return tuple(modern), MappingProxyType(
         {category: tuple(commands) for category, commands in legacy.items()}
     )
-    return tuple(modern), frozen_legacy
 
 
 def _dependencies(lines: list[str]) -> MappingProxyType:
@@ -157,14 +166,52 @@ def _dependencies(lines: list[str]) -> MappingProxyType:
     return MappingProxyType(values)
 
 
+def _contracts(lines: list[str]) -> tuple[ContractMemory, ...]:
+    result: list[ContractMemory] = []
+    for line in _nonempty(lines):
+        if line in {"- Sin contratos confirmados", "- Pendiente de documentar"}:
+            continue
+        match = _CONTRACT_RE.fullmatch(line)
+        if match is None:
+            raise MemoryFormatError(f"Unsupported contract entry: {line}")
+        split = lambda value: () if value.strip() == "-" else tuple(
+            item.strip() for item in value.split(",") if item.strip()
+        )
+        result.append(
+            ContractMemory(
+                name=match.group("name").strip(),
+                paths=split(match.group("paths")),
+                affects_modules=split(match.group("modules")),
+                affects_external=split(match.group("external")),
+            )
+        )
+    return tuple(result)
+
+
+def _external_dependencies(lines: list[str]) -> tuple[ExternalDependency, ...]:
+    result: list[ExternalDependency] = []
+    for line in _nonempty(lines):
+        if line in {"- Sin dependencias externas confirmadas", "- Pendiente de documentar"}:
+            continue
+        match = _EXTERNAL_DEP_RE.fullmatch(line)
+        if match is None:
+            raise MemoryFormatError(f"Unsupported external dependency entry: {line}")
+        relationship = match.group("relationship").strip()
+        result.append(
+            ExternalDependency(
+                name=match.group("name").strip(),
+                repository=match.group("repository").strip(),
+                relationship="" if relationship == "unspecified" else relationship,
+            )
+        )
+    return tuple(result)
+
+
 def _document_bullets(path: Path, heading: str) -> tuple[str, ...]:
     if not path.exists():
         return ()
     sections = _sections(path.read_text(encoding="utf-8"))
-    return _bullets(
-        sections.get(heading, []),
-        ignore_prefixes=("Sin ", "No hay ", "Pendiente"),
-    )
+    return _bullets(sections.get(heading, []), ignore_prefixes=("Sin ", "No hay ", "Pendiente"))
 
 
 def _root_bullets(path: Path) -> tuple[str, ...]:
@@ -198,21 +245,14 @@ def load_project_memory(project_root: Path) -> ProjectMemory:
     if purpose == "Pendiente de confirmar.":
         purpose = ""
 
-    technologies = _bullets(
-        sections.get("Tecnologías", []),
-        ignore_prefixes=("Sin datos confirmados",),
-    )
+    technologies = _bullets(sections.get("Tecnologías", []), ignore_prefixes=("Sin datos confirmados",))
     modules = _modules(sections.get("Módulos", []))
     commands, legacy_commands = _commands(sections.get("Comandos confirmados", []))
-    mandatory_rules = _bullets(
-        sections.get("Reglas obligatorias", []),
-        ignore_prefixes=("Sin datos confirmados",),
-    )
-    non_functional_priorities = _bullets(
-        sections.get("Prioridades no funcionales", []),
-        ignore_prefixes=("Sin datos confirmados",),
-    )
+    mandatory_rules = _bullets(sections.get("Reglas obligatorias", []), ignore_prefixes=("Sin datos confirmados",))
+    non_functional_priorities = _bullets(sections.get("Prioridades no funcionales", []), ignore_prefixes=("Sin datos confirmados",))
     dependencies = _dependencies(sections.get("Dependencias", []))
+    contracts = _contracts(sections.get("Contratos", []))
+    external_dependencies = _external_dependencies(sections.get("Dependencias externas", []))
 
     docs = root / "docs" / "memoria"
     architecture = docs / "arquitectura.md"
@@ -230,11 +270,17 @@ def load_project_memory(project_root: Path) -> ProjectMemory:
         )
         if architecture_priorities:
             non_functional_priorities = architecture_priorities
+        architecture_contracts = _contracts(architecture_sections.get("Contratos", []))
+        if architecture_contracts:
+            contracts = architecture_contracts
+        architecture_external = _external_dependencies(
+            architecture_sections.get("Dependencias externas", [])
+        )
+        if architecture_external:
+            external_dependencies = architecture_external
 
     decisions = _root_bullets(docs / "decisiones.md")
-    manual_verification = _document_bullets(
-        docs / "testing.md", "Cómo comprobarlo a mano"
-    )
+    manual_verification = _document_bullets(docs / "testing.md", "Cómo comprobarlo a mano")
 
     return ProjectMemory(
         project_name=lines[1][2:].strip(),
@@ -243,6 +289,8 @@ def load_project_memory(project_root: Path) -> ProjectMemory:
         technologies=technologies,
         modules=modules,
         dependencies=dependencies,
+        external_dependencies=external_dependencies,
+        contracts=contracts,
         confirmed_commands=legacy_commands,
         confirmed_check_commands=commands,
         mandatory_rules=mandatory_rules,
