@@ -13,6 +13,8 @@ from .application.manual_verification import (
     record_manual_verification,
 )
 from .application.policy_runtime import build_execution_context
+from .application.runtime_state import RuntimeStage, RuntimeStateError, load_live_session
+from .domain.flow import FlowState
 from .domain.permissions import PermissionProfile
 from .memory.loader import load_project_memory
 
@@ -69,10 +71,14 @@ def run_commit(args, root: Path, execution) -> int:
     session_path = execution.workspace.root / "agent-flow.json"
     if not session_path.exists():
         raise RuntimeError("This flow does not have live-agent metadata")
-    session = json.loads(session_path.read_text(encoding="utf-8"))
-    if session.get("phase") != "ready_for_commit":
+    try:
+        session = load_live_session(session_path, execution=execution)
+    except RuntimeStateError as exc:
+        raise RuntimeError(str(exc)) from exc
+    if execution.flow.state is not FlowState.PAUSED or session.runtime_stage is not RuntimeStage.READY_FOR_COMMIT:
+        stage = session.runtime_stage.value if session.runtime_stage else "-"
         raise RuntimeError(
-            f"Flow is not ready for commit; current phase is {session.get('phase', 'unknown')}"
+            f"Flow is not ready for commit; state={execution.flow.state.value}, runtime_stage={stage}"
         )
 
     memory = load_project_memory(root)
