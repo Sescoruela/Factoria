@@ -4,8 +4,9 @@ import json
 import os
 import subprocess
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
+from types import MappingProxyType
 
 from factoria.domain.models import CheckResult
 
@@ -63,15 +64,39 @@ class OpenCodeAdapter(SubprocessToolAdapter):
             args.extend(["--format", "json"])
         if request.model:
             args.extend(["--model", request.model])
-        # Permissions are provided through OPENCODE_CONFIG_CONTENT, which is a
-        # documented runtime configuration layer with higher precedence than
-        # project config. No orchestration-supplied CLI arguments are approved.
         args.extend(self._validated_extra_args(request))
         args.append(request.prompt)
         return tuple(args)
 
     def run(self, request: AgentRequest) -> AgentResult:
-        return self._execute(request, self.build_command(request), adapter_name=self.name)
+        # The live policy historically supplied a permission object under the
+        # internal OPENCODE_PERMISSION key. Never pass that undocumented key to
+        # OpenCode: translate it into the documented highest-priority runtime
+        # configuration channel OPENCODE_CONFIG_CONTENT.
+        environment = dict(request.environment)
+        permission = environment.pop("OPENCODE_PERMISSION", None)
+        if permission is not None:
+            try:
+                parsed = json.loads(permission)
+            except json.JSONDecodeError as exc:
+                return AgentResult(
+                    adapter=self.name,
+                    command=self.build_command(request),
+                    returncode=None,
+                    error=f"Invalid Factoria OpenCode permission policy: {exc}",
+                )
+            environment["OPENCODE_CONFIG_CONTENT"] = json.dumps(
+                {"permission": parsed}, separators=(",", ":")
+            )
+        effective_request = replace(
+            request,
+            environment=MappingProxyType(environment),
+        )
+        return self._execute(
+            effective_request,
+            self.build_command(effective_request),
+            adapter_name=self.name,
+        )
 
     def _resolved_permission_check(
         self,
