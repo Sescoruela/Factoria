@@ -72,8 +72,8 @@ def run_status_cli(argv: list[str]) -> int:
         print("- Ninguno")
     for flow in report.active_flows:
         details = [flow.kind, flow.state]
-        if flow.phase:
-            details.append(flow.phase)
+        if flow.runtime_stage:
+            details.append(f"stage={flow.runtime_stage}")
         if flow.branch:
             details.append(f"branch={flow.branch}")
         if flow.blocked:
