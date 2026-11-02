@@ -6,7 +6,7 @@ from pathlib import Path
 
 from factoria.application.status import OperationalStatusService
 from factoria.security import SecretIncidentStore, SecretScanner
-from factoria.ui_cli import TerminalUI, build_parser
+from factoria.ui_cli import TerminalUI, _slug, build_parser
 from factoria.ui_workspace import UiWorkspaceSettings, choose_folder, discover_projects
 
 
@@ -41,7 +41,7 @@ class ManagedTerminalUI(TerminalUI):
             self.output("  6. Incidentes de seguridad")
             self.output("  7. Onboarding / guía")
             self.output("  8. Actualizar dashboard")
-            self.output("  9. Cambiar proyecto / carpeta de proyectos")
+            self.output("  9. Gestionar proyectos")
             self.output("  0. Salir")
             choice = self.input("\nElige una opción: ").strip()
             if choice == "0":
@@ -123,7 +123,7 @@ class ManagedTerminalUI(TerminalUI):
         self._continue()
 
         self.output("\n5/5 · Tu primer flujo")
-        self.output("  1. Selecciona un proyecto Git desde la opción 9 si todavía no lo has hecho.")
+        self.output("  1. Selecciona o crea un proyecto Git desde la opción 9.")
         self.output("  2. Mantén main limpio y elige Nueva feature o Nuevo fix.")
         self.output("  3. Factoria crea una rama y mantiene las aprobaciones explícitas.")
         self.output("  4. Revisa el resultado y confirma el commit cuando esté listo.")
@@ -148,7 +148,7 @@ class ManagedTerminalUI(TerminalUI):
         if not self._is_git_project():
             self.output("Proyecto : ninguno seleccionado")
             self.output("Git      : disponible")
-            self.output("\nSelecciona un repositorio de tu carpeta de proyectos con la opción 9.")
+            self.output("\nSelecciona o crea un repositorio con la opción 9.")
             return
 
         try:
@@ -231,17 +231,28 @@ class ManagedTerminalUI(TerminalUI):
             self._select_project(interactive=False)
 
     def _manage_projects(self) -> None:
-        self.output("\nGestión de proyectos")
-        self.output(f"Carpeta raíz actual: {self.workspace_settings.projects_root or 'sin configurar'}")
-        self.output("  1. Seleccionar proyecto")
-        self.output("  2. Cambiar carpeta raíz de proyectos")
-        self.output("  0. Volver")
-        choice = self.input("Selección: ").strip()
-        if choice == "1":
-            self._select_project(interactive=True)
-        elif choice == "2":
-            self._configure_projects_root(force=True)
-            self._select_project(interactive=True)
+        while True:
+            self.output("\nGestión de proyectos")
+            self.output(f"Carpeta raíz actual: {self.workspace_settings.projects_root or 'sin configurar'}")
+            self.output("  1. Seleccionar proyecto")
+            if not self.read_only:
+                self.output("  2. Crear proyecto nuevo")
+                self.output("  3. Cambiar carpeta raíz de proyectos")
+            else:
+                self.output("  3. Cambiar carpeta raíz de proyectos")
+            self.output("  0. Volver")
+            choice = self.input("Selección: ").strip()
+            if choice == "0":
+                return
+            if choice == "1":
+                self._select_project(interactive=True)
+            elif choice == "2" and not self.read_only:
+                self._create_project()
+            elif choice == "3":
+                self._configure_projects_root(force=True)
+                self._select_project(interactive=True)
+            else:
+                self.output("Selección no válida.")
 
     def _configure_projects_root(self, *, force: bool) -> None:
         current = self.workspace_settings.projects_root
@@ -266,6 +277,81 @@ class ManagedTerminalUI(TerminalUI):
         self.workspace_settings.save()
         self.output(f"✓ Carpeta de proyectos guardada: {selected}")
 
+    def _create_project(self) -> None:
+        projects_root = self.workspace_settings.projects_root
+        if projects_root is None:
+            self._configure_projects_root(force=True)
+            projects_root = self.workspace_settings.projects_root
+        if projects_root is None:
+            return
+        if shutil.which("git") is None:
+            self.output("No se puede crear un proyecto Factoria sin Git disponible en PATH.")
+            return
+
+        self.output("\nCrear proyecto nuevo")
+        name = self.input("Nombre del proyecto: ").strip()
+        if not name:
+            self.output("Nombre obligatorio.")
+            return
+        folder_name = _slug(name)
+        target = (projects_root / folder_name).resolve()
+        try:
+            target.relative_to(projects_root.resolve())
+        except ValueError:
+            self.output("Ruta de proyecto no válida.")
+            return
+        if target.exists():
+            self.output(f"Ya existe una carpeta para ese proyecto: {target}")
+            return
+        purpose = self.input("Descripción breve (opcional): ").strip()
+        self.output(f"\nSe creará: {target}")
+        self.output("Acciones: crear carpeta, `git init -b main` y README.md inicial.")
+        if not self._confirm("¿Confirmas crear el proyecto?", default=True):
+            self.output("Proyecto no creado.")
+            return
+
+        try:
+            target.mkdir(parents=False)
+            completed = subprocess.run(
+                ["git", "init", "-b", "main", str(target)],
+                check=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+            if completed.returncode != 0:
+                shutil.rmtree(target, ignore_errors=True)
+                details = completed.stderr.strip() or completed.stdout.strip() or "git init falló"
+                self.output(f"No se pudo inicializar Git: {details}")
+                return
+            readme = f"# {name}\n"
+            if purpose:
+                readme += f"\n{purpose}\n"
+            (target / "README.md").write_text(readme, encoding="utf-8")
+        except OSError as exc:
+            shutil.rmtree(target, ignore_errors=True)
+            self.output(f"No se pudo crear el proyecto: {exc}")
+            return
+
+        if self._confirm("¿Crear también el commit inicial con README.md?", default=True):
+            subprocess.run(["git", "-C", str(target), "add", "README.md"], check=False, capture_output=True)
+            committed = subprocess.run(
+                ["git", "-C", str(target), "commit", "-m", "Initial commit"],
+                check=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+            if committed.returncode != 0:
+                self.output("⚠ Proyecto creado, pero no se pudo hacer el commit inicial.")
+                self.output("  Revisa que Git tenga configurados user.name y user.email.")
+
+        self.root = target
+        self.workspace_settings = UiWorkspaceSettings(projects_root=projects_root, last_project=target)
+        self.workspace_settings.save()
+        self.output(f"✓ Proyecto creado y seleccionado: {name} · {target}")
+        self.output("Siguiente paso recomendado: inicializar/revisar la memoria Factoria antes del primer flujo.")
+
     def _select_project(self, *, interactive: bool) -> None:
         projects_root = self.workspace_settings.projects_root
         if projects_root is None:
@@ -274,24 +360,68 @@ class ManagedTerminalUI(TerminalUI):
         if not projects:
             self.root = projects_root
             if interactive:
-                self.output(
-                    "No hay repositorios Git dentro de esa carpeta todavía. Crea o clona tus proyectos ahí y pulsa 9 para seleccionarlos."
-                )
+                self.output("No hay repositorios Git dentro de esa carpeta todavía. Puedes crear uno desde Gestión de proyectos.")
             return
         if not interactive and len(projects) == 1:
-            selected = projects[0]
-        else:
-            self.output("\nProyectos encontrados")
-            for index, project in enumerate(projects, start=1):
-                self.output(f"  {index}. {project.name} · {project}")
-            raw = self.input("Selecciona proyecto [0 ninguno]: ").strip()
+            self._remember_project(projects[0])
+            return
+        if not interactive:
+            return
+
+        filtered = projects
+        page = 0
+        page_size = 10
+        while True:
+            total_pages = max(1, (len(filtered) + page_size - 1) // page_size)
+            page = min(page, total_pages - 1)
+            start = page * page_size
+            visible = filtered[start : start + page_size]
+            self.output(f"\nProyectos encontrados: {len(projects)} · mostrando {len(filtered)} · página {page + 1}/{total_pages}")
+            for offset, project in enumerate(visible, start=1):
+                relative = project.relative_to(projects_root) if project != projects_root else Path(".")
+                self.output(f"  {offset}. {project.name} · {relative}")
+            self.output("\n  n = siguiente · p = anterior · /texto = buscar · / = quitar filtro · 0 = cancelar")
+            raw = self.input("Selecciona proyecto: ").strip()
             if not raw or raw == "0":
                 return
+            if raw.lower() == "n":
+                if page + 1 < total_pages:
+                    page += 1
+                else:
+                    self.output("Ya estás en la última página.")
+                continue
+            if raw.lower() == "p":
+                if page > 0:
+                    page -= 1
+                else:
+                    self.output("Ya estás en la primera página.")
+                continue
+            if raw.startswith("/"):
+                query = raw[1:].strip().lower()
+                filtered = (
+                    tuple(
+                        project
+                        for project in projects
+                        if query in project.name.lower() or query in str(project.relative_to(projects_root)).lower()
+                    )
+                    if query
+                    else projects
+                )
+                page = 0
+                if not filtered:
+                    self.output("No hay proyectos que coincidan con esa búsqueda.")
+                    filtered = projects
+                continue
             try:
-                selected = projects[int(raw) - 1]
+                selected = visible[int(raw) - 1]
             except (ValueError, IndexError):
                 self.output("Selección no válida.")
-                return
+                continue
+            self._remember_project(selected)
+            return
+
+    def _remember_project(self, selected: Path) -> None:
+        projects_root = self.workspace_settings.projects_root
         self.root = selected.resolve()
         self.workspace_settings = UiWorkspaceSettings(
             projects_root=projects_root,
