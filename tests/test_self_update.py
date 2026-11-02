@@ -38,10 +38,12 @@ class FakeRunner:
                 return self._done(command)
             if args == ("rev-parse", "FETCH_HEAD"):
                 return self._done(command, "b" * 40 + "\n")
-            if args == ("rev-parse", "HEAD"):
-                return self._done(command, "a" * 40 + "\n")
             if args == ("remote", "get-url", "origin"):
                 return self._done(command, "https://github.com/example/factoria.git\n")
+            if args[:2] == ("cat-file", "-e"):
+                return self._done(command)
+            if args[:2] == ("merge-base", "--is-ancestor"):
+                return self._done(command)
             if args == ("show", "FETCH_HEAD:pyproject.toml"):
                 return self._done(command, '[project]\nname = "factoria"\nversion = "0.3.0"\n')
             if args == ("show", "FETCH_HEAD:src/factoria/release.toml"):
@@ -52,22 +54,9 @@ class FakeRunner:
             if args[:3] == ("log", "--format=%h %s", "--max-count=20"):
                 return self._done(command, "bbbbbbbb Add update support\n")
         if "pip" in command and "install" in command:
-            return self._done(
-                command,
-                "",
-                "install failed" if self.install_fail else "",
-                1 if self.install_fail else 0,
-            )
-        if command[1:3] == (
-            "-c",
-            "from factoria.entrypoint import build_update_parser; build_update_parser()",
-        ):
-            return self._done(
-                command,
-                "",
-                "health failed" if self.health_fail else "",
-                1 if self.health_fail else 0,
-            )
+            return self._done(command, "", "install failed" if self.install_fail else "", 1 if self.install_fail else 0)
+        if len(command) >= 3 and command[1] == "-c":
+            return self._done(command, "0.3.0\n" if not self.health_fail else "", "health failed" if self.health_fail else "", 1 if self.health_fail else 0)
         raise AssertionError(f"Unexpected command: {command}")
 
     @staticmethod
@@ -79,71 +68,106 @@ class UpdateServiceTests(unittest.TestCase):
     def _checkout(self, root: Path) -> Path:
         root.mkdir(parents=True, exist_ok=True)
         (root / ".git").mkdir()
-        (root / "pyproject.toml").write_text(
-            '[project]\nversion = "0.2.0"\n', encoding="utf-8"
-        )
+        (root / "pyproject.toml").write_text('[project]\nversion = "0.2.0"\n', encoding="utf-8")
         return root
 
-    def test_inspect_builds_semver_update_plan(self) -> None:
-        runner = FakeRunner()
-        service = UpdateService(runner=runner, python_executable="python")
-        with tempfile.TemporaryDirectory() as tmp:
-            root = self._checkout(Path(tmp) / "checkout")
-            plan = service.inspect(
-                root,
-                remote="origin",
-                branch="main",
-                current_version=SemVer.parse("0.2.0"),
-            )
-        self.assertTrue(plan.available)
-        self.assertEqual(str(plan.target_version), "0.3.0")
-        self.assertEqual(plan.changes, ("bbbbbbbb Add update support",))
-        self.assertEqual(plan.release.notes, ("new updater",))
+    def _provenance(self, path: Path, *, sha: str = "a" * 40, version: str = "0.2.0") -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(
+                {
+                    "version": version,
+                    "commit_sha": sha,
+                    "remote_url": "https://github.com/example/factoria.git",
+                    "installed_at": "2026-11-01T00:00:00+00:00",
+                }
+            ),
+            encoding="utf-8",
+        )
 
-    def test_apply_records_rollback_and_restores_managed_config(self) -> None:
+    def test_inspect_uses_verified_installed_commit_not_checkout_head(self) -> None:
         runner = FakeRunner()
         service = UpdateService(runner=runner, python_executable="python")
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
             root = self._checkout(base / "checkout")
-            plan = service.inspect(
-                root,
-                remote="origin",
-                branch="main",
-                current_version=SemVer.parse("0.2.0"),
-            )
+            provenance = base / "installed.json"
+            self._provenance(provenance)
+            plan = service.inspect(root, remote="origin", branch="main", current_version=SemVer.parse("0.2.0"), provenance_path=provenance)
+        self.assertTrue(plan.available)
+        self.assertTrue(plan.provenance_verified)
+        self.assertEqual(plan.current_sha, "a" * 40)
+        self.assertEqual(plan.changes, ("bbbbbbbb Add update support",))
+
+    def test_update_without_exact_provenance_is_refused(self) -> None:
+        runner = FakeRunner()
+        service = UpdateService(runner=runner, python_executable="python")
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = self._checkout(base / "checkout")
+            plan = service.inspect(root, remote="origin", branch="main", current_version=SemVer.parse("0.2.0"), provenance_path=base / "missing.json")
+            self.assertFalse(plan.provenance_verified)
+            with self.assertRaises(UpdateError):
+                service.apply(plan, state_path=base / "state.json", config_path=base / "config.toml", provenance_path=base / "installed.json", confirmed=True)
+
+    def test_apply_records_exact_rollback_and_restores_provenance(self) -> None:
+        runner = FakeRunner()
+        service = UpdateService(runner=runner, python_executable="python")
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = self._checkout(base / "checkout")
+            provenance = base / "installed.json"
+            self._provenance(provenance)
+            plan = service.inspect(root, remote="origin", branch="main", current_version=SemVer.parse("0.2.0"), provenance_path=provenance)
             state = base / "state" / "previous.json"
             config = base / "config.toml"
             original = "# factoria: managed global config\ndefault_profile = \"normal\"\n"
             config.write_text(original, encoding="utf-8")
-            result = service.apply(plan, state_path=state, config_path=config, confirmed=True)
+            result = service.apply(plan, state_path=state, config_path=config, provenance_path=provenance, confirmed=True)
             self.assertTrue(result.health_ok)
             stored = json.loads(state.read_text(encoding="utf-8"))
-            self.assertEqual(stored["previous_version"], "0.2.0")
+            self.assertEqual(stored["previous_sha"], "a" * 40)
+            installed = json.loads(provenance.read_text(encoding="utf-8"))
+            self.assertEqual(installed["commit_sha"], "b" * 40)
             config.write_text("changed\n", encoding="utf-8")
-            rollback = service.rollback(state_path=state, config_path=config, confirmed=True)
+            rollback = service.rollback(state_path=state, config_path=config, provenance_path=provenance, confirmed=True)
             self.assertTrue(rollback.health_ok)
             self.assertEqual(config.read_text(encoding="utf-8"), original)
+            restored = json.loads(provenance.read_text(encoding="utf-8"))
+            self.assertEqual(restored["commit_sha"], "a" * 40)
             self.assertFalse(state.exists())
+
+    def test_rollback_refuses_if_current_commit_does_not_match_update_target(self) -> None:
+        runner = FakeRunner()
+        service = UpdateService(runner=runner, python_executable="python")
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            state = base / "previous.json"
+            state.write_text(json.dumps({
+                "previous_version": "0.2.0",
+                "previous_sha": "a" * 40,
+                "target_version": "0.3.0",
+                "target_sha": "b" * 40,
+                "remote_url": "https://github.com/example/factoria.git",
+                "config_backup": None,
+                "created_at": "2026-11-02T00:00:00+00:00",
+            }), encoding="utf-8")
+            provenance = base / "installed.json"
+            self._provenance(provenance, sha="c" * 40, version="0.3.0")
+            with self.assertRaises(UpdateError):
+                service.rollback(state_path=state, config_path=base / "config.toml", provenance_path=provenance, confirmed=True)
 
     def test_update_requires_confirmation(self) -> None:
         runner = FakeRunner()
         service = UpdateService(runner=runner, python_executable="python")
         with tempfile.TemporaryDirectory() as tmp:
-            root = self._checkout(Path(tmp) / "checkout")
-            plan = service.inspect(
-                root,
-                remote="origin",
-                branch="main",
-                current_version=SemVer.parse("0.2.0"),
-            )
+            base = Path(tmp)
+            root = self._checkout(base / "checkout")
+            provenance = base / "installed.json"
+            self._provenance(provenance)
+            plan = service.inspect(root, remote="origin", branch="main", current_version=SemVer.parse("0.2.0"), provenance_path=provenance)
             with self.assertRaises(UpdateError):
-                service.apply(
-                    plan,
-                    state_path=Path(tmp) / "state.json",
-                    config_path=Path(tmp) / "config.toml",
-                    confirmed=False,
-                )
+                service.apply(plan, state_path=base / "state.json", config_path=base / "config.toml", provenance_path=provenance, confirmed=False)
 
     def test_failed_health_check_keeps_rollback_state(self) -> None:
         runner = FakeRunner()
@@ -152,19 +176,11 @@ class UpdateServiceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
             root = self._checkout(base / "checkout")
-            plan = service.inspect(
-                root,
-                remote="origin",
-                branch="main",
-                current_version=SemVer.parse("0.2.0"),
-            )
+            provenance = base / "installed.json"
+            self._provenance(provenance)
+            plan = service.inspect(root, remote="origin", branch="main", current_version=SemVer.parse("0.2.0"), provenance_path=provenance)
             state = base / "state.json"
-            result = service.apply(
-                plan,
-                state_path=state,
-                config_path=base / "config.toml",
-                confirmed=True,
-            )
+            result = service.apply(plan, state_path=state, config_path=base / "config.toml", provenance_path=provenance, confirmed=True)
             self.assertFalse(result.health_ok)
             self.assertTrue(state.exists())
 
