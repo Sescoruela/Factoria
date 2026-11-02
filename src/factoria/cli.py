@@ -24,9 +24,10 @@ from factoria.memory.git_staleness import GitMemoryStalenessInspector
 from factoria.memory.initializer import MemoryInitializer
 from factoria.memory.loader import MemoryFormatError, load_project_memory
 from factoria.memory.updater import RepositoryMemoryAnalyzer, describe_memory_changes
+from factoria.package_version import installed_version_text
 from factoria.plugins.registry import PluginRegistry, PluginSource
 
-FACTORIA_VERSION = "0.1.0"
+FACTORIA_VERSION = installed_version_text()
 
 
 def build_parser() -> argparse.ArgumentParser:
