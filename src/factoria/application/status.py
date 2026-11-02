@@ -8,7 +8,6 @@ from pathlib import Path
 
 from factoria.adapters import CodexAdapter, OpenCodeAdapter, ToolAdapter
 from factoria.config.loader import load_global_config, load_organization_config, load_project_config, resolve_config
-from factoria.domain.models import MemoryDocumentKind
 from factoria.memory.git_staleness import GitMemoryStalenessInspector
 from factoria.memory.loader import load_project_memory
 from factoria.security import SecretScanner
@@ -16,6 +15,7 @@ from factoria.versioning import SemVer, VersionError
 
 from .artifacts import FlowArtifactStore
 from .history import HistoryRecord, LocalExecutionHistoryStore
+from .impact import ImpactAnalyzer
 from .state_store import LocalFlowStateStore
 
 
@@ -103,6 +103,19 @@ class OperationalStatusService:
         if memory_initialized:
             try:
                 memory = load_project_memory(root)
+                impact = ImpactAnalyzer().analyze(memory, changed_paths)
+                if impact.contract_impacts:
+                    warnings.append(
+                        "Modified files touch declared contract(s): "
+                        + ", ".join(item.name for item in impact.contract_impacts)
+                    )
+                if impact.blocking:
+                    warnings.append(
+                        "External contract impact requires manual consumer/repository review before closure."
+                    )
+                    recommendations.append(
+                        "Review the declared external consumers before confirming `factoria commit --confirm-external-impact-review`."
+                    )
                 if memory.metadata is not None:
                     project_kind = memory.metadata.project_kind.value
                     memory_version = memory.metadata.factoria_version
@@ -114,9 +127,7 @@ class OperationalStatusService:
                     memory_commits = staleness.commits_since_review
                     stale_documents = tuple(item.value for item in staleness.stale_documents)
                     if stale_documents:
-                        warnings.append(
-                            "Project memory may be stale: " + ", ".join(stale_documents)
-                        )
+                        warnings.append("Project memory may be stale: " + ", ".join(stale_documents))
                         recommendations.append("Run `factoria memoria-update` and review the proposal.")
                     memory_version_warning = _memory_version_warning(memory_version)
                     if memory_version_warning:
@@ -157,9 +168,7 @@ class OperationalStatusService:
                     phase = session.get("phase")
                     flow_branch = session.get("branch")
                 except (OSError, json.JSONDecodeError, TypeError):
-                    warnings.append(
-                        f"Flow {execution.flow.flow_id} has unreadable agent session metadata."
-                    )
+                    warnings.append(f"Flow {execution.flow.flow_id} has unreadable agent session metadata.")
             blocked = execution.flow.state.value == "blocked" or phase == "blocked"
             active_flows.append(
                 FlowStatus(
