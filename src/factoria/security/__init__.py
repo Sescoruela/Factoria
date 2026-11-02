@@ -1,3 +1,4 @@
+from .incidents import IncidentStatus, SecretIncidentRecord, SecretIncidentStore
 from .secrets import (
     SecretBlockedError,
     SecretFinding,
@@ -8,9 +9,12 @@ from .secrets import (
 )
 
 __all__ = [
+    "IncidentStatus",
     "SecretBlockedError",
     "SecretFinding",
     "SecretIncident",
+    "SecretIncidentRecord",
+    "SecretIncidentStore",
     "SecretScanner",
     "SecretSource",
     "SecretType",
