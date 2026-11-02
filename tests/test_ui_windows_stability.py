@@ -25,16 +25,25 @@ class UiWorkspaceTests(unittest.TestCase):
             self.assertEqual(loaded.projects_root, root)
             self.assertEqual(loaded.last_project, project)
 
-    def test_discover_projects_only_returns_git_repositories(self) -> None:
+    def test_discover_projects_is_recursive_and_has_no_result_limit(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            project = root / "alpha"
-            other = root / "notes"
-            project.mkdir()
-            other.mkdir()
-            (project / ".git").mkdir()
+            expected: list[Path] = []
+            for index in range(12):
+                parent = root / ("group-a" if index < 6 else "group-b")
+                project = parent / f"project-{index:02d}"
+                project.mkdir(parents=True)
+                (project / ".git").mkdir()
+                expected.append(project.resolve())
+            ignored = root / "node_modules" / "fake-repo"
+            ignored.mkdir(parents=True)
+            (ignored / ".git").mkdir()
 
-            self.assertEqual(discover_projects(root), (project.resolve(),))
+            found = discover_projects(root)
+
+            self.assertEqual(len(found), 12)
+            self.assertEqual(set(found), set(expected))
+            self.assertNotIn(ignored.resolve(), found)
 
 
 class ManagedTerminalUiTests(unittest.TestCase):
@@ -71,6 +80,51 @@ class ManagedTerminalUiTests(unittest.TestCase):
             rendered = "\n".join(output)
             self.assertIn("Git      : NO DISPONIBLE", rendered)
             self.assertNotIn("No se pudo cargar el dashboard", rendered)
+
+    def test_project_selector_can_navigate_beyond_first_ten_results(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            projects: list[Path] = []
+            for index in range(12):
+                project = root / f"project-{index:02d}"
+                project.mkdir()
+                (project / ".git").mkdir()
+                projects.append(project.resolve())
+            answers = iter(["n", "2"])
+            ui = ManagedTerminalUI(
+                root,
+                input_fn=lambda _prompt: next(answers),
+                output_fn=lambda _text: None,
+                command_runner=lambda _args: 0,
+            )
+            ui.workspace_settings = UiWorkspaceSettings(projects_root=root, last_project=None)
+
+            with patch.object(UiWorkspaceSettings, "save", return_value=None):
+                ui._select_project(interactive=True)
+
+            self.assertEqual(ui.root, projects[11])
+
+    def test_create_project_initializes_git_repo_and_selects_it(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            answers = iter(["Mi Proyecto", "Demo creada desde Factoria", "", "n"])
+            output: list[str] = []
+            ui = ManagedTerminalUI(
+                root,
+                input_fn=lambda _prompt: next(answers),
+                output_fn=output.append,
+                command_runner=lambda _args: 0,
+            )
+            ui.workspace_settings = UiWorkspaceSettings(projects_root=root, last_project=None)
+
+            with patch.object(UiWorkspaceSettings, "save", return_value=None):
+                ui._create_project()
+
+            created = root / "mi-proyecto"
+            self.assertTrue((created / ".git").exists())
+            self.assertTrue((created / "README.md").exists())
+            self.assertEqual(ui.root, created.resolve())
+            self.assertIn("Demo creada desde Factoria", (created / "README.md").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
