@@ -1,10 +1,25 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from types import MappingProxyType
 
 from factoria.domain.models import CheckResult
 
+from .argument_policy import AdapterArgumentPolicy
 from .base import AgentRequest, AgentResult, SubprocessToolAdapter, ToolCapability
+
+
+_CODEX_RESERVED_FLAGS = frozenset(
+    {
+        "--model",
+        "-m",
+        "--json",
+        "--cd",
+        "-C",
+        "--full-auto",
+        "--dangerously-bypass-approvals-and-sandbox",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,9 +40,22 @@ class CodexAdapter(SubprocessToolAdapter):
             }
         )
 
+    def argument_policy(self) -> AdapterArgumentPolicy:
+        # Only the exact safety flags Factoria currently needs are accepted.
+        # Model, directory, output format and bypass flags remain Factoria-owned.
+        return AdapterArgumentPolicy(
+            allowed=MappingProxyType(
+                {
+                    "--sandbox": ("read-only",),
+                    "--ask-for-approval": ("never",),
+                }
+            ),
+            reserved=_CODEX_RESERVED_FLAGS,
+        )
+
     def build_command(self, request: AgentRequest) -> tuple[str, ...]:
         args: list[str] = [self.executable]
-        args.extend(request.extra_args)
+        args.extend(self._validated_extra_args(request))
         args.append("exec")
         if request.structured_output:
             args.append("--json")
