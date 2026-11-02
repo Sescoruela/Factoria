@@ -62,13 +62,13 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if not argv:
-        from factoria.ui_app import run_managed_ui_cli
-        return run_managed_ui_cli(["ui"])
+        from factoria.ui_project_flow import run_project_flow_ui_cli
+        return run_project_flow_ui_cli(["ui"])
 
     command = _primary_command(argv)
     if command in {"ui", "onboarding"}:
-        from factoria.ui_app import run_managed_ui_cli
-        return run_managed_ui_cli(argv)
+        from factoria.ui_project_flow import run_project_flow_ui_cli
+        return run_project_flow_ui_cli(argv)
     if command == "memoria-init":
         from factoria.memory_bootstrap_cli import run_memory_init_cli
         return run_memory_init_cli(argv)
