@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import subprocess
 from dataclasses import dataclass, field
 from importlib.metadata import PackageNotFoundError, version
@@ -16,6 +15,7 @@ from factoria.versioning import SemVer, VersionError
 from .artifacts import FlowArtifactStore
 from .history import HistoryRecord, LocalExecutionHistoryStore
 from .impact import ImpactAnalyzer
+from .runtime_state import RuntimeStateError, load_live_session
 from .state_store import LocalFlowStateStore
 
 
@@ -31,7 +31,7 @@ class FlowStatus:
     flow_id: str
     kind: str
     state: str
-    phase: str | None
+    runtime_stage: str | None
     branch: str | None
     label: str | None
     blocked: bool
@@ -159,23 +159,25 @@ class OperationalStatusService:
         state_store = LocalFlowStateStore(artifacts)
         active_flows: list[FlowStatus] = []
         for execution in state_store.incomplete():
-            phase: str | None = None
+            runtime_stage: str | None = None
             flow_branch: str | None = None
             session_path = execution.workspace.root / "agent-flow.json"
             if session_path.exists():
                 try:
-                    session = json.loads(session_path.read_text(encoding="utf-8"))
-                    phase = session.get("phase")
-                    flow_branch = session.get("branch")
-                except (OSError, json.JSONDecodeError, TypeError):
-                    warnings.append(f"Flow {execution.flow.flow_id} has unreadable agent session metadata.")
-            blocked = execution.flow.state.value == "blocked" or phase == "blocked"
+                    session = load_live_session(session_path, execution=execution)
+                    runtime_stage = session.runtime_stage.value if session.runtime_stage else None
+                    flow_branch = session.branch
+                except (OSError, RuntimeStateError, FileNotFoundError) as exc:
+                    warnings.append(
+                        f"Flow {execution.flow.flow_id} has inconsistent live session metadata: {exc}"
+                    )
+            blocked = execution.flow.state.value == "blocked"
             active_flows.append(
                 FlowStatus(
                     flow_id=execution.flow.flow_id,
                     kind=execution.flow.kind,
                     state=execution.flow.state.value,
-                    phase=phase,
+                    runtime_stage=runtime_stage,
                     branch=flow_branch,
                     label=execution.label,
                     blocked=blocked,
