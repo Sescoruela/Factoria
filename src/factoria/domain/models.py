@@ -61,6 +61,31 @@ class ModuleMemory:
 
 
 @dataclass(frozen=True, slots=True)
+class ExternalDependency:
+    name: str
+    repository: str
+    relationship: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.name.strip() or not self.repository.strip():
+            raise ValueError("External dependency name and repository are required")
+
+
+@dataclass(frozen=True, slots=True)
+class ContractMemory:
+    name: str
+    paths: tuple[str, ...] = field(default_factory=tuple)
+    affects_modules: tuple[str, ...] = field(default_factory=tuple)
+    affects_external: tuple[str, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        if not self.name.strip():
+            raise ValueError("Contract name cannot be empty")
+        if not self.paths:
+            raise ValueError("Contract must declare at least one path")
+
+
+@dataclass(frozen=True, slots=True)
 class ConfirmedCommand:
     category: str
     command: tuple[str, ...]
@@ -85,6 +110,8 @@ class ProjectMemory:
     dependencies: Mapping[str, tuple[str, ...]] = field(
         default_factory=lambda: MappingProxyType({})
     )
+    external_dependencies: tuple[ExternalDependency, ...] = field(default_factory=tuple)
+    contracts: tuple[ContractMemory, ...] = field(default_factory=tuple)
     # Legacy command format kept temporarily for backward compatibility.
     confirmed_commands: Mapping[str, tuple[tuple[str, ...], ...]] = field(
         default_factory=lambda: MappingProxyType({})
