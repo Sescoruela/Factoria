@@ -17,7 +17,7 @@ from urllib.parse import urlparse
 from factoria.application.setup import SetupService
 from factoria.application.status import OperationalStatusService
 from factoria.config.loader import load_global_config
-from factoria.ui_agent_tools import _apply_agent_paths
+from factoria.ui_agent_tools import _apply_agent_paths, _load_agent_paths, _save_agent_paths
 from factoria.ui_workspace import UiWorkspaceSettings, discover_projects
 
 _HOST = "127.0.0.1"
@@ -61,7 +61,7 @@ def _project_payload(root: Path | None) -> dict[str, object] | None:
 
 
 def _agent_payload() -> list[dict[str, object]]:
-    _apply_agent_paths()
+    persisted = _apply_agent_paths()
     result: list[dict[str, object]] = []
     try:
         statuses = SetupService().inspect_tools()
@@ -72,6 +72,7 @@ def _agent_payload() -> list[dict[str, object]]:
             "name": status.name,
             "available": status.available,
             "ready": status.passed,
+            "configured_path": persisted.get(status.name),
             "checks": [
                 {"name": check.name, "passed": check.passed, "required": check.required, "details": check.details}
                 for check in status.checks
@@ -94,9 +95,42 @@ def _state() -> dict[str, object]:
     }
 
 
+def _set_projects_root(path: str) -> Path:
+    target = Path(path).expanduser().resolve()
+    target.mkdir(parents=True, exist_ok=True)
+    if not target.is_dir():
+        raise ValueError("La carpeta raíz no es válida")
+    current = UiWorkspaceSettings.load()
+    last = current.last_project if current.last_project and current.last_project.exists() else None
+    UiWorkspaceSettings(projects_root=target, last_project=last).save()
+    return target
+
+
 def _save_selected_project(path: Path) -> None:
     settings = UiWorkspaceSettings.load()
     UiWorkspaceSettings(projects_root=settings.projects_root, last_project=path.resolve()).save()
+
+
+def _set_default_tool(tool: str) -> Path:
+    if tool not in {"codex", "opencode"}:
+        raise ValueError("Agente no válido")
+    service = SetupService()
+    target = Path.home() / ".factoria" / "config.toml"
+    plan = service.propose(target, requested_tool=tool)
+    return service.apply(plan, confirmed=True)
+
+
+def _set_agent_path(tool: str, raw_path: str) -> Path:
+    if tool not in {"codex", "opencode"}:
+        raise ValueError("Agente no válido")
+    path = Path(raw_path).expanduser().resolve()
+    if not path.is_file():
+        raise ValueError("El ejecutable indicado no existe")
+    paths = _load_agent_paths()
+    paths[tool] = str(path)
+    _save_agent_paths(paths)
+    _apply_agent_paths()
+    return path
 
 
 def _create_project(name: str, purpose: str = "") -> Path:
@@ -164,6 +198,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -183,6 +218,8 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Frame-Options", "DENY")
+            self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Length", str(len(html)))
             self.end_headers()
             self.wfile.write(html)
@@ -202,6 +239,10 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         try:
             data = self._body()
+            if path == "/api/projects/root":
+                target = _set_projects_root(str(data.get("path", "")))
+                self._json({"ok": True, "path": str(target), "state": _state()})
+                return
             if path == "/api/project/select":
                 target = Path(str(data.get("path", ""))).expanduser().resolve()
                 if not _is_git_project(target):
@@ -212,6 +253,14 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             if path == "/api/project/create":
                 target = _create_project(str(data.get("name", "")), str(data.get("purpose", "")))
                 self._json({"ok": True, "path": str(target), "state": _state()})
+                return
+            if path == "/api/agent/default":
+                written = _set_default_tool(str(data.get("tool", "")))
+                self._json({"ok": True, "config": str(written), "state": _state()})
+                return
+            if path == "/api/agent/path":
+                configured = _set_agent_path(str(data.get("tool", "")), str(data.get("path", "")))
+                self._json({"ok": True, "path": str(configured), "state": _state()})
                 return
             if path == "/api/command":
                 raw = data.get("args", [])
