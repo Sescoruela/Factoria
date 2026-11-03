@@ -190,7 +190,7 @@ class NativeWorkflow:
         if stage in {'explore', 'plan'} and self._tree_hash() != session['baseline_hash']:
             raise ValueError('El código cambió durante análisis/planificación; cancelar y revisar el alcance')
         if stage in _FILES:
-            evidence = project_path(self.root, str((execution.workspace.root / _FILES[stage]).relative_to(self.root)))
+            evidence = project_path(self.root, (execution.workspace.root / _FILES[stage]).relative_to(self.root).as_posix())
             if not evidence.is_file() or not evidence.read_text(encoding='utf-8').strip():
                 raise ValueError('Falta evidencia de la etapa: ' + _FILES[stage])
         if stage == 'plan':

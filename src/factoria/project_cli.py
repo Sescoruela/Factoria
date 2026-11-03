@@ -52,7 +52,7 @@ def run_project_cli(argv: list[str]) -> int:
             service = ProjectIntegration(root)
             if args.action == 'check':
                 result = service.check()
-                print(json.dumps(result, ensure_ascii=False, indent=2))
+                print(json.dumps(result, ensure_ascii=True, indent=2))
                 return 0 if result['ready'] else 1
             plan = service.apply(confirmed=True) if args.yes else service.plan()
             result = {'applied': args.yes, 'changed': plan.changed, 'conflicts': plan.conflicts,
@@ -68,8 +68,8 @@ def run_project_cli(argv: list[str]) -> int:
                 result = getattr(workflow, args.action)(args.flow_id)
             else:
                 result = workflow.lifecycle(args.flow_id, args.action, confirmed=getattr(args, 'yes', False))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+        print(json.dumps(result, ensure_ascii=True, indent=2))
         return 0
     except (ValueError, OSError, RuntimeError, subprocess.CalledProcessError) as exc:
-        print(json.dumps({'error': str(exc)}, ensure_ascii=False), file=sys.stderr)
+        print(json.dumps({'error': str(exc)}, ensure_ascii=True), file=sys.stderr)
         return 1

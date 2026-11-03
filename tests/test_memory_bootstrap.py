@@ -49,7 +49,7 @@ class MemoryBootstrapTests(unittest.TestCase):
 
     def test_package_scripts_and_module_dependency_are_proposed_from_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
+            root = Path(temp_dir).resolve()
             frontend = root / "frontend"
             shared = root / "shared"
             frontend.mkdir()
@@ -92,7 +92,7 @@ class MemoryBootstrapTests(unittest.TestCase):
 
     def test_proposal_includes_project_config_and_requires_confirmation(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
+            root = Path(temp_dir).resolve()
             (root / "frontend").mkdir()
             (root / "shared").mkdir()
             service = MemoryBootstrapService(self._initializer())
@@ -118,7 +118,7 @@ class MemoryBootstrapTests(unittest.TestCase):
 
     def test_existing_project_config_is_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
+            root = Path(temp_dir).resolve()
             (root / "frontend").mkdir()
             (root / "shared").mkdir()
             config = root / ".factoria" / "config.toml"
@@ -132,7 +132,7 @@ class MemoryBootstrapTests(unittest.TestCase):
 
     def test_non_functional_priorities_round_trip_through_memory_files(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
+            root = Path(temp_dir).resolve()
             memory = ProjectMemory(
                 project_name="Demo",
                 metadata=MemoryMetadata(
@@ -149,7 +149,7 @@ class MemoryBootstrapTests(unittest.TestCase):
 
     def test_kind_override_changes_memory_and_generated_config(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
+            root = Path(temp_dir).resolve()
             (root / "frontend").mkdir()
             (root / "shared").mkdir()
             proposal = MemoryBootstrapService(self._initializer()).propose(
