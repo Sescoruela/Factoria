@@ -26,6 +26,12 @@ from factoria.application.runtime_state import (
     validate_runtime_state,
 )
 from factoria.application.state_store import LocalFlowStateStore
+from factoria.application.workflow_presets import (
+    load_preset,
+    preset_to_workflow,
+    workflow_from_snapshot,
+    workflow_snapshot,
+)
 from factoria.domain.flow import FlowState
 from factoria.domain.models import ProjectMemory
 from factoria.domain.permissions import PermissionProfile
@@ -85,6 +91,13 @@ class LiveAgentFlowRunner:
         effective_profile = requested_permission_profile or base_permission_profile
         escalated = _profile_rank(effective_profile) > _profile_rank(base_permission_profile)
         gated = kind == "feature" or large_fix
+        preset = load_preset(
+            project_root,
+            kind,
+            large_fix=large_fix,
+            update_memory=update_memory,
+        )
+        resolved_workflow = preset_to_workflow(preset, project_root=project_root)
         session = LiveFlowSession(
             flow_id=flow_id,
             kind=kind,
@@ -97,6 +110,7 @@ class LiveAgentFlowRunner:
             base_permission_profile=base_permission_profile.value,
             permission_profile=effective_profile.value,
             permission_escalated=escalated,
+            workflow_steps=workflow_snapshot(resolved_workflow),
         )
         self._save_session(session, execution=execution)
         self.artifacts.write_text(
@@ -261,7 +275,7 @@ class LiveAgentFlowRunner:
                     role=step.role,
                     prompt=self._prompt(step, session, memory),
                     profile=step.profile,
-                    preferred_tool=session.preferred_tool,
+                    preferred_tool=session.preferred_tool or step.preferred_tool,
                 ),
                 project_root=project_root,
             )
@@ -307,7 +321,7 @@ class LiveAgentFlowRunner:
                     role=reviewer_step.role,
                     prompt=self._prompt(reviewer_step, session, memory),
                     profile=reviewer_step.profile,
-                    preferred_tool=session.preferred_tool,
+                    preferred_tool=session.preferred_tool or reviewer_step.preferred_tool,
                 ),
                 project_root=project_root,
             )
@@ -374,7 +388,7 @@ class LiveAgentFlowRunner:
                         cycle=correction_cycle,
                     ),
                     profile=implementer.profile,
-                    preferred_tool=session.preferred_tool,
+                    preferred_tool=session.preferred_tool or implementer.preferred_tool,
                 ),
                 project_root=project_root,
             )
@@ -478,6 +492,8 @@ class LiveAgentFlowRunner:
         return all(item.passed or not item.required for item in summary.executions)
 
     def _workflow(self, session: LiveFlowSession):
+        if session.workflow_steps:
+            return workflow_from_snapshot(session.kind, session.workflow_steps)
         if session.kind == "feature":
             return AgentWorkflowPlanner.feature()
         return AgentWorkflowPlanner.fix(
