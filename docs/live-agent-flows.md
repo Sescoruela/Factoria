@@ -1,4 +1,6 @@
-# Flujos reales con agentes
+# Modo opcional: flujos orquestados con agentes
+
+Para trabajar directamente dentro de Codex/OpenCode, consultar `direct-project-integration.md`. Este documento describe el lanzamiento de agentes desde Factoria.
 
 Este hito conecta la CLI de Factoria con el orquestador de agentes, los adaptadores Codex/OpenCode y la verificación segura ya existente.
 
@@ -55,7 +57,7 @@ En el perfil normal integrado en este hito:
 
 - Codex se admite para roles de solo lectura con sandbox read-only y sin escalado de aprobaciones.
 - Codex no se usa como implementer porque Factoria todavía no puede interceptar de forma suficientemente granular operaciones destructivas dentro del workspace.
-- OpenCode se usa como implementer con edición del proyecto permitida y resto de herramientas denegadas mediante `OPENCODE_PERMISSION`; especialmente, el shell queda bloqueado.
+- OpenCode se usa como implementer con edición del proyecto permitida y resto de herramientas denegadas mediante `OPENCODE_CONFIG_CONTENT`; especialmente, el shell queda bloqueado.
 - Build, test, lint, typecheck y smoke no los ejecuta el agente: los ejecuta `SafeCheckExecutor` únicamente desde comandos confirmados en memoria.
 
 Si no existe una ruta compatible con estas restricciones, el flujo se bloquea en lugar de relajar permisos.
@@ -73,7 +75,7 @@ FACTORIA_OPENCODE_EQUILIBRADO
 FACTORIA_OPENCODE_POTENTE
 ```
 
-Si no existe un mapeo, el adaptador usa su modelo por defecto.
+Si no existe un mapeo, la etapa se bloquea; ver `deterministic-model-routing.md`.
 
 ## Artefactos
 
@@ -93,7 +95,7 @@ Cada ejecución persiste temporalmente en `.factoria/work/<flow-id>/`:
 
 ## Límites actuales
 
-- El contenido estructurado del reviewer todavía no se interpreta semánticamente; por ahora un proceso con exit code correcto se considera una ejecución válida y el usuario debe revisar `review.md`.
-- La confirmación de commit y la propuesta automática del mensaje de commit pertenecen al siguiente hito Git.
-- No existe todavía historial permanente de ejecuciones finalizadas fuera del workspace temporal.
-- Los tests del repositorio deben ejecutarse en un entorno real antes de considerar este bloque validado.
+- El reviewer se valida con el contrato estructurado y sus hallazgos bloqueantes impiden el cierre. Ver `structured-review-loop.md`.
+- La confirmación de commit y su preview están disponibles mediante `factoria commit`.
+- El historial local conserva informes de ejecuciones finalizadas; ver `final-report-history-metrics.md`.
+- Las pruebas herméticas verifican la orquestación con un agente simulado. La aceptación con proveedores reales se registra aparte.

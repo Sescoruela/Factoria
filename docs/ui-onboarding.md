@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-La UI del MVP es una TUI (terminal user interface) sin dependencias externas. No sustituye al CLI: lo hace más accesible y guía las decisiones que ya protege el núcleo de Factoria.
+La entrada principal abre la interfaz web local. Este documento describe la TUI alternativa (`factoria tui`) y el onboarding de terminal, sin dependencias externas. No sustituye al CLI: lo hace más accesible y guía las decisiones que ya protege el núcleo de Factoria.
 
 ## Cómo abrirla
 
@@ -143,4 +143,4 @@ Push, PR, borrado de ramas y otras acciones fuera del alcance del MVP siguen sin
 
 ## Diseño deliberado
 
-No se usa una UI web en el MVP para evitar introducir servidor, autenticación, frontend y un segundo modelo de seguridad antes del dogfooding real. La TUI sigue siendo portable; el selector gráfico de carpeta es una mejora de UX y tiene fallback por ruta escrita.
+La interfaz web local sirve en loopback y requiere token de sesión para la API. Permite editar roles y flujos y preparar la integración de ambas herramientas. La TUI sigue disponible como alternativa. El uso directo desde Codex/OpenCode no requiere mantener ninguna de las interfaces abierta.

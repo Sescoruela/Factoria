@@ -66,6 +66,9 @@ def main(argv: list[str] | None = None) -> int:
         return run_web_ui()
 
     command = _primary_command(argv)
+    if command in {'project', 'native'}:
+        from factoria.project_cli import run_project_cli
+        return run_project_cli(argv)
     if command in {"ui", "web"}:
         from factoria.web_app_n8n import run_web_ui
         return run_web_ui()

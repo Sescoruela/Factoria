@@ -1,8 +1,8 @@
-<!-- factoria-memory: type=active | reviewed_commit=aeb008a5b4fcfeb295c0303750f4742097a9d4fa | date=2026-10-30 | factoria=0.1.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=1a2e02c9692177fb5c7d63a10efa70379b5dca17 | date=2026-11-03 | factoria=0.2.0 -->
 # Factoria
 
 ## Propósito
-Factoría extensible y portable para orquestar desarrollo asistido por agentes con memoria persistente, validaciones, permisos, plugins y trazabilidad.
+Configurar y mantener agentes, instrucciones, skills, flujos, políticas y memoria por proyecto para trabajar principalmente desde Codex u OpenCode. La aplicación prepara ambas integraciones; el CLI conserva seguimiento y verificación sin iniciar otro LLM en el modo directo.
 
 ## Tecnologías
 - Python >= 3.11
@@ -13,6 +13,10 @@ Factoría extensible y portable para orquestar desarrollo asistido por agentes c
 - **config**: `src/factoria/config/`
 - **plugins**: `src/factoria/plugins/`
 - **memory**: `src/factoria/memory/`
+- **application**: `src/factoria/application/`
+- **adapters**: `src/factoria/adapters/`
+- **orchestration**: `src/factoria/orchestration/`
+- **interfaces**: `src/factoria/entrypoint.py`, `src/factoria/project_cli.py`, `src/factoria/web_app_n8n.py`
 
 ## Comandos confirmados
 - **test**: `python -m unittest discover -s tests`
@@ -38,3 +42,8 @@ Factoría extensible y portable para orquestar desarrollo asistido por agentes c
 Consulta primero este archivo y abre solo la memoria detallada relevante para la tarea.
 Si el código contradice comportamiento o estructura descritos aquí, marca la memoria como potencialmente desactualizada.
 Las reglas obligatorias no se ignoran automáticamente aunque el código actual las contradiga.
+
+## Integración directa
+- Objetivo y contrato: `docs/direct-project-integration.md`.
+- Criterios de cierre: `docs/mvp-checklist.md`.
+- No confundir las pruebas deterministas con aceptación en una sesión real de Codex/OpenCode.

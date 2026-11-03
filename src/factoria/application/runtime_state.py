@@ -37,6 +37,7 @@ class LiveFlowSession:
     permission_profile: str = PermissionProfile.NORMAL.value
     permission_escalated: bool = False
     workflow_steps: tuple[dict[str, Any], ...] = ()
+    agent_profiles: tuple[dict[str, Any], ...] = ()
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> "LiveFlowSession":
@@ -44,6 +45,9 @@ class LiveFlowSession:
         raw_stage = values.pop("runtime_stage", None)
         legacy_phase = values.pop("phase", None)
         raw_steps = values.pop("workflow_steps", ())
+        raw_agents = values.pop('agent_profiles', ())
+        if not isinstance(raw_agents, (list, tuple)) or not all(isinstance(item, dict) for item in raw_agents):
+            raise RuntimeStateError('agent_profiles must be a list of objects')
         if raw_stage is None and legacy_phase not in {None, "blocked"}:
             raw_stage = legacy_phase
         try:
@@ -57,6 +61,7 @@ class LiveFlowSession:
         return cls(
             runtime_stage=stage,
             workflow_steps=tuple(dict(item) for item in raw_steps),
+            agent_profiles=tuple(dict(item) for item in raw_agents),
             **values,
         )
 
