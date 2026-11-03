@@ -6,6 +6,8 @@ import json
 import secrets
 import subprocess
 import threading
+import time
+import uuid
 import webbrowser
 from dataclasses import asdict
 from http import HTTPStatus
@@ -14,6 +16,7 @@ from importlib.resources import files
 from pathlib import Path
 from urllib.parse import urlparse
 
+from factoria.adapters.codex_discovery import discover_codex
 from factoria.application.setup import SetupService
 from factoria.application.status import OperationalStatusService
 from factoria.config.loader import load_global_config
@@ -25,6 +28,9 @@ _ALLOWED_COMMANDS = {
     "status", "history", "plugins", "install", "memoria-init", "memoria-update",
     "feature", "fix", "resume", "pause", "cancel", "commit", "security",
 }
+_ASYNC_COMMANDS = {"feature", "fix", "resume"}
+_JOBS: dict[str, dict[str, object]] = {}
+_JOBS_LOCK = threading.Lock()
 
 
 def _is_git_project(path: Path | None) -> bool:
@@ -62,13 +68,14 @@ def _project_payload(root: Path | None) -> dict[str, object] | None:
 
 def _agent_payload() -> list[dict[str, object]]:
     persisted = _apply_agent_paths()
+    codex_discovery = discover_codex()
     result: list[dict[str, object]] = []
     try:
         statuses = SetupService().inspect_tools()
     except Exception as exc:
         return [{"name": "agents", "available": False, "ready": False, "error": str(exc)}]
     for status in statuses:
-        result.append({
+        item: dict[str, object] = {
             "name": status.name,
             "available": status.available,
             "ready": status.passed,
@@ -77,8 +84,24 @@ def _agent_payload() -> list[dict[str, object]]:
                 {"name": check.name, "passed": check.passed, "required": check.required, "details": check.details}
                 for check in status.checks
             ],
-        })
+        }
+        if status.name == "codex":
+            item.update(
+                {
+                    "cli_source": codex_discovery.cli_source,
+                    "desktop_detected": codex_discovery.desktop_detected,
+                    "desktop_hint": codex_discovery.desktop_hint,
+                }
+            )
+        result.append(item)
     return result
+
+
+def _job_summaries() -> list[dict[str, object]]:
+    with _JOBS_LOCK:
+        jobs = [dict(item) for item in _JOBS.values()]
+    jobs.sort(key=lambda item: float(item.get("created_at", 0)), reverse=True)
+    return jobs[:10]
 
 
 def _state() -> dict[str, object]:
@@ -92,6 +115,7 @@ def _state() -> dict[str, object]:
         "projects": [{"name": p.name, "path": str(p)} for p in projects],
         "agents": _agent_payload(),
         "default_tool": global_config.default_tool,
+        "jobs": _job_summaries(),
     }
 
 
@@ -180,8 +204,59 @@ def _run_factoria_command(args: list[str], project: Path | None) -> tuple[int, s
     return code, buffer.getvalue()
 
 
+def _start_async_job(args: list[str], project: Path | None) -> dict[str, object]:
+    if not args or args[0] not in _ASYNC_COMMANDS:
+        raise ValueError("Este comando no admite ejecución asíncrona")
+    project_key = str(project) if project else ""
+    with _JOBS_LOCK:
+        for existing in _JOBS.values():
+            if existing.get("project") == project_key and existing.get("status") in {"queued", "running"}:
+                raise ValueError("Ya hay un flujo de agente ejecutándose para este proyecto")
+        job_id = uuid.uuid4().hex
+        job: dict[str, object] = {
+            "id": job_id,
+            "command": args[0],
+            "args": list(args),
+            "project": project_key,
+            "status": "queued",
+            "created_at": time.time(),
+            "started_at": None,
+            "finished_at": None,
+            "code": None,
+            "output": "",
+        }
+        _JOBS[job_id] = job
+
+    def worker() -> None:
+        with _JOBS_LOCK:
+            _JOBS[job_id]["status"] = "running"
+            _JOBS[job_id]["started_at"] = time.time()
+        try:
+            code, output = _run_factoria_command(args, project)
+            with _JOBS_LOCK:
+                _JOBS[job_id]["code"] = code
+                _JOBS[job_id]["output"] = output
+                _JOBS[job_id]["status"] = "completed" if code == 0 else "failed"
+                _JOBS[job_id]["finished_at"] = time.time()
+        except Exception as exc:
+            with _JOBS_LOCK:
+                _JOBS[job_id]["status"] = "failed"
+                _JOBS[job_id]["code"] = 1
+                _JOBS[job_id]["output"] = f"{type(exc).__name__}: {exc}"
+                _JOBS[job_id]["finished_at"] = time.time()
+
+    threading.Thread(target=worker, name=f"factoria-job-{job_id[:8]}", daemon=True).start()
+    return dict(job)
+
+
+def _job(job_id: str) -> dict[str, object] | None:
+    with _JOBS_LOCK:
+        item = _JOBS.get(job_id)
+        return dict(item) if item is not None else None
+
+
 class FactoriaWebHandler(BaseHTTPRequestHandler):
-    server_version = "FactoriaWeb/0.1"
+    server_version = "FactoriaWeb/0.2"
 
     @property
     def token(self) -> str:
@@ -224,11 +299,19 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(html)
             return
+        if not self._authorized():
+            self._json({"error": "unauthorized"}, 403)
+            return
         if path == "/api/state":
-            if not self._authorized():
-                self._json({"error": "unauthorized"}, 403)
-                return
             self._json(_state())
+            return
+        if path.startswith("/api/job/"):
+            job_id = path.rsplit("/", 1)[-1]
+            item = _job(job_id)
+            if item is None:
+                self._json({"error": "job not found"}, 404)
+                return
+            self._json({"job": item, "state": _state()})
             return
         self.send_error(404)
 
@@ -261,6 +344,14 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             if path == "/api/agent/path":
                 configured = _set_agent_path(str(data.get("tool", "")), str(data.get("path", "")))
                 self._json({"ok": True, "path": str(configured), "state": _state()})
+                return
+            if path == "/api/job/start":
+                raw = data.get("args", [])
+                if not isinstance(raw, list) or not all(isinstance(item, str) for item in raw):
+                    raise ValueError("args debe ser una lista de strings")
+                settings = UiWorkspaceSettings.load()
+                job = _start_async_job(list(raw), _selected_project(settings))
+                self._json({"ok": True, "job": job, "state": _state()}, 202)
                 return
             if path == "/api/command":
                 raw = data.get("args", [])
