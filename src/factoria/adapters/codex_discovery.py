@@ -16,11 +16,15 @@ class CodexDiscovery:
 
 
 def discover_codex() -> CodexDiscovery:
-    """Discover a supported Codex CLI without treating desktop internals as public API.
+    """Resolve Codex CLI using stable user intent first, desktop runtime heuristics last.
 
-    Resolution order is explicit CODEX_CLI_PATH, normal PATH, then detection-only
-    of the ChatGPT/Codex desktop runtime. Desktop detection is informational: Factoria
-    does not execute a bundled/private desktop binary automatically.
+    Order:
+    1. CODEX_CLI_PATH explicitly supplied by the user/environment.
+    2. `codex` available on PATH.
+    3. A relocated ChatGPT Desktop Codex runtime under LOCALAPPDATA on Windows.
+
+    The desktop-runtime path is a heuristic rather than a documented public contract,
+    so callers must still run the normal Factoria self-tests before declaring it ready.
     """
     explicit = os.environ.get("CODEX_CLI_PATH", "").strip()
     if explicit:
@@ -33,7 +37,27 @@ def discover_codex() -> CodexDiscovery:
         return CodexDiscovery(Path(which).resolve(), "PATH", _desktop_detected())
 
     desktop, hint = _desktop_details()
+    runtime = _desktop_runtime_cli()
+    if runtime is not None:
+        return CodexDiscovery(runtime, "ChatGPT Desktop runtime", True, hint)
     return CodexDiscovery(None, None, desktop, hint)
+
+
+def _desktop_runtime_cli() -> Path | None:
+    if sys.platform != "win32":
+        return None
+    local = os.environ.get("LOCALAPPDATA")
+    if not local:
+        return None
+    root = Path(local)
+    candidates = (
+        root / "OpenAI" / "Codex" / "bin" / "codex.exe",
+        root / "OpenAI" / "ChatGPT" / "bin" / "codex.exe",
+    )
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate.resolve()
+    return None
 
 
 def _desktop_detected() -> bool:
