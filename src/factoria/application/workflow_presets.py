@@ -53,21 +53,30 @@ class VisualWorkflowPreset:
 def default_preset(kind: str, *, large_fix: bool = False, update_memory: bool = False) -> VisualWorkflowPreset:
     if kind == "feature":
         workflow = AgentWorkflowPlanner.feature()
-    elif kind == "fix":
-        workflow = AgentWorkflowPlanner.fix(large=large_fix, update_memory=update_memory)
-    else:
-        raise ValueError(f"Unsupported workflow kind: {kind}")
-    return VisualWorkflowPreset(
-        kind=kind,
-        steps=tuple(
-            VisualWorkflowStep(
-                name=step.name,
-                role=step.role.value,
-                profile=step.profile.value if step.profile else None,
-            )
-            for step in workflow.steps
-        ),
-    )
+        return VisualWorkflowPreset(
+            kind=kind,
+            steps=tuple(
+                VisualWorkflowStep(
+                    name=step.name,
+                    role=step.role.value,
+                    profile=step.profile.value if step.profile else None,
+                    enabled=True,
+                )
+                for step in workflow.steps
+            ),
+        )
+    if kind == "fix":
+        return VisualWorkflowPreset(
+            kind="fix",
+            steps=(
+                VisualWorkflowStep("explore", AgentRole.EXPLORER.value, enabled=True),
+                VisualWorkflowStep("plan", AgentRole.PLANNER.value, enabled=large_fix),
+                VisualWorkflowStep("implement", AgentRole.IMPLEMENTER.value, enabled=True),
+                VisualWorkflowStep("review", AgentRole.REVIEWER.value, enabled=True),
+                VisualWorkflowStep("document", AgentRole.DOCUMENTER.value, enabled=update_memory),
+            ),
+        )
+    raise ValueError(f"Unsupported workflow kind: {kind}")
 
 
 def validate_preset(preset: VisualWorkflowPreset) -> VisualWorkflowPreset:
