@@ -17,8 +17,8 @@ desde Codex u OpenCode. El LLM se utiliza principalmente en esas herramientas.
 | Verificación y review bloqueantes | Implementado | Comandos confirmados, alternativa manual y contrato JSON de review |
 | Regeneración conservadora | Implementado | Preview, hashes, conflictos, preservación de AGENTS.md y retirada de assets deshabilitados |
 | Pruebas deterministas | 244 pruebas superadas localmente, Python 3.12 / Linux | `tests/test_project_integration.py` y suite existente |
-| CI multiplataforma | Configurado, pendiente de ejecutar para esta entrega | Ubuntu Python 3.11–3.13; Windows/macOS Python 3.11 |
-| Instalador Windows | Pipeline existente; pendiente del build de esta entrega | Build, instalación, smoke de versión y desinstalación en CI |
+| CI multiplataforma | Configurado; resultado de ejecución registrado en GitHub | Ubuntu Python 3.11–3.13; Windows/macOS Python 3.11 |
+| Instalador Windows | Pipeline existente; resultado de build registrado en GitHub | Build, instalación, smoke de versión y desinstalación en CI |
 | Aceptación con Codex autenticado | Pendiente | Ejecutar el recorrido real documentado |
 | Aceptación con OpenCode autenticado | Pendiente | Ejecutar el recorrido real documentado |
 | Codex/ChatGPT con checkout | Pendiente de validar en el entorno elegido | Comprobar acceso a archivos y CLI, y comportamiento ante ausencia de herramientas |
@@ -52,4 +52,4 @@ la aceptación real en ambas herramientas y CI verde sobre el cambio revisado.
 - Runtime: sin nuevas dependencias externas obligatorias.
 - Codex/OpenCode no están instalados en el entorno de esta revisión; no se han
   ejecutado sesiones autenticadas ni se ha validado el enrutado natural por un LLM.
-- CI y build Windows de esta entrega: pendientes de publicar la rama y revisar sus resultados.
+- CI y build Windows de esta entrega: consultar los resultados del [PR #1](https://github.com/Sescoruela/Factoria/pull/1).
