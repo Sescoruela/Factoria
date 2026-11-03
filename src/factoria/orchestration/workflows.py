@@ -10,6 +10,7 @@ class AgentStep:
     name: str
     role: AgentRole
     profile: ModelProfile | None = None
+    preferred_tool: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
