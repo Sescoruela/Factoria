@@ -22,7 +22,7 @@ class CodexDiscoveryTests(unittest.TestCase):
             self.assertEqual(result.cli_path, executable.resolve())
             self.assertEqual(result.cli_source, "CODEX_CLI_PATH")
 
-    def test_desktop_detection_does_not_claim_cli(self) -> None:
+    def test_desktop_detection_does_not_claim_cli_without_runtime_binary(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             local = Path(temp)
             (local / "OpenAI" / "Codex").mkdir(parents=True)
@@ -34,6 +34,21 @@ class CodexDiscoveryTests(unittest.TestCase):
             self.assertTrue(result.desktop_detected)
             self.assertIsNone(result.cli_path)
             self.assertIsNone(result.cli_source)
+
+    def test_desktop_runtime_binary_is_discovered_after_explicit_and_path_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            local = Path(temp)
+            executable = local / "OpenAI" / "Codex" / "bin" / "codex.exe"
+            executable.parent.mkdir(parents=True)
+            executable.write_bytes(b"")
+            env = {"LOCALAPPDATA": str(local), "PATH": "", "CODEX_CLI_PATH": ""}
+            with patch("factoria.adapters.codex_discovery.sys.platform", "win32"), patch.dict(
+                os.environ, env, clear=False
+            ), patch("factoria.adapters.codex_discovery.shutil.which", return_value=None):
+                result = discover_codex()
+            self.assertEqual(result.cli_path, executable.resolve())
+            self.assertEqual(result.cli_source, "ChatGPT Desktop runtime")
+            self.assertTrue(result.desktop_detected)
 
 
 class OpenCodeTimeoutTests(unittest.TestCase):
