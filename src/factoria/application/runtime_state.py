@@ -36,24 +36,35 @@ class LiveFlowSession:
     base_permission_profile: str = PermissionProfile.NORMAL.value
     permission_profile: str = PermissionProfile.NORMAL.value
     permission_escalated: bool = False
+    workflow_steps: tuple[dict[str, Any], ...] = ()
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> "LiveFlowSession":
         values = dict(data)
         raw_stage = values.pop("runtime_stage", None)
         legacy_phase = values.pop("phase", None)
+        raw_steps = values.pop("workflow_steps", ())
         if raw_stage is None and legacy_phase not in {None, "blocked"}:
             raw_stage = legacy_phase
         try:
             stage = RuntimeStage(raw_stage) if raw_stage is not None else None
         except ValueError as exc:
             raise RuntimeStateError(f"Unsupported persisted runtime stage: {raw_stage}") from exc
-        return cls(runtime_stage=stage, **values)
+        if raw_steps is None:
+            raw_steps = ()
+        if not isinstance(raw_steps, (list, tuple)) or not all(isinstance(item, dict) for item in raw_steps):
+            raise RuntimeStateError("workflow_steps must be a list of objects")
+        return cls(
+            runtime_stage=stage,
+            workflow_steps=tuple(dict(item) for item in raw_steps),
+            **values,
+        )
 
     def to_mapping(self) -> dict[str, Any]:
         data = asdict(self)
         stage = self.runtime_stage
         data["runtime_stage"] = stage.value if stage is not None else None
+        data["workflow_steps"] = [dict(item) for item in self.workflow_steps]
         return data
 
 
