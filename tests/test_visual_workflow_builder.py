@@ -31,6 +31,16 @@ class VisualWorkflowPresetTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "obligatorias"):
             validate_preset(VisualWorkflowPreset(kind="feature", steps=steps))
 
+    def test_default_fix_shows_optional_cards_disabled(self) -> None:
+        preset = default_preset("fix")
+        self.assertEqual(
+            [step.name for step in preset.steps],
+            ["explore", "plan", "implement", "review", "document"],
+        )
+        self.assertFalse(next(step for step in preset.steps if step.name == "plan").enabled)
+        self.assertFalse(next(step for step in preset.steps if step.name == "document").enabled)
+        self.assertTrue(next(step for step in preset.steps if step.name == "implement").enabled)
+
     def test_unsafe_reorder_is_rejected(self) -> None:
         base = default_preset("feature")
         steps = list(base.steps)
@@ -71,7 +81,10 @@ class VisualWorkflowPresetTests(unittest.TestCase):
             )
             save_preset(root, custom)
             loaded = load_preset(root, "fix")
-            self.assertEqual([step.name for step in loaded.steps], ["explore", "plan", "implement", "review", "document"])
+            self.assertEqual(
+                [step.name for step in loaded.steps],
+                ["explore", "plan", "implement", "review", "document"],
+            )
             self.assertTrue(next(step for step in loaded.steps if step.name == "plan").enabled)
             self.assertEqual(next(step for step in loaded.steps if step.name == "review").tool, "codex")
 
