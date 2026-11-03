@@ -19,14 +19,32 @@ from urllib.parse import urlparse
 from factoria.adapters.codex_discovery import discover_codex
 from factoria.application.setup import SetupService
 from factoria.application.status import OperationalStatusService
+from factoria.application.workflow_presets import (
+    VisualWorkflowPreset,
+    VisualWorkflowStep,
+    default_preset,
+    load_preset,
+    save_preset,
+)
 from factoria.config.loader import load_global_config
 from factoria.ui_agent_tools import _apply_agent_paths, _load_agent_paths, _save_agent_paths
 from factoria.ui_workspace import UiWorkspaceSettings, discover_projects
 
 _HOST = "127.0.0.1"
 _ALLOWED_COMMANDS = {
-    "status", "history", "plugins", "install", "memoria-init", "memoria-update",
-    "feature", "fix", "resume", "pause", "cancel", "commit", "security",
+    "status",
+    "history",
+    "plugins",
+    "install",
+    "memoria-init",
+    "memoria-update",
+    "feature",
+    "fix",
+    "resume",
+    "pause",
+    "cancel",
+    "commit",
+    "security",
 }
 _ASYNC_COMMANDS = {"feature", "fix", "resume"}
 _JOBS: dict[str, dict[str, object]] = {}
@@ -81,7 +99,12 @@ def _agent_payload() -> list[dict[str, object]]:
             "ready": status.passed,
             "configured_path": persisted.get(status.name),
             "checks": [
-                {"name": check.name, "passed": check.passed, "required": check.required, "details": check.details}
+                {
+                    "name": check.name,
+                    "passed": check.passed,
+                    "required": check.required,
+                    "details": check.details,
+                }
                 for check in status.checks
             ],
         }
@@ -104,6 +127,18 @@ def _job_summaries() -> list[dict[str, object]]:
     return jobs[:10]
 
 
+def _workflow_payload(root: Path | None) -> dict[str, object]:
+    if root is None:
+        return {
+            "feature": default_preset("feature").to_mapping(),
+            "fix": default_preset("fix").to_mapping(),
+        }
+    return {
+        "feature": load_preset(root, "feature").to_mapping(),
+        "fix": load_preset(root, "fix").to_mapping(),
+    }
+
+
 def _state() -> dict[str, object]:
     settings = UiWorkspaceSettings.load()
     root = _selected_project(settings)
@@ -116,6 +151,7 @@ def _state() -> dict[str, object]:
         "agents": _agent_payload(),
         "default_tool": global_config.default_tool,
         "jobs": _job_summaries(),
+        "workflows": _workflow_payload(root),
     }
 
 
@@ -170,26 +206,75 @@ def _create_project(name: str, purpose: str = "") -> Path:
         raise ValueError("Ya existe una carpeta con ese nombre")
     target.mkdir(parents=False)
     try:
-        completed = subprocess.run(["git", "init", "-b", "main", str(target)], capture_output=True, text=True, encoding="utf-8", check=False)
+        completed = subprocess.run(
+            ["git", "init", "-b", "main", str(target)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+        )
         if completed.returncode != 0:
             raise RuntimeError(completed.stderr.strip() or "git init falló")
         text = f"# {name}\n" + (f"\n{purpose.strip()}\n" if purpose.strip() else "")
         (target / "README.md").write_text(text, encoding="utf-8")
         subprocess.run(["git", "-C", str(target), "add", "README.md"], capture_output=True, check=False)
-        subprocess.run(["git", "-C", str(target), "commit", "-m", "Initial commit"], capture_output=True, check=False)
+        subprocess.run(
+            ["git", "-C", str(target), "commit", "-m", "Initial commit"],
+            capture_output=True,
+            check=False,
+        )
     except Exception:
         import shutil
+
         shutil.rmtree(target, ignore_errors=True)
         raise
     _save_selected_project(target)
     return target
 
 
+def _preset_from_payload(data: dict[str, object]) -> VisualWorkflowPreset:
+    kind = str(data.get("kind", ""))
+    raw_steps = data.get("steps", [])
+    if not isinstance(raw_steps, list):
+        raise ValueError("steps debe ser una lista")
+    return VisualWorkflowPreset(
+        kind=kind,
+        steps=tuple(
+            VisualWorkflowStep.from_mapping(item)
+            for item in raw_steps
+            if isinstance(item, dict)
+        ),
+    )
+
+
+def _apply_workflow_defaults(args: list[str], project: Path | None) -> list[str]:
+    if project is None or not args or args[0] not in {"feature", "fix"}:
+        return list(args)
+    kind = args[0]
+    preset = load_preset(project, kind)
+    enabled = [step for step in preset.steps if step.enabled]
+    result = list(args)
+
+    if kind == "fix":
+        enabled_names = {step.name for step in enabled}
+        if "plan" in enabled_names and "--large" not in result:
+            result.append("--large")
+        if "document" in enabled_names and "--update-memory" not in result:
+            result.append("--update-memory")
+
+    has_tool = "--tool" in result
+    explicit_tools = {step.tool for step in enabled if step.tool}
+    if not has_tool and len(explicit_tools) == 1:
+        result.extend(["--tool", next(iter(explicit_tools))])
+    return result
+
+
 def _run_factoria_command(args: list[str], project: Path | None) -> tuple[int, str]:
     if not args or args[0] not in _ALLOWED_COMMANDS:
         raise ValueError("Comando no permitido desde la web")
     from factoria.entrypoint import main
-    argv = list(args)
+
+    argv = _apply_workflow_defaults(args, project)
     if project is not None and "--project" not in argv:
         argv = ["--project", str(project), *argv]
     buffer = io.StringIO()
@@ -256,7 +341,7 @@ def _job(job_id: str) -> dict[str, object] | None:
 
 
 class FactoriaWebHandler(BaseHTTPRequestHandler):
-    server_version = "FactoriaWeb/0.2"
+    server_version = "FactoriaWeb/0.3"
 
     @property
     def token(self) -> str:
@@ -344,6 +429,15 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             if path == "/api/agent/path":
                 configured = _set_agent_path(str(data.get("tool", "")), str(data.get("path", "")))
                 self._json({"ok": True, "path": str(configured), "state": _state()})
+                return
+            if path == "/api/workflow/save":
+                settings = UiWorkspaceSettings.load()
+                project = _selected_project(settings)
+                if project is None:
+                    raise ValueError("Selecciona primero un proyecto")
+                preset = _preset_from_payload(data)
+                saved = save_preset(project, preset)
+                self._json({"ok": True, "path": str(saved), "state": _state()})
                 return
             if path == "/api/job/start":
                 raw = data.get("args", [])
