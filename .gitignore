@@ -16,3 +16,4 @@ build/
 .factoria/work/
 .factoria/security/
 .factoria/ui-state.json
+.factoria/ui-workflows.json
