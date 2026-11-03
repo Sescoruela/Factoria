@@ -119,7 +119,14 @@ def validate_preset(preset: VisualWorkflowPreset) -> VisualWorkflowPreset:
     if indexes != sorted(indexes):
         raise ValueError(
             "El orden solicitado no es seguro. Mantén explore → plan → implement → review → document; "
-            "puedes personalizar agente, perfil y etapas opcionales."
+            "puedes personalizar el agente y las etapas opcionales."
+        )
+
+    explicit_tools = {step.tool for step in normalized if step.enabled and step.tool}
+    if len(explicit_tools) > 1:
+        raise ValueError(
+            "En este MVP un flujo debe usar un único agente explícito. "
+            "Puedes dejar las cards en 'predeterminado' o seleccionar el mismo agente en todas."
         )
     return VisualWorkflowPreset(kind=preset.kind, steps=tuple(normalized))
 
