@@ -28,6 +28,7 @@ _IMPLEMENTER_PERMISSION = {
     "lsp": "allow",
     "edit": "allow",
 }
+_DEFAULT_OPENCODE_TIMEOUT_SECONDS = 600
 
 
 def opencode_read_only_config_content() -> str:
@@ -36,6 +37,19 @@ def opencode_read_only_config_content() -> str:
 
 def opencode_implementer_config_content() -> str:
     return json.dumps({"permission": _IMPLEMENTER_PERMISSION}, separators=(",", ":"))
+
+
+def _opencode_timeout_seconds(requested: int) -> int:
+    raw = os.environ.get("FACTORIA_OPENCODE_TIMEOUT_SECONDS", "").strip()
+    if raw:
+        try:
+            configured = int(raw)
+        except ValueError:
+            configured = _DEFAULT_OPENCODE_TIMEOUT_SECONDS
+        configured = max(30, min(configured, 3600))
+    else:
+        configured = _DEFAULT_OPENCODE_TIMEOUT_SECONDS
+    return min(requested, configured)
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,10 +83,6 @@ class OpenCodeAdapter(SubprocessToolAdapter):
         return tuple(args)
 
     def run(self, request: AgentRequest) -> AgentResult:
-        # The live policy historically supplied a permission object under the
-        # internal OPENCODE_PERMISSION key. Never pass that undocumented key to
-        # OpenCode: translate it into the documented highest-priority runtime
-        # configuration channel OPENCODE_CONFIG_CONTENT.
         environment = dict(request.environment)
         permission = environment.pop("OPENCODE_PERMISSION", None)
         if permission is not None:
@@ -91,6 +101,7 @@ class OpenCodeAdapter(SubprocessToolAdapter):
         effective_request = replace(
             request,
             environment=MappingProxyType(environment),
+            timeout_seconds=_opencode_timeout_seconds(request.timeout_seconds),
         )
         return self._execute(
             effective_request,
@@ -105,13 +116,6 @@ class OpenCodeAdapter(SubprocessToolAdapter):
         config_content: str,
         expected: dict[str, str],
     ) -> CheckResult:
-        """Verify OpenCode's resolved config without starting an agent.
-
-        The temporary project deliberately contains permissive project config.
-        The probe succeeds only when the documented inline runtime config wins and
-        the resolved permission object still contains Factoria's restrictive
-        contract.
-        """
         if not self.available():
             return CheckResult(
                 name=name,
