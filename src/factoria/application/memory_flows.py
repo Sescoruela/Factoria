@@ -105,7 +105,14 @@ class MemoryUpdateFlow:
         written: list[Path] = []
 
         agents = project_root / "AGENTS.md"
-        agents.write_text(render_agents_md(memory), encoding="utf-8", newline="")
+        content = render_agents_md(memory)
+        if agents.exists():
+            from factoria.application.project_integration import START, END
+            previous = agents.read_text(encoding='utf-8')
+            if START in previous and END in previous:
+                block = previous.split(START, 1)[1].split(END, 1)[0]
+                content += '\n' + START + block + END + '\n'
+        agents.write_text(content, encoding="utf-8", newline="")
         written.append(agents)
 
         kinds = [MemoryDocumentKind.TESTING]

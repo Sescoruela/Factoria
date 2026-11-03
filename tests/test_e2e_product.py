@@ -10,6 +10,7 @@ import unittest
 from pathlib import Path
 
 
+@unittest.skipIf(os.name == 'nt', 'POSIX fake-agent executable; native project journeys run on Windows in test_project_integration')
 class ProductEndToEndTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory(prefix="factoria-e2e-")

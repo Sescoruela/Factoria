@@ -98,6 +98,7 @@ class LiveAgentFlowRunner:
             update_memory=update_memory,
         )
         resolved_workflow = preset_to_workflow(preset, project_root=project_root)
+        from factoria.application.project_integration import project_definition
         session = LiveFlowSession(
             flow_id=flow_id,
             kind=kind,
@@ -111,6 +112,7 @@ class LiveAgentFlowRunner:
             permission_profile=effective_profile.value,
             permission_escalated=escalated,
             workflow_steps=workflow_snapshot(resolved_workflow),
+            agent_profiles=tuple(project_definition(project_root)['agents']),
         )
         self._save_session(session, execution=execution)
         self.artifacts.write_text(
@@ -529,7 +531,14 @@ class LiveAgentFlowRunner:
             base += f"Read .factoria/work/{session.flow_id}/plan.md before implementing.\n"
         if step.name == "review":
             base += f"Read .factoria/work/{session.flow_id}/verification.md and plan.md if it exists.\n"
-        return base + instructions[step.name]
+        from factoria.application.project_integration import project_definition
+        project_root = self.artifacts.project_root
+        roles = session.agent_profiles or project_definition(project_root)['agents']
+        role = next(item for item in roles if item['role'] == step.role.value)
+        custom = '\n\nProject agent instructions:\n' + role['instructions'] if role['instructions'] else ''
+        for path, content in role['skill_contents'].items():
+            custom += f'\n\nSkill {path}:\n{content}'
+        return base + instructions[step.name] + custom
 
     def _prepare_branch(self, project_root: Path, *, requested: str | None) -> str:
         if self._has_pending_changes(project_root):

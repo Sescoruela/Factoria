@@ -65,7 +65,7 @@ class ProjectMemoryTests(unittest.TestCase):
 
     def test_maintenance_memory_does_not_create_deep_architecture_files(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
+            root = Path(temp_dir).resolve()
             memory = self._memory(ProjectKind.MAINTENANCE)
             written = write_initial_memory(root, memory)
             relative = {item.path.relative_to(root).as_posix() for item in written}
@@ -74,7 +74,7 @@ class ProjectMemoryTests(unittest.TestCase):
 
     def test_initial_writer_refuses_to_overwrite_existing_agents_file(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
+            root = Path(temp_dir).resolve()
             (root / "AGENTS.md").write_text("existing", encoding="utf-8")
             with self.assertRaises(FileExistsError):
                 write_initial_memory(root, self._memory())
@@ -111,7 +111,7 @@ class ProjectMemoryTests(unittest.TestCase):
 
     def test_active_project_targets_include_full_memory(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
+            root = Path(temp_dir).resolve()
             targets = {path.relative_to(root).as_posix() for path in memory_targets(root, self._memory())}
             self.assertIn("docs/memoria/arquitectura.md", targets)
             self.assertIn("docs/memoria/flujos.md", targets)

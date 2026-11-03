@@ -62,6 +62,10 @@ class LocalExecutionHistoryStore:
             return result
         allowed = {
             "task.md",
+            "native.json",
+            "explore.md",
+            "implementation.md",
+            "review.json",
             "plan.md",
             "verification.md",
             "review.md",

@@ -8,7 +8,8 @@ from typing import Any
 from factoria.application.agent_profiles import load_agent_profiles
 from factoria.orchestration import AgentRole, AgentStep, AgentWorkflow, AgentWorkflowPlanner, ModelProfile
 
-_PRESET_FILE = Path('.factoria') / 'ui-workflows.json'
+_PRESET_FILE = Path('.factoria') / 'workflows.json'
+_LEGACY_PRESET_FILE = Path('.factoria') / 'ui-workflows.json'
 _CANONICAL_ORDER = ('explore', 'plan', 'implement', 'review', 'document')
 _ROLE_BY_NAME = {
     'explore': AgentRole.EXPLORER,
@@ -33,6 +34,8 @@ class VisualWorkflowStep:
 
     @classmethod
     def from_mapping(cls, data: dict[str, Any]) -> 'VisualWorkflowStep':
+        if not isinstance(data.get('enabled', True), bool):
+            raise ValueError('enabled debe ser booleano')
         return cls(
             name=str(data.get('name', '')),
             role=str(data.get('role', '')),
@@ -60,7 +63,7 @@ def default_preset(kind: str, *, large_fix: bool = False, update_memory: bool = 
                 VisualWorkflowStep(
                     name=step.name,
                     role=step.role.value,
-                    profile=step.profile.value if step.profile else None,
+                    profile=None,
                     enabled=True,
                 )
                 for step in workflow.steps
@@ -138,45 +141,38 @@ def load_preset(project_root: Path, kind: str, *, large_fix: bool = False, updat
     fallback = default_preset(kind, large_fix=large_fix, update_memory=update_memory)
     path = project_root / _PRESET_FILE
     if not path.exists():
+        path = project_root / _LEGACY_PRESET_FILE
+    if not path.exists():
         return fallback
     try:
         raw = json.loads(path.read_text(encoding='utf-8'))
-    except (OSError, json.JSONDecodeError):
-        return fallback
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError('La configuración de flujos no es válida') from exc
     if not isinstance(raw, dict):
-        return fallback
+        raise ValueError('La configuración de flujos debe ser un objeto')
     entry = raw.get(kind)
-    if not isinstance(entry, dict):
+    if entry is None:
         return fallback
+    if not isinstance(entry, dict):
+        raise ValueError('La configuración del flujo debe ser un objeto')
     raw_steps = entry.get('steps')
     if not isinstance(raw_steps, list):
-        return fallback
-    try:
-        preset = VisualWorkflowPreset(
-            kind=kind,
-            steps=tuple(
-                VisualWorkflowStep.from_mapping(item)
-                for item in raw_steps
-                if isinstance(item, dict)
-            ),
-        )
-        return validate_preset(preset)
-    except ValueError:
-        return fallback
+        raise ValueError('Las etapas deben ser una lista')
+    if any(not isinstance(item, dict) for item in raw_steps):
+        raise ValueError('Cada etapa debe ser un objeto')
+    preset = VisualWorkflowPreset(kind=kind, steps=tuple(VisualWorkflowStep.from_mapping(item) for item in raw_steps))
+    return validate_preset(preset)
 
 
 def save_preset(project_root: Path, preset: VisualWorkflowPreset) -> Path:
+    from factoria.application.governance import ExecutionGovernor, GovernedAction
+    from factoria.application.policy_runtime import build_execution_context
+    from factoria.application.project_integration import project_path
+    ExecutionGovernor().assert_allowed(GovernedAction.WRITE, build_execution_context(project_root))
     checked = validate_preset(preset)
-    path = project_root / _PRESET_FILE
+    path = project_path(project_root, _PRESET_FILE.as_posix())
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload: dict[str, Any] = {}
-    if path.exists():
-        try:
-            existing = json.loads(path.read_text(encoding='utf-8'))
-            if isinstance(existing, dict):
-                payload = existing
-        except (OSError, json.JSONDecodeError):
-            payload = {}
+    payload = {kind: load_preset(project_root, kind).to_mapping() for kind in ('feature', 'fix')}
     payload[checked.kind] = checked.to_mapping()
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     return path

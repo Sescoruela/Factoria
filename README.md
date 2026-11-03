@@ -1,8 +1,12 @@
 # Factoria
 
-Factoria es una fábrica portable de flujos de desarrollo asistidos por agentes. Mantiene memoria por repositorio, aplica permisos y políticas, coordina Codex/OpenCode, ejecuta verificaciones confirmadas, estructura el review y deja trazabilidad local de cada ejecución.
+Factoria configura y mantiene la estructura de una factoría de software por proyecto: agentes, instrucciones, skills, flujos, políticas y memoria. El trabajo con LLM se realiza principalmente en **Codex o OpenCode**, con la autenticación, modelos y permisos de esas herramientas.
 
-> Estado: MVP funcional con CLI, TUI interactiva, onboarding, seguridad, historial, instalador Windows y validación end-to-end hermética.
+El recorrido principal es **configurar en Factoria → preparar el proyecto para ambas herramientas → abrir Codex/OpenCode → pedir una corrección o funcionalidad → seguir el flujo configurado**. La aplicación puede permanecer cerrada durante ese trabajo. El CLI local de Factoria conserva el seguimiento y ejecuta las comprobaciones confirmadas, sin iniciar un segundo LLM.
+
+También se conserva el modo opcional orquestado: `factoria fix/feature` lanza agentes mediante sus adaptadores.
+
+> Estado: implementación del MVP con pruebas deterministas; la aceptación con instalaciones reales de Codex/OpenCode se registra por separado. Ver [criterios de cierre](docs/mvp-checklist.md).
 
 ## Inicio rápido
 
@@ -21,7 +25,7 @@ Tras instalar, abre una terminal nueva y ejecuta:
 factoria
 ```
 
-La primera ejecución abre la TUI y ofrece el onboarding guiado. Codex/OpenCode no se incluyen dentro del instalador: Factoria los detecta y valida durante el onboarding.
+La primera ejecución abre la interfaz web local. La terminal interactiva está disponible con `factoria tui` y el onboarding con `factoria onboarding`. Codex/OpenCode no se incluyen dentro del instalador: Factoria los detecta y valida durante el onboarding.
 
 Los instaladores generados por CI todavía no están firmados digitalmente. La firma Authenticode queda fuera del MVP y debe añadirse antes de distribuir binarios como release de confianza amplia.
 
@@ -34,7 +38,7 @@ python -m pip install -e .
 factoria
 ```
 
-Ejecutar `factoria` sin argumentos abre la UI interactiva. También puedes abrirla explícitamente:
+Ejecutar `factoria` sin argumentos abre la interfaz web local en el navegador. También puedes abrirla explícitamente:
 
 ```bash
 factoria ui
@@ -48,22 +52,58 @@ factoria onboarding
 
 El onboarding explica el modelo de trabajo, permite preparar la memoria del repositorio, ejecuta el diagnóstico seguro de herramientas y enseña el recorrido de una feature/fix sin saltarse ninguna confirmación.
 
-## Flujo habitual
+## Uso principal: trabajar desde Codex u OpenCode
 
-1. Inicializa/revisa la memoria del proyecto.
-2. Mantén `main` limpio.
-3. Lanza una feature o fix desde la UI o el CLI.
-4. Revisa y aprueba el plan cuando corresponda.
-5. Factoria implementa, verifica y revisa el cambio con las políticas configuradas.
-6. Revisa el resultado final y el preview del commit.
-7. Confirma el commit explícitamente.
-8. Push y PR siguen siendo manuales por diseño.
+1. Selecciona el proyecto en la aplicación e inicializa su memoria.
+2. Configura sus agentes (perfil, plataforma, instrucciones y rutas de skills) y flujos.
+3. Abre **Integración**, revisa los cambios y pulsa **Preparar ambas herramientas**.
+4. Revisa y guarda los archivos del proyecto en Git; selecciona una rama de trabajo.
+5. Abre Codex u OpenCode en el repositorio. Puedes cerrar la aplicación de Factoria.
+6. Pide «corrige este error» o «añade esta funcionalidad». `AGENTS.md` dirige la petición
+   a `factoria-fix` o `factoria-feature`; si la intención es ambigua, se aclara primero.
+7. Como selección explícita, usa `$factoria-fix` / `$factoria-feature` en Codex,
+   o `/factoria-fix` / `/factoria-feature` en OpenCode.
+8. La herramienta sigue las etapas con `factoria native`, registra evidencia, espera
+   las aprobaciones requeridas y ejecuta las verificaciones confirmadas.
+9. Revisa el resultado y autoriza el commit. Push y PR continúan siendo manuales.
+
+La configuración común vive en `.factoria/agents.json`, `.factoria/workflows.json`
+y `.factoria/config.toml`. La preparación importa las antiguas configuraciones locales
+`ui-agents.json` y `ui-workflows.json` si no hay configuración común, y no las borra.
+
+Desde terminal, el equivalente a la preparación es:
+
+```bash
+factoria project prepare        # preview, sin escritura
+factoria project prepare --yes  # generar tras revisar
+factoria project check         # comprobar vigencia y conflictos
+```
+
+Los archivos generados llevan un manifiesto de hashes. La regeneración conserva
+el contenido propio de `AGENTS.md` y bloquea si detecta cambios manuales en otros
+archivos generados. Regenera tras cambiar agentes, flujos, skills o memoria.
+
+### Codex dentro de ChatGPT y ChatGPT sin repositorio
+
+Codex/ChatGPT con acceso al checkout puede consumir las instrucciones y skills del
+repositorio. Para ejecutar el seguimiento necesita acceso al CLI de Factoria y a Git.
+Una conversación de ChatGPT sin ese acceso no puede descubrir archivos de tu equipo:
+adjunta `.factoria/generated/chatgpt-context.md` y el código necesario. Ese modo
+permite propuestas; no afirma ejecución, permisos aplicados ni pruebas superadas.
+
+Consulta [integración directa](docs/direct-project-integration.md) para límites y
+recorridos reproducibles. No se instalan plugins personales ni se modifican los
+archivos globales de Codex/OpenCode.
 
 ## Comandos principales
 
 ```text
 factoria                     # abre la UI
-factoria ui                  # abre la UI
+factoria ui                  # interfaz web local
+factoria tui                 # interfaz de terminal
+factoria project prepare     # preview de integración con ambas herramientas
+factoria project check       # vigencia de la integración
+factoria native start ...    # seguimiento dentro de Codex/OpenCode, sin otro LLM
 factoria onboarding          # guía interactiva
 factoria status              # diagnóstico operativo
 factoria memoria-init        # propuesta de memoria
@@ -89,6 +129,6 @@ factoria update              # actualización por release etiquetada
 
 ## Portabilidad
 
-El runtime principal se mantiene sin dependencias externas obligatorias. La TUI usa únicamente la biblioteca estándar de Python y funciona como una capa sobre los mismos servicios y comandos del núcleo.
+El runtime principal se mantiene sin dependencias externas obligatorias. Las interfaces web local y de terminal usan únicamente la biblioteca estándar de Python y funciona como una capa sobre los mismos servicios y comandos del núcleo.
 
 En Windows, PyInstaller empaqueta ese runtime en un único `Factoria.exe`; Inno Setup envuelve el ejecutable en un instalador por usuario. Las dependencias de build (`pyinstaller` e Inno Setup) solo son necesarias en CI/desarrollo, no en el equipo del usuario final.

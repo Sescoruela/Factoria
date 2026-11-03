@@ -78,16 +78,20 @@ class GitLifecycle:
         )
 
     def changes(self) -> tuple[GitChange, ...]:
-        output = self._git("status", "--porcelain=v1")
+        output = self._git("status", "--porcelain=v1", "-z", "--untracked-files=all")
         changes: list[GitChange] = []
-        for raw in output.splitlines():
+        parts = output.split('\0')
+        index = 0
+        while index < len(parts):
+            raw = parts[index]
+            index += 1
             if len(raw) < 4:
                 continue
             status = raw[:2]
             path = raw[3:]
-            if " -> " in path:
-                path = path.split(" -> ", 1)[1]
-            changes.append(GitChange(status=status, path=path.strip('"')))
+            if any(flag in status for flag in ('R', 'C')):
+                index += 1  # NUL format returns destination first, then source.
+            changes.append(GitChange(status=status, path=path))
         return tuple(changes)
 
     def commit(

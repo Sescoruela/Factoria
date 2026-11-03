@@ -1,16 +1,24 @@
-<!-- factoria-memory: type=active | reviewed_commit=aeb008a5b4fcfeb295c0303750f4742097a9d4fa | date=2026-10-30 | factoria=0.1.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=1a2e02c9692177fb5c7d63a10efa70379b5dca17 | date=2026-11-03 | factoria=0.2.0 -->
 # Verificación y pruebas
 
 ## Estado
-- Framework de pruebas: `unittest` de la biblioteca estándar.
+- Framework: unittest, biblioteca estándar.
 - Comando confirmado: `python -m unittest discover -s tests`.
-- Los tests cubren actualmente máquina de estados, permisos, configuración, plugins y memoria de proyecto.
+- La suite cubre dominio, políticas, memoria, adaptadores, flujos, Git, plugins, UI e historial.
+- `test_project_integration.py` comprueba exportación para ambas herramientas y recorridos directos en repositorios temporales, también por CLI pública.
+- CI configurado para Ubuntu Python 3.11–3.13 y Windows/macOS Python 3.11.
+- El instalador Windows tiene un pipeline separado de build, instalación y desinstalación.
 
 ## Cómo comprobarlo a mano
-1. Usar Python 3.11 o superior.
-2. Ejecutar `python -m unittest discover -s tests` desde la raíz del repositorio.
-3. Confirmar que no se añaden dependencias de runtime externas.
-4. Para `memory-init`, revisar la propuesta antes de confirmar cualquier escritura.
+1. Instalar el paquete con Python 3.11+ en un entorno virtual.
+2. Ejecutar la suite completa.
+3. Preparar un repositorio de prueba desde Integración y revisar el diff.
+4. Seguir el recorrido real de `docs/direct-project-integration.md` en ambas herramientas.
+5. Registrar versiones, modelos, aprobaciones y bloqueos en `docs/mvp-checklist.md`.
 
-## Limitación actual
-Los tests están versionados, pero este hito todavía no añade un workflow de CI. Una ejecución no debe declararse superada sin haber lanzado el comando de pruebas en un entorno real.
+## Límites de las pruebas
+Las pruebas no usan modelos remotos. No demuestran descubrimiento de skills por un
+LLM, autenticación de proveedores ni disponibilidad de shell en Codex/ChatGPT.
+El fixture POSIX de agente orquestado se omite en Windows; las pruebas del recorrido
+directo por CLI se ejecutan allí. No declarar CI remoto o aceptación real superados
+sin revisar su resultado correspondiente.

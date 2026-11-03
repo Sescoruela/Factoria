@@ -41,7 +41,7 @@ class PluginRegistryTests(unittest.TestCase):
 
     def test_higher_priority_plugin_overrides_lower_priority_plugin(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
+            root = Path(temp_dir).resolve()
             builtin = root / "builtin"
             personal = root / "personal"
             builtin.mkdir()
@@ -64,7 +64,7 @@ class PluginRegistryTests(unittest.TestCase):
 
     def test_same_priority_conflict_blocks_registration(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
+            root = Path(temp_dir).resolve()
             personal = root / "personal"
             personal.mkdir()
             self._write_plugin(personal, "first", name="duplicate")
@@ -81,7 +81,7 @@ class PluginRegistryTests(unittest.TestCase):
 
     def test_invalid_manifest_is_reported_as_problem_not_loaded(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
+            root = Path(temp_dir).resolve()
             plugins_root = root / "plugins"
             plugins_root.mkdir()
             broken = plugins_root / "broken"
@@ -99,7 +99,7 @@ class PluginRegistryTests(unittest.TestCase):
 
     def test_deprecated_manifest_layout_loads_with_warning(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
+            root = Path(temp_dir).resolve()
             self._write_plugin(root, "legacy", name="legacy", deprecated_layout=True)
 
             plugins = PluginRegistry().discover([(PluginSource.PERSONAL, root)])
@@ -108,7 +108,7 @@ class PluginRegistryTests(unittest.TestCase):
 
     def test_incompatible_plugin_is_not_loaded(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
+            root = Path(temp_dir).resolve()
             self._write_plugin(root, "future", name="future", compatibility=">=9.0.0")
 
             registry = PluginRegistry(factoria_version="0.1.0")

@@ -28,10 +28,18 @@ El directorio del proyecto se fija mediante `--dir` además del `cwd` local para
 
 `AdapterRegistry` mantiene los adaptadores disponibles y puede seleccionar el preferido. Si no está disponible, puede escoger el primer adaptador compatible configurado. La selección nunca cambia la política de permisos ni transforma una ejecución de solo lectura en una ejecución con escritura.
 
-## Límites de este hito
+## Alcance actual
 
-- no se ejecutan agentes automáticamente desde `fix` o `feature` todavía;
-- no se parsean métricas de tokens/coste específicas de proveedor;
-- no se gestionan sesiones persistentes entre ejecuciones;
-- el mapeo `rapido/equilibrado/potente -> modelo real` queda para la capa de configuración/orquestación;
-- los self-tests comprueban instalación y ayuda/versionado, no autenticación completa contra el proveedor.
+Los adaptadores se utilizan en el **modo orquestado** `factoria fix/feature`, que sí
+puede iniciar etapas con agentes. El modo principal **directo**, preparado con
+`factoria project prepare`, ejecuta el trabajo dentro de la sesión de Codex/OpenCode
+y utiliza `factoria native` para seguimiento sin nuevas llamadas LLM.
+
+- El enrutado orquestado exige un modelo concreto por perfil y valida capacidades.
+- Codex se admite en solo lectura para el modo orquestado; OpenCode puede implementar
+  bajo su configuración restrictiva. Ver `adapter-safety-verification.md`.
+- En modo directo, el modelo y los permisos pertenecen a la sesión abierta. Los roles
+  usan las instrucciones configuradas; no se simula selección de modelo ni aislamiento
+  de subagentes. Una preferencia de plataforma distinta requiere continuar allí.
+- Los self-tests no prueban autenticación ni disponibilidad de un modelo remoto.
+- No se inventan métricas de tokens/coste si el proveedor no las devuelve.

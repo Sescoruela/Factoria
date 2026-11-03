@@ -133,10 +133,13 @@ def _workflow_payload(root: Path | None) -> dict[str, object]:
             "feature": default_preset("feature").to_mapping(),
             "fix": default_preset("fix").to_mapping(),
         }
-    return {
-        "feature": load_preset(root, "feature").to_mapping(),
-        "fix": load_preset(root, "fix").to_mapping(),
-    }
+    result = {}
+    for kind in ('feature', 'fix'):
+        try:
+            result[kind] = load_preset(root, kind).to_mapping()
+        except (ValueError, OSError) as exc:
+            result[kind] = {'kind': kind, 'steps': [], 'error': str(exc)}
+    return result
 
 
 def _state() -> dict[str, object]:
@@ -319,16 +322,14 @@ def _start_async_job(args: list[str], project: Path | None) -> dict[str, object]
         try:
             code, output = _run_factoria_command(args, project)
             with _JOBS_LOCK:
-                _JOBS[job_id]["code"] = code
-                _JOBS[job_id]["output"] = output
-                _JOBS[job_id]["status"] = "completed" if code == 0 else "failed"
-                _JOBS[job_id]["finished_at"] = time.time()
+                if job_id in _JOBS:
+                    _JOBS[job_id].update(code=code, output=output,
+                                        status="completed" if code == 0 else "failed", finished_at=time.time())
         except Exception as exc:
             with _JOBS_LOCK:
-                _JOBS[job_id]["status"] = "failed"
-                _JOBS[job_id]["code"] = 1
-                _JOBS[job_id]["output"] = f"{type(exc).__name__}: {exc}"
-                _JOBS[job_id]["finished_at"] = time.time()
+                if job_id in _JOBS:
+                    _JOBS[job_id].update(status="failed", code=1,
+                                        output=f"{type(exc).__name__}: {exc}", finished_at=time.time())
 
     threading.Thread(target=worker, name=f"factoria-job-{job_id[:8]}", daemon=True).start()
     return dict(job)

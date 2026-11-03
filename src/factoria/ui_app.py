@@ -356,6 +356,7 @@ class ManagedTerminalUI(TerminalUI):
         projects_root = self.workspace_settings.projects_root
         if projects_root is None:
             return
+        projects_root = projects_root.resolve()
         projects = discover_projects(projects_root)
         if not projects:
             self.root = projects_root

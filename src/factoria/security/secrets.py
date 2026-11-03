@@ -125,7 +125,7 @@ class SecretScanner:
     @staticmethod
     def changed_paths(project_root: Path) -> tuple[str, ...]:
         completed = subprocess.run(
-            ["git", "-C", str(project_root), "status", "--porcelain=v1", "-z"],
+            ["git", "-C", str(project_root), "status", "--porcelain=v1", "-z", "--untracked-files=all"],
             check=True,
             capture_output=True,
         )
@@ -137,9 +137,8 @@ class SecretScanner:
             entry = parts[index]
             path = entry[3:] if len(entry) >= 4 else ""
             status = entry[:2]
-            if status and status[0] in {"R", "C"} and index + 1 < len(parts):
+            if any(flag in status for flag in ('R', 'C')) and index + 1 < len(parts):
                 index += 1
-                path = parts[index]
             if path:
                 paths.append(path)
             index += 1
