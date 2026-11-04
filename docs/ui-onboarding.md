@@ -35,7 +35,9 @@ La configuración recuerda:
 - la carpeta raíz de proyectos;
 - el último repositorio seleccionado.
 
-Factoria detecta todos los repositorios Git dentro de la carpeta raíz, también cuando están agrupados en subcarpetas. Durante el escaneo evita directorios generados pesados como `node_modules`, `.venv`, `bin`, `obj`, `dist` o `vendor`.
+Factoria detecta todos los repositorios Git dentro de la carpeta raíz, también cuando están agrupados en subcarpetas. Al encontrar un repositorio deja de recorrer su interior: sus subcarpetas, submódulos y repositorios anidados no aparecen como proyectos adicionales. Los worktrees externos siguen apareciendo como proyectos independientes. Si la carpeta elegida está dentro de un repositorio, se utiliza la raíz de ese repositorio. Las selecciones guardadas o introducidas desde una subcarpeta se normalizan al proyecto principal dentro de la carpeta de proyectos configurada. Para gestionar un repositorio anidado de forma independiente, se puede elegir ese repositorio como carpeta raíz de proyectos.
+
+Durante el escaneo evita directorios generados pesados como `node_modules`, `.venv`, `bin`, `obj`, `dist` o `vendor`.
 
 Desde **9. Gestionar proyectos** se puede:
 

@@ -26,7 +26,7 @@ from factoria.application.workflow_presets import (
 )
 from factoria.config.loader import load_global_config
 from factoria.ui_agent_tools import _apply_agent_paths, _load_agent_paths, _save_agent_paths
-from factoria.ui_workspace import UiWorkspaceSettings, discover_projects
+from factoria.ui_workspace import UiWorkspaceSettings, discover_projects, project_root
 
 _HOST = "127.0.0.1"
 _ALLOWED_COMMANDS = {
@@ -50,9 +50,9 @@ def _is_git_project(path: Path | None) -> bool:
 
 
 def _selected_project(settings: UiWorkspaceSettings) -> Path | None:
-    if _is_git_project(settings.last_project):
-        return settings.last_project.resolve()
-    return None
+    if settings.last_project is None:
+        return None
+    return project_root(settings.last_project, settings.projects_root)
 
 
 def _project_payload(root: Path | None) -> dict[str, object] | None:
@@ -134,7 +134,10 @@ def _set_projects_root(path: str) -> Path:
 
 def _save_selected_project(path: Path) -> None:
     settings = UiWorkspaceSettings.load()
-    UiWorkspaceSettings(projects_root=settings.projects_root, last_project=path.resolve()).save()
+    selected = project_root(path, settings.projects_root)
+    if selected is None:
+        raise ValueError("La carpeta no pertenece a un proyecto Git")
+    UiWorkspaceSettings(projects_root=settings.projects_root, last_project=selected).save()
 
 
 def _set_default_tool(tool: str) -> Path:
@@ -338,8 +341,6 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
                 return
             if path == "/api/project/select":
                 target = Path(str(data.get("path", ""))).expanduser().resolve()
-                if not _is_git_project(target):
-                    raise ValueError("La ruta seleccionada no es un repositorio Git")
                 _save_selected_project(target)
                 self._json({"ok": True, "state": _state()})
                 return

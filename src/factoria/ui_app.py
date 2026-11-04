@@ -7,7 +7,7 @@ from pathlib import Path
 from factoria.application.status import OperationalStatusService
 from factoria.security import SecretIncidentStore, SecretScanner
 from factoria.ui_cli import TerminalUI, _slug, build_parser
-from factoria.ui_workspace import UiWorkspaceSettings, choose_folder, discover_projects
+from factoria.ui_workspace import UiWorkspaceSettings, choose_folder, discover_projects, project_root
 
 
 class ManagedTerminalUI(TerminalUI):
@@ -15,7 +15,7 @@ class ManagedTerminalUI(TerminalUI):
         settings = UiWorkspaceSettings.load()
         preferred = settings.last_project
         if preferred and preferred.is_dir():
-            root = preferred
+            root = project_root(preferred, settings.projects_root) or preferred
         super().__init__(root, **kwargs)
         self.workspace_settings = settings
 
@@ -223,9 +223,13 @@ class ManagedTerminalUI(TerminalUI):
         if self.workspace_settings.projects_root is None:
             self._configure_projects_root(force=True)
         last = self.workspace_settings.last_project
-        if last and last.is_dir() and (last / ".git").exists():
-            self.root = last.resolve()
-            return
+        if last is not None:
+            selected = project_root(last, self.workspace_settings.projects_root)
+            if selected is not None:
+                self.root = selected
+                if selected != last:
+                    self._remember_project(selected)
+                return
         if not self._is_git_project():
             self._select_project(interactive=False)
 
@@ -378,7 +382,7 @@ class ManagedTerminalUI(TerminalUI):
             visible = filtered[start : start + page_size]
             self.output(f"\nProyectos encontrados: {len(projects)} · mostrando {len(filtered)} · página {page + 1}/{total_pages}")
             for offset, project in enumerate(visible, start=1):
-                relative = project.relative_to(projects_root) if project != projects_root else Path(".")
+                relative = project.relative_to(projects_root) if project.is_relative_to(projects_root) else project
                 self.output(f"  {offset}. {project.name} · {relative}")
             self.output("\n  n = siguiente · p = anterior · /texto = buscar · / = quitar filtro · 0 = cancelar")
             raw = self.input("Selecciona proyecto: ").strip()
@@ -402,7 +406,7 @@ class ManagedTerminalUI(TerminalUI):
                     tuple(
                         project
                         for project in projects
-                        if query in project.name.lower() or query in str(project.relative_to(projects_root)).lower()
+                        if query in project.name.lower() or query in str(project.relative_to(projects_root) if project.is_relative_to(projects_root) else project).lower()
                     )
                     if query
                     else projects
@@ -422,7 +426,10 @@ class ManagedTerminalUI(TerminalUI):
 
     def _remember_project(self, selected: Path) -> None:
         projects_root = self.workspace_settings.projects_root
-        self.root = selected.resolve()
+        canonical = project_root(selected, projects_root)
+        if canonical is None:
+            raise ValueError("La carpeta no pertenece a un proyecto Git")
+        self.root = canonical
         self.workspace_settings = UiWorkspaceSettings(
             projects_root=projects_root,
             last_project=self.root,
