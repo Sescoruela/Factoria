@@ -58,27 +58,74 @@ _IGNORED_DISCOVERY_DIRS = {
 }
 
 
-def discover_projects(root: Path) -> tuple[Path, ...]:
-    """Return every Git repository below the configured project root.
+def _has_git_marker(path: Path) -> bool:
+    marker = path / ".git"
+    if marker.is_dir():
+        return True
+    if not marker.is_file():
+        return False
+    try:
+        with marker.open(encoding="utf-8") as handle:
+            line = handle.readline(4096).strip()
+        if not line.startswith("gitdir:"):
+            return False
+        target = line[len("gitdir:"):].strip()
+        if not target:
+            return False
+        metadata = Path(target)
+        if not metadata.is_absolute():
+            metadata = path / metadata
+        return metadata.is_dir()
+    except (OSError, UnicodeError):
+        return False
 
-    Discovery is recursive so projects can be grouped in subfolders. Heavy generated
-    directories are pruned, but there is no artificial result limit.
+
+def project_root(path: Path, workspace_root: Path | None = None) -> Path | None:
+    """Map a selected folder to the first repository within its workspace.
+
+    Nested repositories/submodules belong to their containing project in the list.
+    With no workspace boundary, return the nearest enclosing repository. This also
+    supports explicitly choosing a nested repository as the workspace itself.
+    """
+    path = path.expanduser().resolve()
+    if not path.is_dir():
+        return None
+    ancestors = (path, *path.parents)
+    candidates = [parent for parent in ancestors if _has_git_marker(parent)]
+    if workspace_root is not None:
+        boundary = workspace_root.expanduser().resolve()
+        inside = [candidate for candidate in candidates if candidate.is_relative_to(boundary)]
+        if inside:
+            return inside[-1]
+    return candidates[0] if candidates else None
+
+
+def discover_projects(root: Path) -> tuple[Path, ...]:
+    """Return one entry per outer repository within the configured workspace.
+
+    Recurse through grouping folders, but stop at a project boundary. Repositories
+    inside a project are modules/dependencies, not additional list entries. Starting
+    inside a repository returns its owning root. External sibling worktrees remain
+    distinct projects. No coding tool or Git subprocess is started by discovery.
     """
     root = root.expanduser().resolve()
     if not root.is_dir():
         return ()
+    owner = project_root(root)
+    if owner is not None:
+        return (owner,)
 
     projects: list[Path] = []
     seen: set[Path] = set()
     for current, dirs, _files in os.walk(root):
         current_path = Path(current)
         dirs[:] = [name for name in dirs if name not in _IGNORED_DISCOVERY_DIRS]
-        git_marker = current_path / ".git"
-        if git_marker.exists():
+        if _has_git_marker(current_path):
             resolved = current_path.resolve()
             if resolved not in seen:
                 projects.append(resolved)
                 seen.add(resolved)
+            dirs[:] = []
 
     return tuple(sorted(projects, key=lambda path: str(path).lower()))
 
