@@ -15,3 +15,6 @@
 - Las pruebas deterministas no equivalen a aceptación con modelos reales.
 - El núcleo usa Python 3.11+ y biblioteca estándar en runtime.
 - La firma de binarios y distribución amplia se difieren hasta disponer de certificado.
+
+- La aplicación no inicia ni diagnostica proveedores: Codex/OpenCode se arrancan externamente.
+- La ampliación añadir/modificar/guardar skills, agentes y workflows se planifica en `docs/editor-milestones.md`.

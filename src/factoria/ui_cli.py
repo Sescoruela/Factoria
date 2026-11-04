@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Callable
 
 from factoria.application.artifacts import FlowArtifactStore
-from factoria.application.runtime_state import RuntimeStage, load_live_session
 from factoria.application.state_store import LocalFlowStateStore
 from factoria.application.status import OperationalStatusService
 from factoria.security import SecretIncidentStore, SecretScanner
@@ -132,20 +131,15 @@ class TerminalUI:
         self._continue()
 
         self.output("\n3/4 · Herramientas y entorno")
-        self.output("  Factoria puede trabajar con Codex u OpenCode según la configuración y capacidades verificadas.")
-        if self._confirm("¿Ejecutar ahora el diagnóstico seguro de instalación?", default=True):
-            self._run_command(["install", "--check-only"])
-        else:
-            self.output("Puedes comprobarlo más tarde con `factoria install --check-only`.")
+        self.output("  Instala, inicia y autentica Codex/OpenCode fuera de Factoría.")
+        self.output("  La aplicación guarda la configuración del proyecto y no ejecuta diagnósticos de esos CLIs.")
         self._continue()
 
         self.output("\n4/4 · Tu primer flujo")
-        self.output("  1. Asegúrate de estar en main y con `git status` limpio.")
-        self.output("  2. Desde la UI elige Nueva feature o Nuevo fix.")
-        self.output("  3. Factoria creará una rama; nunca implementará directamente sobre main.")
-        self.output("  4. Revisa los planes/reviews cuando la UI indique una aprobación pendiente.")
-        self.output("  5. La opción Commit muestra primero exactamente qué se va a incluir.")
-        self.output("  6. Después del commit, push y PR los haces tú.")
+        self.output("  1. Configura agentes y flujos y prepara la integración del proyecto.")
+        self.output("  2. Guarda la configuración en Git y selecciona una rama de trabajo limpia.")
+        self.output("  3. Abre Codex u OpenCode por tu cuenta en ese proyecto.")
+        self.output("  4. Pide una feature o un fix y sigue el flujo configurado desde esa herramienta.")
         self._save_onboarding_complete()
         self.output("\n✓ Onboarding completado. Puedes repetirlo en cualquier momento con `factoria onboarding`.")
         return 0
@@ -192,50 +186,10 @@ class TerminalUI:
             self.output("\nMODO READ-ONLY: acciones de escritura deshabilitadas")
 
     def _start_flow(self, kind: str) -> None:
-        title = self.input(f"Título del {kind}: ").strip()
-        if not title:
-            self.output("Título obligatorio.")
-            return
-        default_branch = f"{kind}/{_slug(title)}"
-        branch = self.input(f"Rama [{default_branch}]: ").strip() or default_branch
-        self.output("Herramienta: [Enter] automática · 1 OpenCode · 2 Codex")
-        tool_choice = self.input("Selección: ").strip()
-        tool = {"1": "opencode", "2": "codex"}.get(tool_choice)
-        args = [kind, title, "--branch", branch]
-        if tool:
-            args.extend(["--tool", tool])
-        self._run_command(args)
-        self._pause()
+        self.output(f"Abre Codex/OpenCode fuera de Factoría y solicita el flujo {kind} en el proyecto preparado.")
 
     def _resume_flow(self) -> None:
-        selections = self._incomplete_flows()
-        if not selections:
-            self.output("No hay flujos incompletos.")
-            self._pause()
-            return
-        execution = self._select_flow(selections)
-        if execution is None:
-            return
-        session_path = execution.workspace.root / "agent-flow.json"
-        session = load_live_session(session_path, execution=execution) if session_path.exists() else None
-        args = ["resume", execution.flow.flow_id]
-        if session and session.runtime_stage is RuntimeStage.AWAITING_PLAN_APPROVAL:
-            self.output(f"Plan: {execution.workspace.root / 'plan.md'}")
-            if not self._confirm("¿Has revisado el plan y lo apruebas?", default=False):
-                self.output("Plan no aprobado.")
-                return
-            args.append("--approve-plan")
-        elif session and session.runtime_stage is RuntimeStage.AWAITING_FINAL_APPROVAL:
-            self.output(f"Review: {execution.workspace.root / 'review.md'}")
-            if not self._confirm("¿Has revisado el resultado final y lo apruebas?", default=False):
-                self.output("Resultado final no aprobado.")
-                return
-            args.append("--approve-final")
-        elif session and session.runtime_stage is RuntimeStage.READY_FOR_COMMIT:
-            self.output("El flujo está listo para commit. Usa la opción 'Revisar / crear commit'.")
-            return
-        self._run_command(args)
-        self._pause()
+        self.output("Reanuda el flujo desde la sesión externa de Codex/OpenCode.")
 
     def _commit_flow(self) -> None:
         selections = self._incomplete_flows()
@@ -309,6 +263,12 @@ class TerminalUI:
         return main(prefix + args)
 
     def _run_command(self, args: list[str]) -> int:
+        from factoria.application.tool_presence import assert_ui_command_allowed
+        try:
+            assert_ui_command_allowed(args)
+        except ValueError as exc:
+            self.output(str(exc))
+            return 1
         self.output("\n" + "─" * 64)
         return self.command_runner(args)
 

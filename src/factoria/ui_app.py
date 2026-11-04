@@ -33,9 +33,9 @@ class ManagedTerminalUI(TerminalUI):
             self._render_dashboard()
             self.output("\nAcciones")
             if not self.read_only:
-                self.output("  1. Nueva feature")
-                self.output("  2. Nuevo fix")
-                self.output("  3. Reanudar flujo")
+                self.output("  1. Guía feature (inicio externo)")
+                self.output("  2. Guía fix (inicio externo)")
+                self.output("  3. Guía de reanudación externa")
                 self.output("  4. Revisar / crear commit")
             self.output("  5. Historial")
             self.output("  6. Incidentes de seguridad")
@@ -117,16 +117,15 @@ class ManagedTerminalUI(TerminalUI):
             self.output("  ⚠ Git no está disponible en PATH. Instálalo antes de ejecutar features/fixes.")
         else:
             self.output("  ✓ Git está disponible.")
-        self.output("  Codex/OpenCode se diagnostican sin relajar las políticas del núcleo.")
-        if self._confirm("¿Ejecutar ahora el diagnóstico seguro de instalación?", default=True):
-            self._run_command(["install", "--check-only"])
+        self.output("  Inicia y autentica Codex/OpenCode fuera de Factoría.")
+        self.output("  La aplicación no ejecuta pruebas de arranque de sus CLIs.")
         self._continue()
 
         self.output("\n5/5 · Tu primer flujo")
         self.output("  1. Selecciona o crea un proyecto Git desde la opción 9.")
-        self.output("  2. Mantén main limpio y elige Nueva feature o Nuevo fix.")
-        self.output("  3. Factoria crea una rama y mantiene las aprobaciones explícitas.")
-        self.output("  4. Revisa el resultado y confirma el commit cuando esté listo.")
+        self.output("  2. Prepara agentes, skills y flujos y guarda el proyecto en Git.")
+        self.output("  3. Abre Codex/OpenCode por tu cuenta en una rama de trabajo limpia.")
+        self.output("  4. Solicita allí el flujo configurado y revisa sus aprobaciones.")
         self._save_onboarding_complete()
         self.output("\n✓ Onboarding completado. Entrando al dashboard…")
         return 0

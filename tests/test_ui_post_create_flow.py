@@ -124,9 +124,9 @@ class ProjectPostCreateFlowTests(unittest.TestCase):
                 command_runner=lambda args: commands.append(list(args)) or 0,
             )
 
-            ui._execute_console_command('factoria feature "Calendario semanal" --tool opencode')
+            ui._execute_console_command('factoria memoria-init --purpose "Calendario semanal"')
 
-            self.assertEqual(commands, [["feature", "Calendario semanal", "--tool", "opencode"]])
+            self.assertEqual(commands, [["memoria-init", "--purpose", "Calendario semanal"]])
 
     def test_command_help_lists_core_commands(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -138,7 +138,7 @@ class ProjectPostCreateFlowTests(unittest.TestCase):
             rendered = "\n".join(output)
             self.assertIn("status [--all]", rendered)
             self.assertIn("memoria-init", rendered)
-            self.assertIn("feature", rendered)
+            self.assertIn("fuera de la aplicación", rendered)
             self.assertIn("security incidents", rendered)
             self.assertIn("update", rendered)
 

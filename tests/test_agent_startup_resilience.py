@@ -73,41 +73,18 @@ class WebAgentJobTests(unittest.TestCase):
         with _JOBS_LOCK:
             _JOBS.clear()
 
-    def test_agent_job_returns_immediately_and_finishes_in_background(self) -> None:
-        def fake_run(args, project):
-            time.sleep(0.05)
-            return 0, "ok"
+    def test_agent_launch_requests_are_rejected_without_starting_worker(self) -> None:
+        with patch('factoria.web_app.threading.Thread') as thread:
+            for command in ('feature', 'fix', 'resume'):
+                with self.subTest(command=command), self.assertRaisesRegex(ValueError, 'fuera'):
+                    _start_async_job([command, 'demo'], None)
+            thread.assert_not_called()
+        self.assertFalse(_JOBS)
 
-        with patch("factoria.web_app._run_factoria_command", side_effect=fake_run):
-            job = _start_async_job(["feature", "demo"], None)
-            self.assertIn(job["status"], {"queued", "running"})
-            deadline = time.time() + 2
-            current = None
-            while time.time() < deadline:
-                current = _job(str(job["id"]))
-                if current and current["status"] == "completed":
-                    break
-                time.sleep(0.02)
-            self.assertIsNotNone(current)
-            self.assertEqual(current["status"], "completed")
-            self.assertEqual(current["output"], "ok")
-
-    def test_second_agent_job_for_same_project_is_rejected(self) -> None:
-        gate = False
-
-        def fake_run(args, project):
-            nonlocal gate
-            deadline = time.time() + 1
-            while not gate and time.time() < deadline:
-                time.sleep(0.01)
-            return 0, "done"
-
-        project = Path("demo")
-        with patch("factoria.web_app._run_factoria_command", side_effect=fake_run):
-            _start_async_job(["fix", "one"], project)
-            with self.assertRaises(ValueError):
-                _start_async_job(["feature", "two"], project)
-            gate = True
+    def test_rejected_launch_creates_no_background_job(self) -> None:
+        with self.assertRaises(ValueError):
+            _start_async_job(['fix', 'one'], Path('demo'))
+        self.assertIsNone(_job('missing'))
 
 
 if __name__ == "__main__":

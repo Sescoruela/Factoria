@@ -51,9 +51,9 @@ class ProjectFlowTerminalUI(ManagedTerminalUI):
             self._render_dashboard()
             self.output("\nAcciones")
             if not self.read_only:
-                self.output("  1. Nueva feature")
-                self.output("  2. Nuevo fix")
-                self.output("  3. Reanudar flujo")
+                self.output("  1. Guía feature (inicio externo)")
+                self.output("  2. Guía fix (inicio externo)")
+                self.output("  3. Guía de reanudación externa")
                 self.output("  4. Revisar / crear commit")
             self.output("  5. Historial")
             self.output("  6. Incidentes de seguridad")
@@ -106,13 +106,16 @@ class ProjectFlowTerminalUI(ManagedTerminalUI):
         self.output("\nComandos disponibles desde esta misma pantalla")
         self.output("Puedes escribirlos con o sin el prefijo `factoria`.")
         for command, description in COMMAND_HELP:
+            if command.split()[0] in {"feature", "fix", "resume", "install"}:
+                continue
             self.output(f"  {command}")
             self.output(f"    {description}")
         self.output("\nEjemplos:")
         self.output("  status")
         self.output("  memoria-init --name Organizador --purpose \"Organizar turnos por medias horas\"")
-        self.output("  feature \"Añadir calendario semanal\" --tool opencode")
+
         self.output("  factoria history --limit 20")
+        self.output("\nFeature/fix y reanudación: desde Codex/OpenCode, fuera de la aplicación.")
         self.output("\nLas confirmaciones y políticas de seguridad siguen aplicándose igual que en el CLI.")
 
     def _execute_console_command(self, raw: str) -> None:

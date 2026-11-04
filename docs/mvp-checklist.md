@@ -10,6 +10,8 @@ desde Codex u OpenCode. El LLM se utiliza principalmente en esas herramientas.
 
 | Hito | Estado en esta entrega | Evidencia |
 | --- | --- | --- |
+| Inicio externo de Codex/OpenCode | Implementado; detección pasiva en UI | `tool_presence.py`, límites de API/TUI y pruebas de regresión |
+| Edición completa: añadir, modificar y guardar recursos | Planificada; nueve hitos, capacidades actuales parciales | `docs/editor-milestones.md` |
 | Configuración compartida por proyecto | Implementado | `agents.json`, `workflows.json`, `config.toml`; migración de configuración local anterior |
 | Instrucciones y skills por rol | Implementado | Editor web, validación de rutas y propagación a uso directo/orquestado |
 | Preparación para ambas herramientas | Implementado | Skills compartidas, comandos y agentes OpenCode, bloque de entrada en AGENTS.md |
@@ -32,8 +34,7 @@ la aceptación real en ambas herramientas y CI verde sobre el cambio revisado.
 
 - Firma Authenticode y distribución amplia: requiere certificado y custodia de firma.
 - Invocar APIs LLM propias o custodiar credenciales de proveedores dentro de Factoría.
-- Flujos arbitrarios con ramificaciones, agentes personalizados fuera de los cinco roles,
-  selección automática del modelo de una sesión externa o aislamiento no provisto por ella.
+- Flujos arbitrarios con ramificaciones y selección automática del modelo de una sesión externa o aislamiento no provisto por ella.
 - Stash automático, push/PR automáticos, catálogo central de proyectos y métricas inventadas.
 
 ## Registro de aceptación real
@@ -53,3 +54,14 @@ la aceptación real en ambas herramientas y CI verde sobre el cambio revisado.
 - Codex/OpenCode no están instalados en el entorno de esta revisión; no se han
   ejecutado sesiones autenticadas ni se ha validado el enrutado natural por un LLM.
 - CI y build Windows de esta entrega: consultar los resultados del [PR #1](https://github.com/Sescoruela/Factoria/pull/1).
+
+## Ampliación del editor · 04/11/2026
+
+Los nueve hitos de skills/agentes/workflows están planificados en `editor-milestones.md`. No se declaran completados por la existencia de edición parcial de roles y fix/feature. El cierre de esa ampliación exige el recorrido completo de creación, edición, guardado y recuperación desde la herramienta externa.
+
+## Verificación del arranque externo · 04/11/2026
+
+- Suite local: **251 pruebas, OK**.
+- Regresión: refrescos HTTP repetidos, preferencias, dashboard TUI y endpoints bloqueados sin ejecutar proveedores.
+- JavaScript: sintaxis de ambas interfaces web y del parche comprobada.
+- Los nueve hitos del editor están pendientes/parciales y registrados en el [issue #2](https://github.com/Sescoruela/Factoria/issues/2).

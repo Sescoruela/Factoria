@@ -82,9 +82,9 @@ En `--read-only`, las opciones que modifican proyecto o estado del flujo no apar
 
 La UI permite:
 
-1. iniciar una feature;
-2. iniciar un fix;
-3. reanudar y aprobar planes/resultados;
+1. consultar cómo iniciar una feature desde la herramienta externa;
+2. consultar cómo iniciar un fix desde la herramienta externa;
+3. consultar la reanudación desde la herramienta externa;
 4. previsualizar y confirmar commits;
 5. consultar historial;
 6. revisar/resolver incidentes de seguridad;
@@ -105,7 +105,6 @@ Por ejemplo:
 ```text
 status
 memoria-init --name Organizador --purpose "Organizar turnos por medias horas"
-feature "Añadir calendario semanal" --tool opencode
 factoria history --limit 20
 ```
 
@@ -122,7 +121,7 @@ El onboarding tiene cinco pasos:
 1. **Organización de proyectos**: elegir la carpeta raíz y, si ya existen repositorios, seleccionar uno.
 2. **Modelo mental**: diferencia feature/fix, aprobaciones y límites de Git.
 3. **Memoria**: explica `AGENTS.md` y permite ejecutar `memoria-init --yes` solo tras confirmación explícita y solo con un repositorio Git seleccionado.
-4. **Herramientas**: comprueba si Git está disponible y ofrece `install --check-only` para validar Codex/OpenCode.
+4. **Herramientas**: comprueba Git y explica cómo iniciar/autenticar Codex/OpenCode fuera de la aplicación. No lanza sus diagnósticos.
 5. **Primer flujo**: enseña rama, plan, review, commit, push y PR.
 
 El estado de onboarding es una preferencia global de la aplicación y se guarda localmente en `~/.factoria/ui-state.json`. No se versiona dentro de los proyectos.
@@ -144,3 +143,9 @@ Push, PR, borrado de ramas y otras acciones fuera del alcance del MVP siguen sin
 ## Diseño deliberado
 
 La interfaz web local sirve en loopback y requiere token de sesión para la API. Permite editar roles y flujos y preparar la integración de ambas herramientas. La TUI sigue disponible como alternativa. El uso directo desde Codex/OpenCode no requiere mantener ninguna de las interfaces abierta.
+
+## Arranque externo de proveedores · 04/11/2026
+
+La actualización del panel y el onboarding no ejecutan self-tests, ayuda, versionado ni configuración resuelta de Codex/OpenCode. Se guardan preferencias y rutas sin iniciar procesos. La API web y la consola de la TUI rechazan `feature`, `fix`, `resume` e `install`, que pueden iniciar proveedores; los flujos se solicitan desde la sesión externa. Las actualizaciones periódicas de la web no solapan solicitudes de estado.
+
+Los próximos hitos de añadir/modificar/guardar recursos están en `editor-milestones.md`.

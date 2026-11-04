@@ -16,39 +16,25 @@ class AgentToolUiTests(unittest.TestCase):
             root = Path(temp)
             output: list[str] = []
             ui = AgentAwareTerminalUI(root, output_fn=output.append, command_runner=lambda _args: 0)
-            statuses = (
-                SimpleNamespace(name="codex", passed=True, available=True, checks=()),
-                SimpleNamespace(name="opencode", passed=False, available=False, checks=()),
-            )
             with patch.object(AgentAwareTerminalUI.__mro__[1], "_render_dashboard", return_value=None), patch(
-                "factoria.ui_agent_tools.SetupService.inspect_tools", return_value=statuses
+                "factoria.ui_agent_tools.tool_presence", return_value=[{"name": "codex", "available": True}, {"name": "opencode", "available": False}]
             ):
                 ui._render_dashboard()
 
             rendered = "\n".join(output)
-            self.assertIn("codex   : LISTO", rendered)
+            self.assertIn("codex   : DETECTADO · inicio externo", rendered)
             self.assertIn("opencode: NO DETECTADO", rendered)
             self.assertIn("Autenticación", rendered)
 
-    def test_configure_ready_agent_uses_existing_install_command(self) -> None:
+    def test_save_preference_without_starting_or_inspecting_cli(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            commands: list[list[str]] = []
-            answers = iter(["1", "s"])
-            ui = AgentAwareTerminalUI(
-                root,
-                input_fn=lambda _prompt: next(answers),
-                output_fn=lambda _line: None,
-                command_runner=lambda args: commands.append(list(args)) or 0,
-            )
-            statuses = (
-                SimpleNamespace(name="codex", passed=True, available=True, checks=()),
-                SimpleNamespace(name="opencode", passed=False, available=False, checks=()),
-            )
-            with patch("factoria.ui_agent_tools.SetupService.inspect_tools", return_value=statuses):
+            answers = iter(['1', 's'])
+            ui = AgentAwareTerminalUI(root, input_fn=lambda _: next(answers), output_fn=lambda _: None,
+                                      command_runner=lambda _: self.fail('No UI CLI initialization'))
+            with patch('pathlib.Path.home', return_value=root), patch('factoria.ui_agent_tools.SetupService.inspect_tools', side_effect=AssertionError('No probe')):
                 ui._configure_agents()
-
-            self.assertEqual(commands, [["install", "--default-tool", "codex", "--yes"]])
+            self.assertIn('default_tool = "codex"', (root / '.factoria/config.toml').read_text())
 
     def test_explicit_executable_directory_is_added_to_path(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
