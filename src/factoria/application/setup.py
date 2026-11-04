@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Iterable
 
@@ -64,6 +64,18 @@ class SetupService:
         default_factory=lambda: (CodexAdapter(), OpenCodeAdapter())
     )
     matrix: CapabilityMatrix = field(default_factory=load_builtin_capability_matrix)
+
+    def save_tool_preference(self, target_path: Path, tool: str) -> Path:
+        """Persist a preference without installation probes, login or CLI startup."""
+        if tool not in {'codex', 'opencode'}:
+            raise SetupError('Unknown tool preference')
+        target = target_path.expanduser().resolve()
+        if target.exists() and not _is_managed(target):
+            raise SetupError('Existing global config is not managed by Factoria')
+        current = load_global_config(target)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(render_global_config(replace(current, default_tool=tool)), encoding='utf-8', newline='')
+        return target
 
     def inspect_tools(self) -> tuple[ToolSetupStatus, ...]:
         result: list[ToolSetupStatus] = []

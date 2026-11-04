@@ -150,10 +150,10 @@ class OperationalStatusService:
         available_names = {item.name for item in tools if item.available}
         if resolved.tool is None:
             warnings.append("No default coding-agent tool is configured.")
-            recommendations.append("Run `factoria install --check-only` and configure a ready default tool.")
+            recommendations.append("Select a platform preference; start and authenticate Codex/OpenCode outside the application.")
         elif resolved.tool not in available_names:
             warnings.append(f"Configured tool {resolved.tool!r} is not currently available.")
-            recommendations.append("Run `factoria install --check-only` to diagnose the configured tool.")
+            recommendations.append("Start the configured tool outside the application and check its installation there.")
 
         artifacts = FlowArtifactStore(root)
         state_store = LocalFlowStateStore(artifacts)

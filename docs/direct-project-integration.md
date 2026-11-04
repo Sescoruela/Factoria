@@ -104,7 +104,7 @@ Si una etapa exige otra plataforma, se continúa allí el mismo flujo usando `--
 La preferencia de perfil se muestra, pero la selección del modelo sigue perteneciendo
 a Codex/OpenCode. Sus permisos y sandbox son la barrera de ejecución externa.
 
-El modo opcional `factoria fix/feature` sí inicia agentes mediante los adaptadores,
+Desde una terminal externa, el modo avanzado `factoria fix/feature` sí inicia agentes mediante los adaptadores,
 con su enrutado estricto, verificación de capacidades y permisos. Las instrucciones
 y skills configuradas por rol también se incluyen en esos prompts y se congelan al
 iniciar las ejecuciones nuevas. No llamar a ese modo desde la skill de uso directo:
@@ -152,3 +152,7 @@ cierre. No declarar esa aceptación superada a partir de las pruebas determinist
 - [OpenCode: skills](https://opencode.ai/docs/skills/).
 - [OpenCode: comandos](https://opencode.ai/docs/commands/).
 - [OpenCode: agentes](https://opencode.ai/docs/agents/).
+
+## Aplicación sin inicio de proveedores
+
+La web y la TUI solo muestran presencia pasiva y permiten guardar preferencias. No inician Codex/OpenCode ni ejecutan sus diagnósticos. Los endpoints y comandos internos que podrían lanzarlos se rechazan; abre la herramienta externa para trabajar o reanudar sus flujos.

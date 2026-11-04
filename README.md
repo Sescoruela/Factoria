@@ -4,7 +4,7 @@ Factoria configura y mantiene la estructura de una factoría de software por pro
 
 El recorrido principal es **configurar en Factoria → preparar el proyecto para ambas herramientas → abrir Codex/OpenCode → pedir una corrección o funcionalidad → seguir el flujo configurado**. La aplicación puede permanecer cerrada durante ese trabajo. El CLI local de Factoria conserva el seguimiento y ejecuta las comprobaciones confirmadas, sin iniciar un segundo LLM.
 
-También se conserva el modo opcional orquestado: `factoria fix/feature` lanza agentes mediante sus adaptadores.
+El inicio, autenticación y diagnóstico de Codex/OpenCode se hacen fuera de la aplicación. El panel usa detección pasiva y guarda preferencias sin arrancar sus ejecutables. El modo avanzado `factoria fix/feature` sigue disponible únicamente al invocarlo explícitamente desde una terminal externa.
 
 > Estado: implementación del MVP con pruebas deterministas; la aceptación con instalaciones reales de Codex/OpenCode se registra por separado. Ver [criterios de cierre](docs/mvp-checklist.md).
 
@@ -25,7 +25,7 @@ Tras instalar, abre una terminal nueva y ejecuta:
 factoria
 ```
 
-La primera ejecución abre la interfaz web local. La terminal interactiva está disponible con `factoria tui` y el onboarding con `factoria onboarding`. Codex/OpenCode no se incluyen dentro del instalador: Factoria los detecta y valida durante el onboarding.
+La primera ejecución abre la interfaz web local. La terminal interactiva está disponible con `factoria tui` y el onboarding con `factoria onboarding`. Codex/OpenCode no se incluyen dentro del instalador: Factoria solo muestra detección pasiva; debes iniciarlos y autenticarlos fuera de la aplicación.
 
 Los instaladores generados por CI todavía no están firmados digitalmente. La firma Authenticode queda fuera del MVP y debe añadirse antes de distribuir binarios como release de confianza amplia.
 
@@ -132,3 +132,7 @@ factoria update              # actualización por release etiquetada
 El runtime principal se mantiene sin dependencias externas obligatorias. Las interfaces web local y de terminal usan únicamente la biblioteca estándar de Python y funciona como una capa sobre los mismos servicios y comandos del núcleo.
 
 En Windows, PyInstaller empaqueta ese runtime en un único `Factoria.exe`; Inno Setup envuelve el ejecutable en un instalador por usuario. Las dependencias de build (`pyinstaller` e Inno Setup) solo son necesarias en CI/desarrollo, no en el equipo del usuario final.
+
+## Próximos hitos del editor
+
+Los nueve hitos de añadir, modificar y guardar **skills, agentes y workflows** están definidos con estado, dependencias y criterios de aceptación en [hitos del editor](docs/editor-milestones.md). Los catálogos personalizados están pendientes; la edición actual cubre los cinco roles básicos y fix/feature.

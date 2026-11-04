@@ -6,8 +6,6 @@ import json
 import secrets
 import subprocess
 import threading
-import time
-import uuid
 import webbrowser
 from dataclasses import asdict
 from http import HTTPStatus
@@ -16,7 +14,7 @@ from importlib.resources import files
 from pathlib import Path
 from urllib.parse import urlparse
 
-from factoria.adapters.codex_discovery import discover_codex
+from factoria.application.tool_presence import tool_presence, assert_ui_command_allowed
 from factoria.application.setup import SetupService
 from factoria.application.status import OperationalStatusService
 from factoria.application.workflow_presets import (
@@ -35,18 +33,14 @@ _ALLOWED_COMMANDS = {
     "status",
     "history",
     "plugins",
-    "install",
     "memoria-init",
     "memoria-update",
-    "feature",
-    "fix",
-    "resume",
     "pause",
     "cancel",
     "commit",
     "security",
 }
-_ASYNC_COMMANDS = {"feature", "fix", "resume"}
+_ASYNC_COMMANDS: set[str] = set()  # Provider execution belongs to the external tool session.
 _JOBS: dict[str, dict[str, object]] = {}
 _JOBS_LOCK = threading.Lock()
 
@@ -86,38 +80,7 @@ def _project_payload(root: Path | None) -> dict[str, object] | None:
 
 def _agent_payload() -> list[dict[str, object]]:
     persisted = _apply_agent_paths()
-    codex_discovery = discover_codex()
-    result: list[dict[str, object]] = []
-    try:
-        statuses = SetupService().inspect_tools()
-    except Exception as exc:
-        return [{"name": "agents", "available": False, "ready": False, "error": str(exc)}]
-    for status in statuses:
-        item: dict[str, object] = {
-            "name": status.name,
-            "available": status.available,
-            "ready": status.passed,
-            "configured_path": persisted.get(status.name),
-            "checks": [
-                {
-                    "name": check.name,
-                    "passed": check.passed,
-                    "required": check.required,
-                    "details": check.details,
-                }
-                for check in status.checks
-            ],
-        }
-        if status.name == "codex":
-            item.update(
-                {
-                    "cli_source": codex_discovery.cli_source,
-                    "desktop_detected": codex_discovery.desktop_detected,
-                    "desktop_hint": codex_discovery.desktop_hint,
-                }
-            )
-        result.append(item)
-    return result
+    return [{**item, 'configured_path': persisted.get(str(item['name']))} for item in tool_presence()]
 
 
 def _job_summaries() -> list[dict[str, object]]:
@@ -179,8 +142,7 @@ def _set_default_tool(tool: str) -> Path:
         raise ValueError("Agente no válido")
     service = SetupService()
     target = Path.home() / ".factoria" / "config.toml"
-    plan = service.propose(target, requested_tool=tool)
-    return service.apply(plan, confirmed=True)
+    return service.save_tool_preference(target, tool)
 
 
 def _set_agent_path(tool: str, raw_path: str) -> Path:
@@ -273,6 +235,7 @@ def _apply_workflow_defaults(args: list[str], project: Path | None) -> list[str]
 
 
 def _run_factoria_command(args: list[str], project: Path | None) -> tuple[int, str]:
+    assert_ui_command_allowed(args)
     if not args or args[0] not in _ALLOWED_COMMANDS:
         raise ValueError("Comando no permitido desde la web")
     from factoria.entrypoint import main
@@ -293,46 +256,7 @@ def _run_factoria_command(args: list[str], project: Path | None) -> tuple[int, s
 
 
 def _start_async_job(args: list[str], project: Path | None) -> dict[str, object]:
-    if not args or args[0] not in _ASYNC_COMMANDS:
-        raise ValueError("Este comando no admite ejecución asíncrona")
-    project_key = str(project) if project else ""
-    with _JOBS_LOCK:
-        for existing in _JOBS.values():
-            if existing.get("project") == project_key and existing.get("status") in {"queued", "running"}:
-                raise ValueError("Ya hay un flujo de agente ejecutándose para este proyecto")
-        job_id = uuid.uuid4().hex
-        job: dict[str, object] = {
-            "id": job_id,
-            "command": args[0],
-            "args": list(args),
-            "project": project_key,
-            "status": "queued",
-            "created_at": time.time(),
-            "started_at": None,
-            "finished_at": None,
-            "code": None,
-            "output": "",
-        }
-        _JOBS[job_id] = job
-
-    def worker() -> None:
-        with _JOBS_LOCK:
-            _JOBS[job_id]["status"] = "running"
-            _JOBS[job_id]["started_at"] = time.time()
-        try:
-            code, output = _run_factoria_command(args, project)
-            with _JOBS_LOCK:
-                if job_id in _JOBS:
-                    _JOBS[job_id].update(code=code, output=output,
-                                        status="completed" if code == 0 else "failed", finished_at=time.time())
-        except Exception as exc:
-            with _JOBS_LOCK:
-                if job_id in _JOBS:
-                    _JOBS[job_id].update(status="failed", code=1,
-                                        output=f"{type(exc).__name__}: {exc}", finished_at=time.time())
-
-    threading.Thread(target=worker, name=f"factoria-job-{job_id[:8]}", daemon=True).start()
-    return dict(job)
+    raise ValueError("Inicia Codex/OpenCode fuera de Factoría; la aplicación no ejecuta agentes")
 
 
 def _job(job_id: str) -> dict[str, object] | None:

@@ -45,32 +45,14 @@ class TerminalUiTests(unittest.TestCase):
             self.assertFalse((root / ".factoria" / "ui-state.json").exists())
             self.assertTrue(ui._onboarding_complete())
 
-    def test_feature_action_dispatches_safe_cli_arguments(self) -> None:
+    def test_feature_action_guides_external_start_without_running_command(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            self._repo(root)
-            answers = iter(["Añadir panel de estado", "", "1", ""])
-            commands: list[list[str]] = []
-            ui = TerminalUI(
-                root,
-                input_fn=lambda _prompt: next(answers),
-                output_fn=lambda _text: None,
-                command_runner=lambda args: commands.append(list(args)) or 0,
-            )
-
-            ui._start_flow("feature")
-
-            self.assertEqual(
-                commands,
-                [[
-                    "feature",
-                    "Añadir panel de estado",
-                    "--branch",
-                    "feature/anadir-panel-de-estado",
-                    "--tool",
-                    "opencode",
-                ]],
-            )
+            output = []
+            ui = TerminalUI(Path(temp), output_fn=output.append,
+                            command_runner=lambda args: self.fail('UI must not launch providers'))
+            ui._start_flow('feature')
+            ui._resume_flow()
+            self.assertIn('fuera', '\n'.join(output))
 
     def test_slug_is_portable_and_bounded(self) -> None:
         self.assertEqual(_slug("Añadir UI / Onboarding"), "anadir-ui-onboarding")
