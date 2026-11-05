@@ -1,0 +1,34 @@
+diff --git a/app.py b/app.py
+index 8c611cd..4983ccb 100644
+--- a/app.py
++++ b/app.py
+@@ -1,2 +1,6 @@
+ def sum_even(numbers):
+     return sum(number for number in numbers if number % 2 == 0)
++
++
++def count_even(numbers):
++    return sum(1 for number in numbers if number % 2 == 0)
+diff --git a/tests/test_count_even.py b/tests/test_count_even.py
+new file mode 100644
+index 0000000..d77f898
+--- /dev/null
++++ b/tests/test_count_even.py
+@@ -0,0 +1,17 @@
++import unittest
++
++from app import count_even
++
++
++class CountEvenTests(unittest.TestCase):
++    def test_empty(self):
++        self.assertEqual(count_even([]), 0)
++
++    def test_mixed(self):
++        self.assertEqual(count_even([1, 2, 4, -2, 0]), 4)
++
++    def test_negatives(self):
++        self.assertEqual(count_even([-3, -2, -1]), 1)
++
++    def test_zeroes(self):
++        self.assertEqual(count_even([0, 0]), 2)
