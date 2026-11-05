@@ -11,7 +11,7 @@ desde Codex u OpenCode. El LLM se utiliza principalmente en esas herramientas.
 | Hito | Estado en esta entrega | Evidencia |
 | --- | --- | --- |
 | Inicio externo de Codex/OpenCode | Implementado; detección pasiva en UI | `tool_presence.py`, límites de API/TUI y pruebas de regresión |
-| Edición completa: añadir, modificar y guardar recursos | Agentes y skills entregados; asignación de agentes propios a etapas y workflows propios pendientes | `docs/editor-milestones.md` |
+| Edición completa: añadir, modificar y guardar recursos | Agentes, skills y asignación a etapas entregados; workflows propios pendientes | `docs/editor-milestones.md` |
 | Configuración compartida por proyecto | Implementado | `agents.json`, `workflows.json`, `config.toml`; migración de configuración local anterior |
 | Instrucciones y skills por rol | Implementado | Editor web, validación de rutas y propagación a uso directo/orquestado |
 | Preparación para ambas herramientas | Implementado | Skills compartidas, comandos y agentes OpenCode, bloque de entrada en AGENTS.md |
@@ -76,4 +76,11 @@ Protección implementada: revisión optimista, identidad del proyecto, escritura
 
 ## H02 · Catálogo de skills
 
-Editor web y persistencia Markdown implementados; ver #8 para evidencia de CI y cierre. Creación, edición, descarte y guardado con control de conflictos, selector de skills en agentes, catálogo compartido y contexto portable. H03/H04 y aceptación autenticada siguen pendientes.
+Editor web y persistencia Markdown implementados; ver #8 para evidencia de CI y cierre. Creación, edición, descarte y guardado con control de conflictos, selector de skills en agentes, catálogo compartido y contexto portable. H03 se registra en su sección; H04 y aceptación autenticada siguen pendientes.
+
+## H03 · Agentes propios por etapa
+
+Selección por `agent_id` con validación de rol base, herencia de instrucciones, skills
+y preferencias y overrides por etapa. Se conserva la compatibilidad con snapshots
+anteriores y los controles del rol. Ver #9 para evidencia de pruebas y CI. Los
+recorridos deterministas no equivalen a aceptación autenticada; H04 y H05 siguen pendientes.

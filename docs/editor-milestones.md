@@ -21,7 +21,7 @@ aplicación. Abrir, refrescar o configurar Factoría no debe arrancar ninguno de
 - Los agentes se exportan al catálogo compartido para Codex/ChatGPT y a definiciones de OpenCode sin iniciar herramientas.
 - Existe edición y guardado de los flujos fix/feature.
 - El editor de agentes ofrece un selector de skills del catálogo y conserva las rutas Markdown anteriores.
-- La asignación de agentes personalizados a etapas y los workflows con nombre propio siguen pendientes.
+- El diseñador permite asignar agentes personalizados a etapas con el mismo rol base. Los workflows con nombre propio siguen pendientes.
 
 Los hitos distinguen las funciones entregadas de la ampliación de skills y workflows pendiente.
 
@@ -35,7 +35,7 @@ Esfuerzos orientativos de implementación y pruebas, sujetos al diseño del cat�
 | SK-02 | Skills / modificar | Implementado; evidencia de cierre en H02 #8 | Abrir contenido existente y editarlo con indicador de cambios pendientes | 0,5–1 día | SK-01, SK-03 | Editar, descartar o guardar; conservar el resto de skills y avisar al cambiar de proyecto con cambios sin guardar |
 | SK-03 | Skills / guardar | Implementado; evidencia de cierre en H02 #8 | Persistencia Markdown segura y regeneración de integración | 0,5–1 día | SK-01 | Cerrar/reabrir y recuperar exactamente el texto; detectar conflictos y no sobrescribir contenido ajeno; bloquear rutas externas y secretos detectables |
 | AG-01 | Agentes / añadir | Completado | Crear agentes propios basados en un rol, con instrucciones, skills y preferencias | 1–2 días | Skills Markdown existentes; base_role validado | Crear un agente distinto de los cinco básicos, asignarle skills existentes y mantenerlo tras reabrir |
-| AG-02 | Agentes / modificar | Parcial: editor completo; asignación a etapas pendiente en WF | Editar agentes propios y básicos, referencias a skills y preferencias | 0,5–1 día | AG-01, AG-03 | Cambiar un agente, ver sus datos guardados y comprobar que se usan en el siguiente flujo preparado |
+| AG-02 | Agentes / modificar | Implementado; evidencia de cierre en H03 #9 | Editar agentes propios y básicos, referencias a skills y preferencias | 0,5–1 día | AG-01, AG-03 | Cambiar un agente, ver sus datos guardados y comprobar que se usan en el siguiente flujo preparado |
 | AG-03 | Agentes / guardar | Completado | Guardar el catálogo versionable con validación de referencias y conflictos | 0,5–1 día | AG-01 | Reabrir con el mismo catálogo; rechazar referencias inexistentes y no alterar snapshots de flujos iniciados |
 | WF-01 | Workflows / añadir | Pendiente | Crear workflows con nombre propio a partir de fix/feature y asignar agentes del catálogo | 1–2 días | AG-01, AG-03; contrato de workflows nombrados | Crear un flujo adicional y seleccionarlo explícitamente desde Codex y OpenCode tras preparar la integración |
 | WF-02 | Workflows / modificar | Parcial: editor fix/feature | Editar etapas, agentes, perfiles y aprobaciones conservando los controles obligatorios | 1–2 días | WF-01, WF-03 | Modificar un flujo y usarlo en una ejecución nueva; bloquear un orden inválido y mantener intacto un flujo ya iniciado |
@@ -44,7 +44,7 @@ Esfuerzos orientativos de implementación y pruebas, sujetos al diseño del cat�
 ## Orden propuesto
 
 1. Entregado: catálogo y persistencia de skills: SK-01 → SK-03 → SK-02.
-2. Entregado: catálogo de agentes personalizados, creación/edición/guardado; la asignación a etapas corresponde a WF.
+2. Entregado: catálogo de agentes personalizados, creación/edición/guardado; la asignación a etapas compatibles está implementada en H03.
 3. Pendiente: workflows nombrados: WF-01 → WF-03 → WF-02.
 4. Prueba completa: crear skill → asignarla a agente → incluirlo en workflow → guardar
    → preparar proyecto → iniciar Codex/OpenCode externamente → ejecutar el flujo.
@@ -86,8 +86,7 @@ la página. Tras guardar, ve a **Integración** para preparar ambas herramientas
 El formato anterior sigue siendo válido. `role` es el identificador del catálogo;
 `base_role` indica el rol de un agente propio. Se añaden `name` y `description`.
 Los archivos preparados incluyen `.factoria/generated/agents.md`, el contexto de
-ChatGPT y `.opencode/agents/factoria-<identificador>.md`. Los agentes propios están
-disponibles explícitamente; no sustituyen automáticamente etapas de fix/feature.
+ChatGPT y `.opencode/agents/factoria-<identificador>.md`. Los agentes propios se seleccionan explícitamente por etapa en el diseñador; el rol base y los controles del flujo se conservan.
 La preferencia de modelo o plataforma no cambia la configuración de una sesión
 externa ya abierta. Los permisos y snapshots de flujos existentes se conservan.
 
@@ -108,5 +107,22 @@ Guarda el agente y prepara la integración: los archivos asignados se consultan 
 Codex y OpenCode, y el catálogo compartido vive en `.factoria/generated/skills.md`.
 El contexto portable incluye el contenido; editar una skill desactualiza la integración.
 Los archivos Markdown anteriores fuera del catálogo siguen siendo referencias válidas.
-La asignación de agentes propios a etapas sigue pendiente de H03; no confundir este
-editor con la aceptación real en proveedores (H05).
+La asignación de agentes propios a etapas está implementada en H03; no confundir estos editores con la aceptación real en proveedores (H05).
+
+## H03: agentes por etapa
+
+En **Diseñador de flujo**, el selector **Agente de la etapa** muestra únicamente
+agentes con rol base compatible. La opción predeterminada conserva el agente básico
+del rol. Guarda el flujo y prepara la integración antes de iniciar una ejecución nueva.
+
+El campo `role` de cada etapa permanece fijo y determina controles y permisos.
+`agent_id` identifica al agente elegido; si falta o es null se usa el básico. El perfil
+y la plataforma de la etapa prevalecen sobre las preferencias del agente. Las
+instrucciones y skills son las del agente seleccionado. Una preferencia de plataforma
+distinta requiere continuar explícitamente allí; no se inicia otra herramienta desde la UI.
+
+Se rechazan identificadores inexistentes, roles incompatibles y cambios de rol base
+de un agente referenciado. Desasigna primero al agente antes de cambiar su rol base.
+Las revisiones de workflows incluyen la versión del catálogo de agentes. Las snapshots
+antiguas sin `agent_id` siguen siendo válidas; las nuevas congelan selección, preferencias,
+instrucciones y contenidos de skills, tanto en seguimiento nativo como en modo avanzado.

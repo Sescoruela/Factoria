@@ -12,6 +12,7 @@ principalmente con Codex/OpenCode, que consumen la configuración generada.
 - `application/`: servicios de flujo, verificación, revisión, Git, historial y actualización.
 - `application/skill_catalog.py`: skills Markdown versionables, creación exclusiva, guardado atómico y revisiones de catálogo.
 - `application/project_integration.py`: compilación de configuración compartida a assets por herramienta.
+- `orchestration/workflows.py`: cada etapa conserva su rol de seguridad y puede seleccionar un agente del catálogo con `agent_id`.
 - `application/native_workflow.py`: seguimiento directo sin llamadas LLM, con snapshots y evidencia.
 - `application/agent_profiles.py`, `workflow_presets.py`: configuración versionable con lectura de formatos locales anteriores. El catálogo de agentes admite identificadores propios y un rol base. Los catálogos de agentes y workflows usan escritura atómica y revisión optimista para la edición web.
 - `adapters/`, `orchestration/`: ejecución opcional de agentes externos detrás de contratos neutrales.

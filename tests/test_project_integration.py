@@ -215,6 +215,76 @@ class IntegrationTests(ProjectFixture):
 
 
 class NativeWorkflowTests(ProjectFixture):
+    def test_custom_agent_platform_requires_explicit_native_handoff(self):
+        agent = AgentRoleProfile('external-explorer', 'rapido', 'opencode', base_role='explorer', name='External explorer')
+        save_agent_profile(self.root, agent)
+        preset = load_preset(self.root, 'fix')
+        save_preset(self.root, replace(preset, steps=tuple(replace(step, agent_id=agent.role) if step.name == 'explore' else step for step in preset.steps)))
+        ProjectIntegration(self.root).apply(confirmed=True)
+        self.commit()
+        state = self.native.start('fix', 'Fix using external explorer', 'codex')
+        self.evidence(state)
+        with self.assertRaisesRegex(ValueError, 'opencode'):
+            self.native.next(state['flow_id'])
+        state = self.native.next(state['flow_id'], tool='opencode')
+        self.assertEqual(state['tool'], 'opencode')
+        self.assertEqual(state['stage'], 'implement')
+
+    def test_custom_agents_complete_fix_and_feature_in_both_native_tools(self):
+        from factoria.orchestration.models import AgentRole
+        for role in AgentRole:
+            save_agent_profile(self.root, AgentRoleProfile('specialist-' + role.value, 'rapido',
+                               instructions='Specialist rules for ' + role.value, base_role=role.value,
+                               name='Specialist ' + role.value))
+        for kind in ('fix', 'feature'):
+            preset = load_preset(self.root, kind)
+            save_preset(self.root, replace(preset, steps=tuple(replace(step, agent_id='specialist-' + step.role) for step in preset.steps)))
+        ProjectIntegration(self.root).apply(confirmed=True)
+        self.commit()
+        for tool in ('codex', 'opencode'):
+            for kind in ('fix', 'feature'):
+                with self.subTest(tool=tool, kind=kind):
+                    state = self.native.start(kind, 'Change value with specialists', tool)
+                    flow_id = state['flow_id']
+                    while state['stage'] != 'ready_for_commit':
+                        stage = state['stage']
+                        if state['agent'] is not None:
+                            self.assertEqual(state['agent']['role'], 'specialist-' + state['step']['role'])
+                            self.assertEqual(state['step']['agent_id'], state['agent']['role'])
+                            self.assertIn('Specialist rules', state['agent']['instructions'])
+                        if state['evidence_file']:
+                            self.evidence(state, APPROVED if stage == 'review' else 'Reproduction, criteria and evidence')
+                        if stage == 'implement':
+                            (self.root / 'app.py').write_text('VALUE = 2\n')
+                        if stage in ('approve_plan', 'approve_final'):
+                            with self.assertRaises(PermissionError):
+                                self.native.next(flow_id)
+                        state = self.native.next(flow_id, approve_plan=stage == 'approve_plan', approve_final=stage == 'approve_final')
+                    self.commit()
+                    self.assertEqual(self.native.lifecycle(flow_id, 'finish')['state'], 'completed')
+                    (self.root / 'app.py').write_text('VALUE = 1\n')
+                    self.commit()
+
+    def test_custom_assignment_is_frozen_despite_later_catalog_and_workflow_edits(self):
+        (self.root / 'custom-rules.md').write_text('Original custom rules', encoding='utf-8')
+        agent = AgentRoleProfile('custom-explorer', 'rapido', instructions='Original agent instructions',
+                                 skills=('custom-rules.md',), base_role='explorer', name='Custom explorer')
+        save_agent_profile(self.root, agent)
+        preset = load_preset(self.root, 'fix')
+        save_preset(self.root, replace(preset, steps=tuple(replace(step, agent_id=agent.role) if step.name == 'explore' else step for step in preset.steps)))
+        ProjectIntegration(self.root).apply(confirmed=True)
+        self.commit()
+        state = self.native.start('fix', 'Fix with custom explorer', 'codex')
+        frozen_agent, frozen_step = state['agent'], state['step']
+        save_agent_profile(self.root, replace(agent, instructions='Later instructions', profile='potente'))
+        (self.root / 'custom-rules.md').write_text('Later skill rules', encoding='utf-8')
+        save_preset(self.root, default_preset('fix'))
+        restored = NativeWorkflow(self.root).status(state['flow_id'])
+        self.assertEqual(restored['agent'], frozen_agent)
+        self.assertEqual(restored['step'], frozen_step)
+        self.assertEqual(restored['agent']['role'], agent.role)
+        self.assertIn('Original custom rules', restored['agent']['skill_contents']['custom-rules.md'])
+
     def test_skill_edit_keeps_the_running_agent_content_snapshot(self):
         from factoria.application.skill_catalog import SkillDefinition, save_skill, skill_catalog_revision
         skill = SkillDefinition('exploration', 'Exploration', content='Original exploration instructions')

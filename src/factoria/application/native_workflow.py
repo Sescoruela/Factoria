@@ -155,7 +155,7 @@ class NativeWorkflow:
         execution, session = self._load(flow_id)
         stage = session['sequence'][session['index']]
         step = next((s for s in session['definition']['workflows'][session['kind']] if s['name'] == stage), None)
-        role = next((r for r in session['definition']['agents'] if step and r['role'] == step['role']), None)
+        role = next((r for r in session['definition']['agents'] if step and r['role'] == (step.get('agent_id') or step['role'])), None)
         evidence = execution.workspace.root / _FILES[stage] if stage in _FILES else None
         return {'flow_id': flow_id, 'state': execution.flow.state.value, 'stage': stage,
                 'tool': session['tool'], 'step': step, 'agent': role,

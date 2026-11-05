@@ -534,7 +534,7 @@ class LiveAgentFlowRunner:
         from factoria.application.project_integration import project_definition
         project_root = self.artifacts.project_root
         roles = session.agent_profiles or project_definition(project_root)['agents']
-        role = next(item for item in roles if item['role'] == step.role.value)
+        role = next(item for item in roles if item['role'] == (step.agent_id or step.role.value))
         custom = '\n\nProject agent instructions:\n' + role['instructions'] if role['instructions'] else ''
         for path, content in role['skill_contents'].items():
             custom += f'\n\nSkill {path}:\n{content}'
