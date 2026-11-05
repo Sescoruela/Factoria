@@ -1,0 +1,120 @@
+{
+  "date": "2026-11-05",
+  "factoria_main_reviewed": "392eb24015d45b6e372739a30e0e7b9aa0af1d33",
+  "acceptance_status": "partial_not_accepted",
+  "preflight": {
+    "factoria_version": "0.2.0",
+    "path_presence": {
+      "git": true,
+      "python": true,
+      "factoria": false,
+      "codex": false,
+      "opencode": false
+    },
+    "provider_sessions_tested": false,
+    "authenticated": null,
+    "acceptance_status": "pending",
+    "note": "Presence is not authentication or acceptance."
+  },
+  "host": "Current ChatGPT/Codex Work agent with filesystem and shell",
+  "tool_version": null,
+  "model": null,
+  "independent_session_start_tested": false,
+  "provider_cli_authentication_tested": false,
+  "natural_skill_discovery_tested": false,
+  "selection": "Explicit native CLI after reading generated guidance; not implicit skill selection",
+  "fix": {
+    "inspection": {
+      "environment": "chatgpt-checkout",
+      "scenario": "fix",
+      "workflow_id": "fix-lab",
+      "automated_checks": {
+        "integration_current": true,
+        "working_tree_clean": false,
+        "completed_flow": false,
+        "completed_commit_is_head": false,
+        "configured_agent_frozen": true,
+        "configuration_markers_recorded": true,
+        "verification_recorded": true,
+        "review_recorded": true,
+        "protected_sources_unchanged": true
+      },
+      "active_flows": [
+        {
+          "flow_id": "25197bc3-13c3-423b-908c-beb04a6c164d",
+          "state": "paused",
+          "stage": "ready_for_commit",
+          "workflow_id": "fix-lab"
+        }
+      ],
+      "mechanical_result": "incomplete",
+      "provider_authenticated": null,
+      "tool_version": null,
+      "model": null,
+      "acceptance_status": "pending_human_review",
+      "note": "Artifacts cannot prove authentication, natural routing, real human approvals or model identity. Attach redacted session evidence."
+    },
+    "baseline_tests": {
+      "total": 3,
+      "failures": 2
+    },
+    "post_fix_confirmed_tests": {
+      "total": 3,
+      "failures": 0
+    },
+    "change": "app.py: number % 2 != 0 replaced by number % 2 == 0",
+    "review": "Structured review by the same host agent; not an isolated reviewer model",
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "feature": {
+    "inspection": {
+      "environment": "chatgpt-checkout",
+      "scenario": "feature",
+      "workflow_id": "feature-lab",
+      "automated_checks": {
+        "integration_current": true,
+        "working_tree_clean": true,
+        "completed_flow": false,
+        "completed_commit_is_head": false,
+        "configured_agent_frozen": true,
+        "configuration_markers_recorded": false,
+        "verification_recorded": false,
+        "review_recorded": false,
+        "protected_sources_unchanged": true
+      },
+      "active_flows": [
+        {
+          "flow_id": "90ff9969-3709-41a7-b9f5-50053e1bd368",
+          "state": "paused",
+          "stage": "approve_plan",
+          "workflow_id": "feature-lab"
+        }
+      ],
+      "mechanical_result": "incomplete",
+      "provider_authenticated": null,
+      "tool_version": null,
+      "model": null,
+      "acceptance_status": "pending_human_review",
+      "note": "Artifacts cannot prove authentication, natural routing, real human approvals or model identity. Attach redacted session evidence."
+    },
+    "existing_tests": {
+      "total": 3,
+      "failures": 0
+    },
+    "new_feature_check": "ImportError: count_even is not implemented",
+    "unapproved_next_exit_code": 1,
+    "unapproved_next_error": "Esperando aprobación humana del plan: --approve-plan",
+    "plan_file": "feature-plan.md",
+    "implementation_started": false,
+    "human_plan_approval": null
+  },
+  "remaining": [
+    "Authenticated Codex CLI and OpenCode sessions",
+    "Fresh-session configuration and skill discovery",
+    "Feature plan/final approval and completion",
+    "Local commit authorization and finish for fix",
+    "Negative cases in real provider sessions",
+    "Proposal-only session without checkout"
+  ]
+}
