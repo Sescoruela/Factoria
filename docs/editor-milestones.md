@@ -17,10 +17,10 @@ aplicación. Abrir, refrescar o configurar Factoría no debe arrancar ninguno de
 - La web y la terminal de la aplicación permiten detección pasiva y guardar preferencias/rutas.
 - El inicio, diagnóstico y reanudación de agentes se hacen desde herramientas externas.
 - La web permite crear, modificar y guardar agentes propios y editar los cinco básicos, con control de conflictos y borradores.
-- Las skills asignadas deben existir como archivos Markdown dentro del proyecto. Su editor sigue pendiente.
+- Las skills asignadas deben existir como archivos Markdown dentro del proyecto. La sección Skills permite crearlas, modificarlas, guardarlas y descartarlas.
 - Los agentes se exportan al catálogo compartido para Codex/ChatGPT y a definiciones de OpenCode sin iniciar herramientas.
 - Existe edición y guardado de los flujos fix/feature.
-- Las skills se referencian por ruta, pero todavía no tienen editor de creación/edición.
+- El editor de agentes ofrece un selector de skills del catálogo y conserva las rutas Markdown anteriores.
 - La asignación de agentes personalizados a etapas y los workflows con nombre propio siguen pendientes.
 
 Los hitos distinguen las funciones entregadas de la ampliación de skills y workflows pendiente.
@@ -31,9 +31,9 @@ Esfuerzos orientativos de implementación y pruebas, sujetos al diseño del cat�
 
 | ID | Elemento / acción | Estado | Entrega y beneficio | Esfuerzo | Dependencias | Criterio de aceptación |
 | --- | --- | --- | --- | --- | --- | --- |
-| SK-01 | Skills / añadir | Pendiente | Crear una skill con identificador, nombre, descripción y contenido; reutilizar conocimiento propio | 0,5–1 día | Formato y ubicación del catálogo | Crear desde la UI y verla en la lista del proyecto; rechazar identificadores duplicados |
-| SK-02 | Skills / modificar | Pendiente | Abrir contenido existente y editarlo con indicador de cambios pendientes | 0,5–1 día | SK-01, SK-03 | Editar, descartar o guardar; conservar el resto de skills y avisar al cambiar de proyecto con cambios sin guardar |
-| SK-03 | Skills / guardar | Pendiente | Persistencia Markdown segura y regeneración de integración | 0,5–1 día | SK-01 | Cerrar/reabrir y recuperar exactamente el texto; detectar conflictos y no sobrescribir contenido ajeno; bloquear rutas externas y secretos detectables |
+| SK-01 | Skills / añadir | Implementado; evidencia de cierre en H02 #8 | Crear una skill con identificador, nombre, descripción y contenido; reutilizar conocimiento propio | 0,5–1 día | Formato y ubicación del catálogo | Crear desde la UI y verla en la lista del proyecto; rechazar identificadores duplicados |
+| SK-02 | Skills / modificar | Implementado; evidencia de cierre en H02 #8 | Abrir contenido existente y editarlo con indicador de cambios pendientes | 0,5–1 día | SK-01, SK-03 | Editar, descartar o guardar; conservar el resto de skills y avisar al cambiar de proyecto con cambios sin guardar |
+| SK-03 | Skills / guardar | Implementado; evidencia de cierre en H02 #8 | Persistencia Markdown segura y regeneración de integración | 0,5–1 día | SK-01 | Cerrar/reabrir y recuperar exactamente el texto; detectar conflictos y no sobrescribir contenido ajeno; bloquear rutas externas y secretos detectables |
 | AG-01 | Agentes / añadir | Completado | Crear agentes propios basados en un rol, con instrucciones, skills y preferencias | 1–2 días | Skills Markdown existentes; base_role validado | Crear un agente distinto de los cinco básicos, asignarle skills existentes y mantenerlo tras reabrir |
 | AG-02 | Agentes / modificar | Parcial: editor completo; asignación a etapas pendiente en WF | Editar agentes propios y básicos, referencias a skills y preferencias | 0,5–1 día | AG-01, AG-03 | Cambiar un agente, ver sus datos guardados y comprobar que se usan en el siguiente flujo preparado |
 | AG-03 | Agentes / guardar | Completado | Guardar el catálogo versionable con validación de referencias y conflictos | 0,5–1 día | AG-01 | Reabrir con el mismo catálogo; rechazar referencias inexistentes y no alterar snapshots de flujos iniciados |
@@ -43,7 +43,7 @@ Esfuerzos orientativos de implementación y pruebas, sujetos al diseño del cat�
 
 ## Orden propuesto
 
-1. Pendiente: catálogo y persistencia de skills: SK-01 → SK-03 → SK-02.
+1. Entregado: catálogo y persistencia de skills: SK-01 → SK-03 → SK-02.
 2. Entregado: catálogo de agentes personalizados, creación/edición/guardado; la asignación a etapas corresponde a WF.
 3. Pendiente: workflows nombrados: WF-01 → WF-03 → WF-02.
 4. Prueba completa: crear skill → asignarla a agente → incluirlo en workflow → guardar
@@ -90,3 +90,23 @@ ChatGPT y `.opencode/agents/factoria-<identificador>.md`. Los agentes propios es
 disponibles explícitamente; no sustituyen automáticamente etapas de fix/feature.
 La preferencia de modelo o plataforma no cambia la configuración de una sesión
 externa ya abierta. Los permisos y snapshots de flujos existentes se conservan.
+
+## Skills: uso y formato de H02
+
+En **Skills**, usa **Crear skill**, **Modificar**, **Guardar skill** o **Descartar / recargar**.
+El identificador es estable, en minúsculas, y el contenido se guarda en
+`.factoria/skills/<identificador>.md`, con cabecera versionada que contiene nombre y descripción.
+El cuerpo Markdown se recupera sin traducción de saltos de línea. No se sobrescriben
+archivos ajenos ni se siguen enlaces simbólicos. Los identificadores reservados de Windows se rechazan.
+
+La creación es exclusiva y el reemplazo atómico. Una revisión del catálogo detecta
+modificaciones externas; errores y conflictos conservan el borrador. El cambio de
+proyecto y el cierre de página avisan si hay cambios pendientes.
+
+En **Agentes**, el selector **Añadir skill del catálogo** añade la ruta al agente.
+Guarda el agente y prepara la integración: los archivos asignados se consultan desde
+Codex y OpenCode, y el catálogo compartido vive en `.factoria/generated/skills.md`.
+El contexto portable incluye el contenido; editar una skill desactualiza la integración.
+Los archivos Markdown anteriores fuera del catálogo siguen siendo referencias válidas.
+La asignación de agentes propios a etapas sigue pendiente de H03; no confundir este
+editor con la aceptación real en proveedores (H05).

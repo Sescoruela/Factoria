@@ -13,8 +13,8 @@ Los esfuerzos son orientativos; no hay fechas comprometidas. Cada enlace contien
 
 | Hito | Entrega | Fase / prioridad | Estado | Dependencias | Esfuerzo |
 | --- | --- | --- | --- | --- | --- |
-| [H01 #7](https://github.com/Sescoruela/Factoria/issues/7) | Guardado seguro de workflows | MVP / P0 | Implementado; evidencia de cierre en #7 | Ninguna | 0,5–1 día |
-| [H02 #8](https://github.com/Sescoruela/Factoria/issues/8) | Catálogo y editor de skills | MVP / P1 | Pendiente | H01 | 2–3 días |
+| [H01 #7](https://github.com/Sescoruela/Factoria/issues/7) | Guardado seguro de workflows | MVP / P0 | Completado en PR #20 | Ninguna | 0,5–1 día |
+| [H02 #8](https://github.com/Sescoruela/Factoria/issues/8) | Catálogo y editor de skills | MVP / P1 | Implementado; evidencia de cierre en #8 | H01 | 2–3 días |
 | [H03 #9](https://github.com/Sescoruela/Factoria/issues/9) | Asignar agentes propios a etapas | MVP / P1 | Pendiente | H01, H02 | 1–2 días |
 | [H04 #10](https://github.com/Sescoruela/Factoria/issues/10) | Workflows con nombre propio | MVP / P1 | Pendiente | H01, H03 | 2–4 días |
 | [H05 #11](https://github.com/Sescoruela/Factoria/issues/11) | Aceptación real en Codex y OpenCode | MVP / P1 | Pendiente | H02, H03, H04 | 1–2 días según incidencias |

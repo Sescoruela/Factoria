@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 
 from factoria.application.agent_profiles import AgentCatalogConflict, AgentRoleProfile, agent_catalog_snapshot, save_agent_profile
 from factoria.application.project_integration import ProjectIntegration
+from factoria.application.skill_catalog import SkillCatalogConflict, SkillDefinition, save_skill, skill_catalog_snapshot
 from factoria.ui_agent_tools import _apply_agent_paths
 from factoria.ui_workspace import UiWorkspaceSettings
 from factoria.web_app import FactoriaHTTPServer, FactoriaWebHandler, _HOST, _selected_project, _state
@@ -19,9 +20,19 @@ class FactoriaN8NHandler(FactoriaWebHandler):
 
     def do_GET(self) -> None:
         path = urlparse(self.path).path
+        if path == '/assets/skills.js':
+            body = files('factoria.web').joinpath('skills.js').read_bytes()
+            self.send_response(HTTPStatus.OK)
+            self.send_header('Content-Type', 'application/javascript; charset=utf-8')
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('X-Content-Type-Options', 'nosniff')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if path == "/":
             html = files("factoria.web").joinpath("index_n8n.html").read_text(encoding="utf-8")
-            html = html.replace("</body>", UI_PATCH + "</body>")
+            html = html.replace("</body>", UI_PATCH + '<script src="/assets/skills.js"></script></body>')
             body = html.encode("utf-8")
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -43,6 +54,27 @@ class FactoriaN8NHandler(FactoriaWebHandler):
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
+        if path in {'/api/skill/create', '/api/skill/save'}:
+            if not self._authorized():
+                self._json({'error': 'unauthorized'}, 403)
+                return
+            try:
+                data = self._body()
+                project = _selected_project(UiWorkspaceSettings.load())
+                if project is None:
+                    raise ValueError('Selecciona primero un proyecto')
+                if data.get('project_path') != str(project):
+                    raise SkillCatalogConflict('El proyecto del borrador cambió; vuelve a cargarlo')
+                if not isinstance(data.get('revision'), str):
+                    raise ValueError('Falta la versión del catálogo; vuelve a cargar las skills')
+                saved = save_skill(project, SkillDefinition.from_mapping(data), expected_revision=data['revision'],
+                                   create=path.endswith('/create'))
+                self._json({'ok': True, 'path': str(saved), 'state': _extended_state()})
+            except SkillCatalogConflict as exc:
+                self._json({'ok': False, 'error': str(exc)}, 409)
+            except (ValueError, OSError) as exc:
+                self._json({'ok': False, 'error': str(exc)}, 400)
+            return
         if path == '/api/project/prepare':
             if not self._authorized():
                 self._json({'error': 'unauthorized'}, 403)
@@ -89,6 +121,14 @@ def _extended_state() -> dict[str, object]:
     project = _selected_project(UiWorkspaceSettings.load())
     platforms = list(payload.get("agents", []))
     payload["platforms"] = platforms
+    try:
+        skills, revision, foreign = skill_catalog_snapshot(project)
+        payload['skills'] = [skill.to_mapping() for skill in skills]
+        payload['skill_catalog_revision'] = revision
+        payload['unmanaged_skill_files'] = list(foreign)
+    except (ValueError, OSError) as exc:
+        payload['skills'] = []
+        payload['skill_configuration_error'] = str(exc)
     try:
         agents, revision = agent_catalog_snapshot(project)
         payload["agent_roles"] = [item.to_mapping() for item in agents]

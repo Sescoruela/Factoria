@@ -55,7 +55,7 @@ El onboarding explica el modelo de trabajo, permite preparar la memoria del repo
 ## Uso principal: trabajar desde Codex u OpenCode
 
 1. Selecciona el proyecto en la aplicación e inicializa su memoria.
-2. Configura sus agentes (perfil, plataforma, instrucciones y rutas de skills) y flujos.
+2. Configura sus skills (crear/editar/guardar), agentes (perfil, plataforma, instrucciones y skills asignadas) y flujos.
 3. Abre **Integración**, revisa los cambios y pulsa **Preparar ambas herramientas**.
 4. Revisa y guarda los archivos del proyecto en Git; selecciona una rama de trabajo.
 5. Abre Codex u OpenCode en el repositorio. Puedes cerrar la aplicación de Factoria.
@@ -135,4 +135,4 @@ En Windows, PyInstaller empaqueta ese runtime en un único `Factoria.exe`; Inno 
 
 ## Próximos hitos del editor
 
-Los nueve hitos de añadir, modificar y guardar **skills, agentes y workflows** están definidos con estado, dependencias y criterios de aceptación en [hitos del editor](docs/editor-milestones.md). El catálogo de agentes propios ya permite crear, modificar y guardar; el editor de skills, la asignación de agentes a etapas y los workflows con nombre propio siguen pendientes. El [roadmap completo](docs/roadmap.md) separa el cierre del MVP de las mejoras posteriores.
+Los nueve hitos de añadir, modificar y guardar **skills, agentes y workflows** están definidos con estado, dependencias y criterios de aceptación en [hitos del editor](docs/editor-milestones.md). El catálogo de agentes propios ya permite crear, modificar y guardar; el catálogo de skills también permite crear, modificar y guardar. La asignación de agentes propios a etapas y los workflows con nombre propio siguen pendientes. El [roadmap completo](docs/roadmap.md) separa el cierre del MVP de las mejoras posteriores.

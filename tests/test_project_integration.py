@@ -215,6 +215,19 @@ class IntegrationTests(ProjectFixture):
 
 
 class NativeWorkflowTests(ProjectFixture):
+    def test_skill_edit_keeps_the_running_agent_content_snapshot(self):
+        from factoria.application.skill_catalog import SkillDefinition, save_skill, skill_catalog_revision
+        skill = SkillDefinition('exploration', 'Exploration', content='Original exploration instructions')
+        save_skill(self.root, skill, expected_revision=skill_catalog_revision(self.root), create=True)
+        save_agent_profile(self.root, AgentRoleProfile('explorer', 'equilibrado', skills=(skill.path,)))
+        ProjectIntegration(self.root).apply(confirmed=True)
+        self.commit()
+        state = self.native.start('fix', 'Fix value', 'codex')
+        frozen = state['agent']['skill_contents'][skill.path]
+        save_skill(self.root, replace(skill, content='Updated exploration instructions'), expected_revision=skill_catalog_revision(self.root))
+        self.assertEqual(self.native.status(state['flow_id'])['agent']['skill_contents'][skill.path], frozen)
+        self.assertIn(skill.content, frozen)
+
     def test_workflow_edits_preserve_running_flow_snapshot(self):
         state = self.native.start('fix', 'Fix value', 'codex')
         original = state['step']

@@ -37,3 +37,16 @@ la integración y revisar el catálogo, el contexto portable y los archivos Open
 ## Guardado de workflows (H01)
 
 `test_workflow_persistence.py` cubre guardados atrasados y simultáneos, cambios externos durante la escritura, fallo de reemplazo, migración, JSON inválido, symlinks y API autenticada con proyecto/revisión. `test_project_integration.py` comprueba que editar workflows no altera la snapshot activa. Ambas interfaces conservan el borrador tras un conflicto y permiten recargar con confirmación. La aceptación real en proveedores continúa pendiente.
+
+## Editor de skills (H02)
+
+`test_skill_catalog.py` comprueba persistencia exacta, referencias, propiedad de archivos,
+concurrencia, fallos de disco, secretos, políticas, symlinks, API y exportación. La suite
+de integración verifica que editar una skill no altera la snapshot del flujo activo.
+
+Smoke opcional de DOM/API con Node y jsdom (solo desarrollo; no es una prueba de
+navegador real): instalar jsdom en una carpeta temporal y ejecutar
+`NODE_PATH=<carpeta>/node_modules python tests/ui/run_skills_smoke.py`. Usa repositorios
+y preferencias temporales y cubre creación, edición, reapertura, conflictos, cambio
+de proyecto, selector de agentes y preparación de ambas herramientas. H11 conserva
+la tarea de automatizar pruebas con navegador real en CI.
