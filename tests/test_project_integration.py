@@ -215,6 +215,88 @@ class IntegrationTests(ProjectFixture):
 
 
 class NativeWorkflowTests(ProjectFixture):
+    def test_named_fix_and_feature_complete_in_both_tools_with_required_approvals(self):
+        for kind in ('fix', 'feature'):
+            preset = default_preset(kind)
+            if kind == 'fix':
+                preset = replace(preset, steps=tuple(replace(step, enabled=True) if step.name == 'plan' else step for step in preset.steps))
+            save_preset(self.root, replace(preset, id=kind + '-api', name='API ' + kind), create=True)
+        ProjectIntegration(self.root).apply(confirmed=True)
+        self.commit()
+        for tool in ('codex', 'opencode'):
+            for identifier in ('fix-api', 'feature-api'):
+                with self.subTest(tool=tool, identifier=identifier):
+                    state = self.native.start(identifier, 'Update the API value', tool)
+                    flow_id = state['flow_id']
+                    self.assertEqual(state['workflow_id'], identifier)
+                    approvals = []
+                    while state['stage'] != 'ready_for_commit':
+                        stage = state['stage']
+                        self.assertEqual(state['workflow_id'], identifier)
+                        if state['evidence_file']:
+                            self.evidence(state, APPROVED if stage == 'review' else 'Reproduction, criteria and evidence')
+                        if stage == 'implement':
+                            (self.root / 'app.py').write_text('VALUE = 2\n')
+                        if stage in ('approve_plan', 'approve_final'):
+                            approvals.append(stage)
+                            with self.assertRaises(PermissionError):
+                                self.native.next(flow_id)
+                        state = self.native.next(flow_id, approve_plan=stage == 'approve_plan', approve_final=stage == 'approve_final')
+                    self.assertEqual(approvals, ['approve_plan', 'approve_final'])
+                    self.commit()
+                    self.assertEqual(self.native.lifecycle(flow_id, 'finish')['state'], 'completed')
+                    (self.root / 'app.py').write_text('VALUE = 1\n')
+                    self.commit()
+
+    def test_named_cli_selection_and_snapshot_preserve_original_metadata(self):
+        import contextlib
+        import io
+        preset = replace(default_preset('feature'), id='feature-api', name='Original API feature')
+        save_preset(self.root, preset, create=True)
+        ProjectIntegration(self.root).apply(confirmed=True)
+        self.commit()
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            code = run_project_cli(['--project', str(self.root), '--read-only', 'project', 'workflows'])
+        self.assertEqual(code, 0)
+        self.assertIn('feature-api', [item['id'] for item in json.loads(output.getvalue())['workflows']])
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            code = run_project_cli(['--project', str(self.root), 'native', 'start', 'feature-api', '--tool', 'codex', '--task', 'API feature'])
+        self.assertEqual(code, 0)
+        state = json.loads(output.getvalue())
+        save_preset(self.root, replace(preset, name='Later feature name', steps=tuple(replace(step, profile='rapido') if step.name == 'explore' else step for step in preset.steps)))
+        reloaded = NativeWorkflow(self.root).status(state['flow_id'])
+        self.assertEqual(reloaded['workflow_id'], 'feature-api')
+        self.assertEqual(reloaded['workflow_name'], 'Original API feature')
+        self.assertEqual(reloaded['step'], state['step'])
+
+    def test_named_allowlist_cannot_bypass_blocked_base_type(self):
+        preset = replace(default_preset('fix'), id='fix-api', name='API correction')
+        save_preset(self.root, preset, create=True)
+        config = self.root / '.factoria/config.toml'
+        config.write_text('[flows]\nallowed=["fix-api"]\n', encoding='utf-8')
+        ProjectIntegration(self.root).apply(confirmed=True)
+        self.commit()
+        with self.assertRaises(PermissionError):
+            self.native.start('fix', 'Basic correction', 'codex')
+        state = self.native.start('fix-api', 'API correction', 'opencode')
+        config.write_text('[flows]\nblocked=["fix"]\nallowed=["fix-api"]\n', encoding='utf-8')
+        with self.assertRaises(PermissionError):
+            self.native.next(state['flow_id'])
+        self.assertEqual(self.native.status(state['flow_id'])['stage'], 'explore')
+
+    def test_legacy_native_snapshot_without_workflow_identifier_still_resumes(self):
+        state = self.native.start('fix', 'Legacy correction', 'codex')
+        path = self.native.artifacts.workspace(state['flow_id']).root / 'native.json'
+        session = json.loads(path.read_text(encoding='utf-8'))
+        session.pop('workflow_id')
+        session.pop('workflow_name')
+        path.write_text(json.dumps(session), encoding='utf-8')
+        reloaded = NativeWorkflow(self.root).status(state['flow_id'])
+        self.assertEqual(reloaded['workflow_id'], 'fix')
+        self.assertEqual(reloaded['agent'], state['agent'])
+
     def test_custom_agent_platform_requires_explicit_native_handoff(self):
         agent = AgentRoleProfile('external-explorer', 'rapido', 'opencode', base_role='explorer', name='External explorer')
         save_agent_profile(self.root, agent)

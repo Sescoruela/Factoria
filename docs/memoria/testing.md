@@ -64,3 +64,17 @@ Smoke DOM/API opcional: `NODE_PATH=<carpeta>/node_modules python tests/ui/run_sk
 Requiere Node y jsdom de desarrollo; cubre ambos shells, catálogo actualizado,
 selección compatible, guardado, reapertura y conflictos. H11 sigue reservando
 la automatización de pruebas con navegador real en CI.
+
+## H04 · Workflows propios
+
+`test_named_workflows.py` cubre catálogo completo, edición y creación, duplicados,
+identificadores portables, conservación del resto de recursos, migración, políticas,
+secretos, referencias, API, exportación y conflictos. Los recorridos nativos prueban
+fix/feature propios con aprobaciones para ambos modos de herramienta, selección por
+CLI pública, allowlists/bloqueos y snapshots actuales/antiguas.
+
+Smoke opcional DOM/API para ambos shells:
+`NODE_PATH=<carpeta>/node_modules python tests/ui/run_skills_smoke.py --named-workflows`.
+Verifica formularios, base fija, guardado, reapertura, agentes, duplicados,
+borradores, conflictos y recursos generados. No es aceptación con navegador real
+ni con un proveedor autenticado: H05/H11 continúan separados.

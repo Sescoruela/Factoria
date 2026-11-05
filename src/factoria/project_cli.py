@@ -20,9 +20,10 @@ def run_project_cli(argv: list[str]) -> int:
     prepare = project.add_parser('prepare', help='Preview or generate shared configuration for Codex and OpenCode')
     prepare.add_argument('--yes', action='store_true')
     project.add_parser('check', help='Check freshness and ownership without calling an LLM')
+    project.add_parser('workflows', help='List configured workflow identifiers and base types')
     native = group.add_parser('native').add_subparsers(dest='action', required=True)
     start = native.add_parser('start')
-    start.add_argument('kind', choices=('fix', 'feature'))
+    start.add_argument('kind', help='Identificador del workflow: fix, feature o uno propio del catálogo')
     start.add_argument('--task', required=True)
     start.add_argument('--tool', choices=('codex', 'opencode'), required=True)
     for name in ('next', 'status', 'pause', 'resume', 'retry', 'finish', 'cancel'):
@@ -46,10 +47,16 @@ def run_project_cli(argv: list[str]) -> int:
         root = Path(located.stdout.strip()).resolve()
         if args.profile:
             raise ValueError('El modo directo usa la política del proyecto; no cambia perfiles por ejecución')
-        if args.read_only and not (args.command == 'project' and (args.action == 'check' or not getattr(args, 'yes', False))) and not (args.command == 'native' and args.action == 'status'):
+        if args.read_only and not (args.command == 'project' and (args.action in {'check', 'workflows'} or not getattr(args, 'yes', False))) and not (args.command == 'native' and args.action == 'status'):
             raise PermissionError('Modo solo lectura: operación bloqueada')
         if args.command == 'project':
             service = ProjectIntegration(root)
+            if args.action == 'workflows':
+                from factoria.application.workflow_presets import load_catalog
+                result = {'workflows': [{'id': item.identifier, 'name': item.name or item.identifier, 'kind': item.kind, 'description': item.description}
+                                        for item in load_catalog(root).values()]}
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+                return 0
             if args.action == 'check':
                 result = service.check()
                 print(json.dumps(result, ensure_ascii=True, indent=2))

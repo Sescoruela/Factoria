@@ -63,9 +63,17 @@ class VisualWorkflowStep:
 class VisualWorkflowPreset:
     kind: str
     steps: tuple[VisualWorkflowStep, ...]
+    id: str | None = None
+    name: str = ''
+    description: str = ''
+
+    @property
+    def identifier(self) -> str:
+        return self.id or self.kind
 
     def to_mapping(self) -> dict[str, Any]:
-        return {'kind': self.kind, 'steps': [asdict(step) for step in self.steps]}
+        return {'kind': self.kind, 'steps': [asdict(step) for step in self.steps],
+                **({'id': self.id, 'name': self.name, 'description': self.description} if self.id is not None else {})}
 
 
 def default_preset(kind: str, *, large_fix: bool = False, update_memory: bool = False) -> VisualWorkflowPreset:
@@ -98,8 +106,21 @@ def default_preset(kind: str, *, large_fix: bool = False, update_memory: bool = 
 
 
 def validate_preset(preset: VisualWorkflowPreset) -> VisualWorkflowPreset:
-    if preset.kind not in {'feature', 'fix'}:
+    if not isinstance(preset.kind, str) or preset.kind not in {'feature', 'fix'}:
         raise ValueError('El tipo de flujo debe ser feature o fix')
+    if not isinstance(preset.name, str) or not isinstance(preset.description, str):
+        raise ValueError('El nombre y la descripción deben ser texto')
+    if preset.id is not None:
+        if not isinstance(preset.id, str) or not re.fullmatch(r'[a-z][a-z0-9-]{0,47}', preset.id):
+            raise ValueError('Identificador de workflow no válido: hasta 48 minúsculas, números y guiones')
+        reserved = {'fix', 'feature', 'agents', 'skills', 'workflows', 'chatgpt-context', 'con', 'prn', 'aux', 'nul',
+                    *(f'com{i}' for i in range(1, 10)), *(f'lpt{i}' for i in range(1, 10))}
+        if preset.id in reserved:
+            raise ValueError('Identificador de workflow reservado; elige otro')
+        if not isinstance(preset.name, str) or not preset.name.strip() or len(preset.name) > 120:
+            raise ValueError('El workflow necesita un nombre de hasta 120 caracteres')
+        if not isinstance(preset.description, str) or len(preset.description) > 1000:
+            raise ValueError('La descripción admite hasta 1000 caracteres')
     names = [step.name for step in preset.steps]
     if len(names) != len(set(names)):
         raise ValueError('No puede haber etapas duplicadas en el flujo')
@@ -151,7 +172,7 @@ def validate_preset(preset: VisualWorkflowPreset) -> VisualWorkflowPreset:
             'El orden solicitado no es seguro. Mantén explore → plan → implement → review → document; '
             'puedes personalizar la plataforma, el perfil y las etapas opcionales.'
         )
-    return VisualWorkflowPreset(kind=preset.kind, steps=tuple(normalized))
+    return VisualWorkflowPreset(kind=preset.kind, steps=tuple(normalized), id=preset.id, name=preset.name, description=preset.description)
 
 
 def validate_assignments(preset: VisualWorkflowPreset, profiles) -> VisualWorkflowPreset:
@@ -167,32 +188,60 @@ def validate_assignments(preset: VisualWorkflowPreset, profiles) -> VisualWorkfl
     return checked
 
 
-def load_preset(project_root: Path, kind: str, *, large_fix: bool = False, update_memory: bool = False, validate_agents: bool = True) -> VisualWorkflowPreset:
-    fallback = default_preset(kind, large_fix=large_fix, update_memory=update_memory)
+def _raw_catalog(project_root: Path) -> dict:
     from factoria.application.project_integration import project_path
     path = project_path(project_root, _PRESET_FILE.as_posix())
     if not path.exists():
         path = project_path(project_root, _LEGACY_PRESET_FILE.as_posix())
     if not path.exists():
-        return fallback
+        return {}
     try:
         raw = json.loads(path.read_text(encoding='utf-8'))
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError('La configuración de flujos no es válida') from exc
     if not isinstance(raw, dict):
         raise ValueError('La configuración de flujos debe ser un objeto')
-    entry = raw.get(kind)
-    if entry is None:
-        return fallback
-    if not isinstance(entry, dict):
-        raise ValueError('La configuración del flujo debe ser un objeto')
-    raw_steps = entry.get('steps')
-    if not isinstance(raw_steps, list):
-        raise ValueError('Las etapas deben ser una lista')
-    if any(not isinstance(item, dict) for item in raw_steps):
-        raise ValueError('Cada etapa debe ser un objeto')
-    preset = VisualWorkflowPreset(kind=kind, steps=tuple(VisualWorkflowStep.from_mapping(item) for item in raw_steps))
-    return validate_assignments(preset, load_agent_profiles(project_root)) if validate_agents else validate_preset(preset)
+    return raw
+
+
+def load_catalog(project_root: Path, *, validate_agents: bool = True) -> dict[str, VisualWorkflowPreset]:
+    presets = {kind: default_preset(kind) for kind in ('feature', 'fix')}
+    for identifier, entry in _raw_catalog(project_root).items():
+        if not isinstance(entry, dict):
+            raise ValueError('La configuración del flujo debe ser un objeto')
+        raw_steps = entry.get('steps')
+        if not isinstance(raw_steps, list) or any(not isinstance(step, dict) for step in raw_steps):
+            raise ValueError('Las etapas deben ser una lista de objetos')
+        builtin = identifier in ('fix', 'feature')
+        if entry.get('id') not in (None, identifier):
+            raise ValueError('El identificador del workflow no coincide con su clave')
+        kind = entry.get('kind', identifier if builtin else None)
+        if builtin and kind != identifier:
+            raise ValueError('El tipo base de fix/feature no puede cambiar')
+        preset = VisualWorkflowPreset(kind=kind, steps=tuple(VisualWorkflowStep.from_mapping(step) for step in raw_steps),
+                                      id=None if builtin else identifier,
+                                      name=entry.get('name', ''), description=entry.get('description', ''))
+        presets[identifier] = validate_preset(preset)
+    if validate_agents:
+        profiles = load_agent_profiles(project_root)
+        return {identifier: validate_assignments(preset, profiles) for identifier, preset in presets.items()}
+    return presets
+
+
+def load_preset(project_root: Path, kind: str, *, large_fix: bool = False, update_memory: bool = False, validate_agents: bool = True) -> VisualWorkflowPreset:
+    catalog = load_catalog(project_root, validate_agents=validate_agents)
+    if kind not in catalog:
+        raise ValueError(f'El workflow {kind} no existe')
+    # Preserve explicit CLI defaults for builtins that have not been configured.
+    if kind in ('fix', 'feature') and kind not in _raw_catalog(project_root):
+        return default_preset(kind, large_fix=large_fix, update_memory=update_memory)
+    return catalog[kind]
+
+
+def workflow_allowed(config, identifier: str, kind: str) -> bool:
+    if kind in config.blocked_flows or identifier in config.blocked_flows:
+        return False
+    return not config.allowed_flows or kind in config.allowed_flows or identifier in config.allowed_flows
 
 
 def workflow_catalog_revision(project_root: Path) -> str:
@@ -210,18 +259,18 @@ def workflow_catalog_revision(project_root: Path) -> str:
 def workflow_catalog_snapshot(project_root: Path) -> tuple[dict[str, VisualWorkflowPreset], str]:
     with _WORKFLOW_LOCK:
         revision = workflow_catalog_revision(project_root)
-        presets = {kind: load_preset(project_root, kind) for kind in ('feature', 'fix')}
+        presets = load_catalog(project_root)
         if revision != workflow_catalog_revision(project_root):
             raise WorkflowCatalogConflict('Los flujos cambiaron durante la lectura; recarga el catálogo')
         return presets, revision
 
 
-def save_preset(project_root: Path, preset: VisualWorkflowPreset, *, expected_revision: str | None = None) -> Path:
+def save_preset(project_root: Path, preset: VisualWorkflowPreset, *, expected_revision: str | None = None, create: bool = False) -> Path:
     with _WORKFLOW_LOCK:
-        return _save_preset(project_root, preset, expected_revision=expected_revision)
+        return _save_preset(project_root, preset, expected_revision=expected_revision, create=create)
 
 
-def _save_preset(project_root: Path, preset: VisualWorkflowPreset, *, expected_revision: str | None) -> Path:
+def _save_preset(project_root: Path, preset: VisualWorkflowPreset, *, expected_revision: str | None, create: bool) -> Path:
     from factoria.application.governance import ExecutionGovernor, GovernedAction
     from factoria.application.policy_runtime import build_execution_context
     from factoria.application.project_integration import project_path
@@ -231,8 +280,19 @@ def _save_preset(project_root: Path, preset: VisualWorkflowPreset, *, expected_r
     if expected_revision is not None and revision != expected_revision:
         raise WorkflowCatalogConflict('Los flujos cambiaron fuera de este editor; recarga antes de guardar')
     checked = validate_assignments(preset, load_agent_profiles(project_root))
-    payload = {kind: load_preset(project_root, kind).to_mapping() for kind in ('feature', 'fix')}
-    payload[checked.kind] = checked.to_mapping()
+    catalog = load_catalog(project_root)
+    identifier = checked.identifier
+    if create and (checked.id is None or identifier in catalog):
+        raise ValueError('Ya existe un workflow con ese identificador o el identificador está reservado')
+    if not create and identifier not in catalog:
+        raise ValueError('El workflow que quieres modificar no existe')
+    if not create and catalog[identifier].kind != checked.kind:
+        raise ValueError('El tipo base de un workflow guardado no puede cambiar')
+    from factoria.security import SecretScanner
+    if SecretScanner().scan_text(checked.name + '\n' + checked.description, location=identifier):
+        raise ValueError('Posible secreto en el workflow; no se guarda')
+    payload = {key: item.to_mapping() for key, item in catalog.items()}
+    payload[identifier] = checked.to_mapping()
     text = json.dumps(payload, ensure_ascii=False, indent=2) + '\n'
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary: Path | None = None

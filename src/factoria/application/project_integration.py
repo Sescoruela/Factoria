@@ -13,7 +13,7 @@ from pathlib import Path
 from factoria.application.agent_profiles import load_agent_profiles
 from factoria.application.governance import ExecutionGovernor, GovernedAction
 from factoria.application.policy_runtime import build_execution_context
-from factoria.application.workflow_presets import load_preset, preset_to_workflow, workflow_snapshot
+from factoria.application.workflow_presets import load_catalog, preset_to_workflow, workflow_snapshot, workflow_allowed
 from factoria.config.loader import load_project_config
 from factoria.security import SecretScanner
 
@@ -66,20 +66,24 @@ def project_definition(root: Path) -> dict:
             raise ValueError('Posible secreto en instrucciones o skills; exportación bloqueada')
         roles.append(data)
     config = load_project_config(root / '.factoria/config.toml')
-    flows = {
-        kind: list(workflow_snapshot(preset_to_workflow(load_preset(root, kind), project_root=root)))
-        for kind in ('fix', 'feature')
-        if kind not in config.blocked_flows and (not config.allowed_flows or kind in config.allowed_flows)
-    }
+    catalog = load_catalog(root)
+    if any(SecretScanner().scan_text(preset.name + '\n' + preset.description, location=identifier)
+           for identifier, preset in catalog.items()):
+        raise ValueError('Posible secreto en el catálogo de workflows; no se exporta')
+    flows = {identifier: list(workflow_snapshot(preset_to_workflow(preset, project_root=root)))
+             for identifier, preset in catalog.items() if workflow_allowed(config, identifier, preset.kind)}
     skills, _revision, _foreign = skill_catalog_snapshot(root)
     definition = {'schema_version': 1, 'agents': roles, 'workflows': flows,
-                  'skills': [skill.to_mapping() for skill in skills]}
+                  'skills': [skill.to_mapping() for skill in skills],
+                  'workflow_definitions': {identifier: {'kind': catalog[identifier].kind, 'name': catalog[identifier].name or identifier,
+                                                       'description': catalog[identifier].description} for identifier in flows}}
     if SecretScanner().scan_text(_json(definition), location='project-definition'):
         raise ValueError('Se ha detectado un posible secreto en la configuración; no se exporta')
     return definition
 
 
 def workflow_guide(kind: str, definition: dict) -> str:
+    metadata = definition.get('workflow_definitions', {}).get(kind, {'kind': kind, 'name': kind, 'description': ''})
     rows = []
     agents = {a['role']: a for a in definition['agents']}
     for index, step in enumerate(definition['workflows'][kind], 1):
@@ -89,7 +93,9 @@ def workflow_guide(kind: str, definition: dict) -> str:
             rows.append('\n' + role['instructions'] + '\n')
         for name in role['skills']:
             rows.append(f"   - Consultar `{name}` antes de realizar esta etapa.")
-    return f'''# Flujo {kind}
+    return f'''# Flujo {metadata['name']} ({kind})
+
+Tipo base: {metadata['kind']}. {metadata['description']}
 
 Ejecutar este flujo dentro de la sesión actual de Codex u OpenCode.
 La configuración vigente está en `.factoria/agents.json`, `.factoria/workflows.json`
@@ -154,7 +160,7 @@ class ProjectIntegration:
     def plan(self) -> IntegrationPlan:
         definition = project_definition(self.root)
         files = {'.factoria/agents.json': _json({a['role']: {k: v for k, v in a.items() if k != 'skill_contents'} for a in definition['agents']}),
-                 '.factoria/workflows.json': _json({kind: load_preset(self.root, kind).to_mapping() for kind in ('fix', 'feature')})}
+                 '.factoria/workflows.json': _json({identifier: preset.to_mapping() for identifier, preset in load_catalog(self.root).items()})}
         # Source files are user-maintained; include them for migration, never own them.
         source_files = set(files)
         catalog = '# Agentes del proyecto\n\n'
@@ -169,12 +175,16 @@ class ProjectIntegration:
         for skill in definition['skills']:
             skills_guide += f"## {skill['name']} ({skill['id']})\n\nFuente: `{skill['path']}`\n\n{skill['description']}\n\n{skill['content']}\n\n"
         files['.factoria/generated/skills.md'] = skills_guide
+        workflow_catalog = '# Workflows del proyecto\n\nSeleccionar explícitamente un identificador propio cuando se solicite. Si hay varias opciones compatibles y la intención es ambigua, preguntar antes de empezar; no inventar un flujo.\n\n'
+        for kind, metadata in definition['workflow_definitions'].items():
+            workflow_catalog += f"- `{kind}` · {metadata['name']} · base `{metadata['kind']}`: {metadata['description']}\n  - Codex: `$factoria-{kind}` · OpenCode: `/factoria-{kind}`\n  - CLI: `factoria native start {kind} --tool <codex|opencode> --task \"<petición>\"`\n"
+        files['.factoria/generated/workflows.md'] = workflow_catalog
         for kind in definition['workflows']:
             guide = workflow_guide(kind, definition)
             files[f'.factoria/generated/{kind}.md'] = guide
             files[f'.agents/skills/factoria-{kind}/SKILL.md'] = (
                 f'---\nname: factoria-{kind}\ndescription: '
-                + ('"Corregir errores, bugs, fallos o regresiones siguiendo el flujo fix de este proyecto. No usar para funcionalidades nuevas."' if kind == 'fix' else '"Implementar funcionalidades nuevas siguiendo el flujo feature de este proyecto. No usar para correcciones pequeñas."')
+                + (('"Corregir errores, bugs, fallos o regresiones siguiendo el flujo fix de este proyecto. No usar para funcionalidades nuevas."' if kind == 'fix' else '"Implementar funcionalidades nuevas siguiendo el flujo feature de este proyecto. No usar para correcciones pequeñas."') if kind in ('fix', 'feature') else json.dumps('Ejecutar explícitamente el workflow ' + kind + ': ' + definition['workflow_definitions'][kind]['name'], ensure_ascii=False))
                 + '\n---\n\n' + guide)
             files[f'.opencode/commands/factoria-{kind}.md'] = (
                 f'---\ndescription: Ejecutar el flujo {kind} configurado en Factoria\n---\n\n'
@@ -190,10 +200,13 @@ class ProjectIntegration:
                 + '\n'.join(f'Consultar `{path}`.' for path in role['skills']) + '\n')
         block = START + '''
 ## Factoría: agentes y flujos del proyecto
+Consultar el catálogo de workflows en `.factoria/generated/workflows.md`.
+Si el usuario especifica un workflow propio, usar exactamente ese identificador y su skill `factoria-<identificador>`.
+Si hay varios workflows compatibles y la intención es ambigua, preguntar cuál usar antes de iniciar. No seleccionar uno propio por parecido de nombre.
 Consultar el catálogo de agentes en `.factoria/generated/agents.md`.
 Consultar el catálogo de skills en `.factoria/generated/skills.md` y los archivos asignados a cada agente.
 Cada etapa usa el agente configurado en su campo agent_id; si está vacío, usa el agente básico del rol. Mantener sus controles obligatorios.
-Antes de cambiar código, seleccionar el flujo configurado según la intención:
+Antes de cambiar código, resolver la selección y cualquier ambigüedad. Si procede usar un flujo básico, elegir según la intención:
 - Corrección, bug, fallo o regresión → skill `factoria-fix`.
 - Funcionalidad o capacidad nueva → skill `factoria-feature`.
 - Petición ambigua o mezcla de trabajos → aclarar el alcance antes de iniciar.
