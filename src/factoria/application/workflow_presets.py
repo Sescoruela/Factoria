@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import os
+import tempfile
+import threading
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -22,6 +26,11 @@ _REQUIRED_FEATURE = frozenset(_CANONICAL_ORDER)
 _REQUIRED_FIX = frozenset({'explore', 'implement', 'review'})
 _OPTIONAL_FIX = frozenset({'plan', 'document'})
 _ALLOWED_PLATFORMS = {None, '', 'codex', 'opencode'}
+_WORKFLOW_LOCK = threading.RLock()
+
+
+class WorkflowCatalogConflict(ValueError):
+    """An editor is trying to save an obsolete workflow catalog."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -139,9 +148,10 @@ def validate_preset(preset: VisualWorkflowPreset) -> VisualWorkflowPreset:
 
 def load_preset(project_root: Path, kind: str, *, large_fix: bool = False, update_memory: bool = False) -> VisualWorkflowPreset:
     fallback = default_preset(kind, large_fix=large_fix, update_memory=update_memory)
-    path = project_root / _PRESET_FILE
+    from factoria.application.project_integration import project_path
+    path = project_path(project_root, _PRESET_FILE.as_posix())
     if not path.exists():
-        path = project_root / _LEGACY_PRESET_FILE
+        path = project_path(project_root, _LEGACY_PRESET_FILE.as_posix())
     if not path.exists():
         return fallback
     try:
@@ -164,17 +174,57 @@ def load_preset(project_root: Path, kind: str, *, large_fix: bool = False, updat
     return validate_preset(preset)
 
 
-def save_preset(project_root: Path, preset: VisualWorkflowPreset) -> Path:
+def workflow_catalog_revision(project_root: Path) -> str:
+    from factoria.application.project_integration import project_path
+    digest = hashlib.sha256()
+    for relative in (_PRESET_FILE, _LEGACY_PRESET_FILE):
+        path = project_path(project_root, relative.as_posix())
+        digest.update(relative.as_posix().encode())
+        digest.update(b'\x01' + path.read_bytes() if path.exists() else b'\x00')
+    return digest.hexdigest()
+
+
+def workflow_catalog_snapshot(project_root: Path) -> tuple[dict[str, VisualWorkflowPreset], str]:
+    with _WORKFLOW_LOCK:
+        revision = workflow_catalog_revision(project_root)
+        presets = {kind: load_preset(project_root, kind) for kind in ('feature', 'fix')}
+        if revision != workflow_catalog_revision(project_root):
+            raise WorkflowCatalogConflict('Los flujos cambiaron durante la lectura; recarga el catálogo')
+        return presets, revision
+
+
+def save_preset(project_root: Path, preset: VisualWorkflowPreset, *, expected_revision: str | None = None) -> Path:
+    with _WORKFLOW_LOCK:
+        return _save_preset(project_root, preset, expected_revision=expected_revision)
+
+
+def _save_preset(project_root: Path, preset: VisualWorkflowPreset, *, expected_revision: str | None) -> Path:
     from factoria.application.governance import ExecutionGovernor, GovernedAction
     from factoria.application.policy_runtime import build_execution_context
     from factoria.application.project_integration import project_path
     ExecutionGovernor().assert_allowed(GovernedAction.WRITE, build_execution_context(project_root))
     checked = validate_preset(preset)
     path = project_path(project_root, _PRESET_FILE.as_posix())
-    path.parent.mkdir(parents=True, exist_ok=True)
+    revision = workflow_catalog_revision(project_root)
+    if expected_revision is not None and revision != expected_revision:
+        raise WorkflowCatalogConflict('Los flujos cambiaron fuera de este editor; recarga antes de guardar')
     payload = {kind: load_preset(project_root, kind).to_mapping() for kind in ('feature', 'fix')}
     payload[checked.kind] = checked.to_mapping()
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    text = json.dumps(payload, ensure_ascii=False, indent=2) + '\n'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', newline='\n', dir=path.parent, delete=False) as handle:
+            temporary = Path(handle.name)
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        if revision != workflow_catalog_revision(project_root):
+            raise WorkflowCatalogConflict('Los flujos cambiaron durante el guardado; vuelve a cargar')
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
     return path
 
 

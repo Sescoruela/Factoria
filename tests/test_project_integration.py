@@ -215,6 +215,14 @@ class IntegrationTests(ProjectFixture):
 
 
 class NativeWorkflowTests(ProjectFixture):
+    def test_workflow_edits_preserve_running_flow_snapshot(self):
+        state = self.native.start('fix', 'Fix value', 'codex')
+        original = state['step']
+        preset = load_preset(self.root, 'fix')
+        updated = replace(preset, steps=tuple(replace(step, profile='potente') if step.name == 'explore' else step for step in preset.steps))
+        save_preset(self.root, updated)
+        self.assertEqual(self.native.status(state['flow_id'])['step'], original)
+
     def test_agent_edits_preserve_the_running_flow_snapshot(self):
         state = self.native.start('fix', 'Fix value', 'codex')
         original = state['agent']

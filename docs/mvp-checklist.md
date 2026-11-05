@@ -11,14 +11,14 @@ desde Codex u OpenCode. El LLM se utiliza principalmente en esas herramientas.
 | Hito | Estado en esta entrega | Evidencia |
 | --- | --- | --- |
 | Inicio externo de Codex/OpenCode | Implementado; detección pasiva en UI | `tool_presence.py`, límites de API/TUI y pruebas de regresión |
-| Edición completa: añadir, modificar y guardar recursos | Planificada; nueve hitos, capacidades actuales parciales | `docs/editor-milestones.md` |
+| Edición completa: añadir, modificar y guardar recursos | Agentes entregados; skills, asignación a etapas y workflows propios pendientes | `docs/editor-milestones.md` |
 | Configuración compartida por proyecto | Implementado | `agents.json`, `workflows.json`, `config.toml`; migración de configuración local anterior |
 | Instrucciones y skills por rol | Implementado | Editor web, validación de rutas y propagación a uso directo/orquestado |
 | Preparación para ambas herramientas | Implementado | Skills compartidas, comandos y agentes OpenCode, bloque de entrada en AGENTS.md |
 | Seguimiento sin otra sesión LLM | Implementado | CLI `native`; fix/feature, snapshots, evidencia, pausas, aprobaciones y cierre |
 | Verificación y review bloqueantes | Implementado | Comandos confirmados, alternativa manual y contrato JSON de review |
 | Regeneración conservadora | Implementado | Preview, hashes, conflictos, preservación de AGENTS.md y retirada de assets deshabilitados |
-| Pruebas deterministas | 244 pruebas superadas localmente, Python 3.12 / Linux | `tests/test_project_integration.py` y suite existente |
+| Pruebas deterministas | 270 pruebas en la entrega de agentes; resultados de nuevas entregas registrados por PR | `tests/test_project_integration.py` y suite existente |
 | CI multiplataforma | Configurado; resultado de ejecución registrado en GitHub | Ubuntu Python 3.11–3.13; Windows/macOS Python 3.11 |
 | Instalador Windows | Pipeline existente; resultado de build registrado en GitHub | Build, instalación, smoke de versión y desinstalación en CI |
 | Aceptación con Codex autenticado | Pendiente | Ejecutar el recorrido real documentado |
@@ -65,3 +65,11 @@ Los nueve hitos de skills/agentes/workflows están planificados en `editor-miles
 - Regresión: refrescos HTTP repetidos, preferencias, dashboard TUI y endpoints bloqueados sin ejecutar proveedores.
 - JavaScript: sintaxis de ambas interfaces web y del parche comprobada.
 - Los nueve hitos del editor están pendientes/parciales y registrados en el [issue #2](https://github.com/Sescoruela/Factoria/issues/2).
+
+## Roadmap acordado · 05/11/2026
+
+Ver `roadmap.md` y el [issue #6](https://github.com/Sescoruela/Factoria/issues/6): H01–H07 coordinan el cierre del MVP; H08–H13 se reservan para después. Las cifras de pruebas fechadas anteriores son evidencia histórica. La PR #5 tiene 270 pruebas y CI/instalador correctos; la aceptación autenticada sigue pendiente.
+
+## H01 · Guardado seguro de workflows
+
+Protección implementada: revisión optimista, identidad del proyecto, escritura atómica y borradores conservados ante conflictos. Ver #7 para evidencia de CI y cierre. Suite local: 279 pruebas correctas; sintaxis JavaScript y comprobaciones DOM/API en ambas interfaces correctas. La aceptación autenticada continúa pendiente.
