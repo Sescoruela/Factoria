@@ -11,7 +11,7 @@ desde Codex u OpenCode. El LLM se utiliza principalmente en esas herramientas.
 | Hito | Estado en esta entrega | Evidencia |
 | --- | --- | --- |
 | Inicio externo de Codex/OpenCode | Implementado; detección pasiva en UI | `tool_presence.py`, límites de API/TUI y pruebas de regresión |
-| Edición completa: añadir, modificar y guardar recursos | Agentes entregados; skills, asignación a etapas y workflows propios pendientes | `docs/editor-milestones.md` |
+| Edición completa: añadir, modificar y guardar recursos | Agentes y skills entregados; asignación de agentes propios a etapas y workflows propios pendientes | `docs/editor-milestones.md` |
 | Configuración compartida por proyecto | Implementado | `agents.json`, `workflows.json`, `config.toml`; migración de configuración local anterior |
 | Instrucciones y skills por rol | Implementado | Editor web, validación de rutas y propagación a uso directo/orquestado |
 | Preparación para ambas herramientas | Implementado | Skills compartidas, comandos y agentes OpenCode, bloque de entrada en AGENTS.md |
@@ -73,3 +73,7 @@ Ver `roadmap.md` y el [issue #6](https://github.com/Sescoruela/Factoria/issues/6
 ## H01 · Guardado seguro de workflows
 
 Protección implementada: revisión optimista, identidad del proyecto, escritura atómica y borradores conservados ante conflictos. Ver #7 para evidencia de CI y cierre. Suite local: 279 pruebas correctas; sintaxis JavaScript y comprobaciones DOM/API en ambas interfaces correctas. La aceptación autenticada continúa pendiente.
+
+## H02 · Catálogo de skills
+
+Editor web y persistencia Markdown implementados; ver #8 para evidencia de CI y cierre. Creación, edición, descarte y guardado con control de conflictos, selector de skills en agentes, catálogo compartido y contexto portable. H03/H04 y aceptación autenticada siguen pendientes.

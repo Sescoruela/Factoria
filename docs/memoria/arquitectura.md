@@ -10,6 +10,7 @@ principalmente con Codex/OpenCode, que consumen la configuración generada.
 - `config/`: configuración global, organización, proyecto y resolución de políticas.
 - `memory/`: detección, carga, renderizado, actualización y envejecimiento de memoria.
 - `application/`: servicios de flujo, verificación, revisión, Git, historial y actualización.
+- `application/skill_catalog.py`: skills Markdown versionables, creación exclusiva, guardado atómico y revisiones de catálogo.
 - `application/project_integration.py`: compilación de configuración compartida a assets por herramienta.
 - `application/native_workflow.py`: seguimiento directo sin llamadas LLM, con snapshots y evidencia.
 - `application/agent_profiles.py`, `workflow_presets.py`: configuración versionable con lectura de formatos locales anteriores. El catálogo de agentes admite identificadores propios y un rol base. Los catálogos de agentes y workflows usan escritura atómica y revisión optimista para la edición web.
@@ -18,7 +19,7 @@ principalmente con Codex/OpenCode, que consumen la configuración generada.
 - `entrypoint.py`, `project_cli.py`, `web_app_n8n.py`, `web_n8n_patch.py`: CLI, API y web local.
 
 ## Persistencia
-- Compartida en Git: memoria, `config.toml`, `agents.json`, `workflows.json` y assets preparados.
+- Compartida en Git: memoria, `config.toml`, `agents.json`, `workflows.json`, `.factoria/skills/*.md` y assets preparados.
 - Temporal: `.factoria/work/<id>/`, excluido localmente del control de versiones.
 - Historial local: ruta de Git `factoria/history`, hasta 50 registros o 30 días.
 - Configuración de máquina/modelos y rutas de ejecutables: entorno personal, fuera del proyecto.

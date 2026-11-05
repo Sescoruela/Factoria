@@ -54,6 +54,7 @@ def _json(value: object) -> str:
 
 
 def project_definition(root: Path) -> dict:
+    from factoria.application.skill_catalog import skill_catalog_snapshot
     project_path(root, '.factoria/config.toml')
     roles = []
     for item in load_agent_profiles(root):
@@ -70,7 +71,9 @@ def project_definition(root: Path) -> dict:
         for kind in ('fix', 'feature')
         if kind not in config.blocked_flows and (not config.allowed_flows or kind in config.allowed_flows)
     }
-    definition = {'schema_version': 1, 'agents': roles, 'workflows': flows}
+    skills, _revision, _foreign = skill_catalog_snapshot(root)
+    definition = {'schema_version': 1, 'agents': roles, 'workflows': flows,
+                  'skills': [skill.to_mapping() for skill in skills]}
     if SecretScanner().scan_text(_json(definition), location='project-definition'):
         raise ValueError('Se ha detectado un posible secreto en la configuración; no se exporta')
     return definition
@@ -162,6 +165,10 @@ class ProjectIntegration:
             catalog += agent['description'] + '\n\n' + agent['instructions'] + '\n\n'
             catalog += '\n'.join(f'Consultar `{skill}`.' for skill in agent['skills']) + '\n\n'
         files['.factoria/generated/agents.md'] = catalog
+        skills_guide = '# Skills del proyecto\n\nConsultar las skills asignadas al agente antes de realizar su etapa.\n\n'
+        for skill in definition['skills']:
+            skills_guide += f"## {skill['name']} ({skill['id']})\n\nFuente: `{skill['path']}`\n\n{skill['description']}\n\n{skill['content']}\n\n"
+        files['.factoria/generated/skills.md'] = skills_guide
         for kind in definition['workflows']:
             guide = workflow_guide(kind, definition)
             files[f'.factoria/generated/{kind}.md'] = guide
@@ -184,6 +191,7 @@ class ProjectIntegration:
         block = START + '''
 ## Factoría: agentes y flujos del proyecto
 Consultar el catálogo de agentes en `.factoria/generated/agents.md`.
+Consultar el catálogo de skills en `.factoria/generated/skills.md` y los archivos asignados a cada agente.
 Los agentes personalizados se solicitan explícitamente; no sustituyen automáticamente etapas del flujo.
 Antes de cambiar código, seleccionar el flujo configurado según la intención:
 - Corrección, bug, fallo o regresión → skill `factoria-fix`.
