@@ -209,10 +209,16 @@ def _create_project(name: str, purpose: str = "") -> Path:
 def _preset_from_payload(data: dict[str, object]) -> VisualWorkflowPreset:
     kind = str(data.get("kind", ""))
     raw_steps = data.get("steps", [])
-    if not isinstance(raw_steps, list):
-        raise ValueError("steps debe ser una lista")
+    if not isinstance(raw_steps, list) or any(not isinstance(item, dict) for item in raw_steps):
+        raise ValueError("steps debe ser una lista de objetos")
+    for field in ('name', 'description'):
+        if not isinstance(data.get(field, ''), str):
+            raise ValueError(f'{field} debe ser texto')
     return VisualWorkflowPreset(
         kind=kind,
+        id=data.get('id'),
+        name=data.get('name', ''),
+        description=data.get('description', ''),
         steps=tuple(
             VisualWorkflowStep.from_mapping(item)
             for item in raw_steps
@@ -307,6 +313,16 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlparse(self.path).path
+        if path == '/assets/workflows.js':
+            body = files('factoria.web').joinpath('workflows.js').read_bytes()
+            self.send_response(HTTPStatus.OK)
+            self.send_header('Content-Type', 'application/javascript; charset=utf-8')
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('X-Content-Type-Options', 'nosniff')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if path == "/":
             html = files("factoria.web").joinpath("index.html").read_bytes()
             self.send_response(HTTPStatus.OK)
@@ -362,7 +378,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
                 configured = _set_agent_path(str(data.get("tool", "")), str(data.get("path", "")))
                 self._json({"ok": True, "path": str(configured), "state": _state()})
                 return
-            if path == "/api/workflow/save":
+            if path in {"/api/workflow/save", "/api/workflow/create"}:
                 settings = UiWorkspaceSettings.load()
                 project = _selected_project(settings)
                 if project is None:
@@ -372,7 +388,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
                 if not isinstance(data.get('revision'), str):
                     raise ValueError('Falta la versión del catálogo; vuelve a cargar el flujo')
                 preset = _preset_from_payload(data)
-                saved = save_preset(project, preset, expected_revision=data['revision'])
+                saved = save_preset(project, preset, expected_revision=data['revision'], create=path.endswith('/create'))
                 self._json({"ok": True, "path": str(saved), "state": _state()})
                 return
             if path == "/api/job/start":

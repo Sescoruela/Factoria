@@ -34,7 +34,8 @@ Se generan:
 - `.agents/skills/factoria-fix/SKILL.md` y `factoria-feature/SKILL.md`, descubribles por ambas herramientas.
 - `.opencode/commands/factoria-fix.md` y `factoria-feature.md`, selección explícita en OpenCode.
 - `.opencode/agents/factoria-<rol>.md`, subagentes OpenCode con lectura permitida y edición solicitada solo para implementación.
-- `.factoria/generated/fix.md` y `feature.md`, instrucciones del flujo compartido.
+- `.factoria/generated/<identificador>.md`, instrucciones por workflow, incluidos fix/feature y los propios.
+- `.factoria/generated/workflows.md`, catálogo e instrucciones de selección explícita.
 - `.factoria/generated/chatgpt-context.md`, contexto portable para sesiones sin checkout.
 - `.factoria/integration-manifest.json`, hashes y versión del formato generado.
 - Un bloque delimitado en `AGENTS.md` para dirigir peticiones naturales a los flujos.
@@ -156,3 +157,17 @@ cierre. No declarar esa aceptación superada a partir de las pruebas determinist
 ## Aplicación sin inicio de proveedores
 
 La web y la TUI solo muestran presencia pasiva y permiten guardar preferencias. No inician Codex/OpenCode ni ejecutan sus diagnósticos. Los endpoints y comandos internos que podrían lanzarlos se rechazan; abre la herramienta externa para trabajar o reanudar sus flujos.
+
+## Workflows propios (H04)
+
+Crear desde una plantilla en el diseñador y preparar la integración. Cada
+identificador propio tiene `.agents/skills/factoria-<id>/SKILL.md` y
+`.opencode/commands/factoria-<id>.md`. La selección explícita es
+`factoria native start <id> --tool <codex|opencode> --task "..."`, o la skill/comando
+correspondiente. Si la petición natural es ambigua entre varios workflows, pedir
+aclaración antes de iniciar. No deducir un flujo propio por similitud de nombres.
+
+El tipo base sigue determinando controles, permisos y aprobaciones. Bloquear fix
+o feature también bloquea sus variantes; permitir un identificador no anula ese
+bloqueo. Los flujos ya iniciados conservan la definición y metadatos originales.
+El CLI de listado no llama a proveedores: `factoria project workflows`.

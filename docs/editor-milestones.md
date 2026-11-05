@@ -21,9 +21,9 @@ aplicación. Abrir, refrescar o configurar Factoría no debe arrancar ninguno de
 - Los agentes se exportan al catálogo compartido para Codex/ChatGPT y a definiciones de OpenCode sin iniciar herramientas.
 - Existe edición y guardado de los flujos fix/feature.
 - El editor de agentes ofrece un selector de skills del catálogo y conserva las rutas Markdown anteriores.
-- El diseñador permite asignar agentes personalizados a etapas con el mismo rol base. Los workflows con nombre propio siguen pendientes.
+- El diseñador permite asignar agentes personalizados a etapas con el mismo rol base. El diseñador también permite crear workflows con nombre propio basados en fix/feature.
 
-Los hitos distinguen las funciones entregadas de la ampliación de skills y workflows pendiente.
+Los editores están implementados; la aceptación autenticada del recorrido completo sigue pendiente en H05.
 
 ## Hitos
 
@@ -37,16 +37,16 @@ Esfuerzos orientativos de implementación y pruebas, sujetos al diseño del cat�
 | AG-01 | Agentes / añadir | Completado | Crear agentes propios basados en un rol, con instrucciones, skills y preferencias | 1–2 días | Skills Markdown existentes; base_role validado | Crear un agente distinto de los cinco básicos, asignarle skills existentes y mantenerlo tras reabrir |
 | AG-02 | Agentes / modificar | Implementado; evidencia de cierre en H03 #9 | Editar agentes propios y básicos, referencias a skills y preferencias | 0,5–1 día | AG-01, AG-03 | Cambiar un agente, ver sus datos guardados y comprobar que se usan en el siguiente flujo preparado |
 | AG-03 | Agentes / guardar | Completado | Guardar el catálogo versionable con validación de referencias y conflictos | 0,5–1 día | AG-01 | Reabrir con el mismo catálogo; rechazar referencias inexistentes y no alterar snapshots de flujos iniciados |
-| WF-01 | Workflows / añadir | Pendiente | Crear workflows con nombre propio a partir de fix/feature y asignar agentes del catálogo | 1–2 días | AG-01, AG-03; contrato de workflows nombrados | Crear un flujo adicional y seleccionarlo explícitamente desde Codex y OpenCode tras preparar la integración |
-| WF-02 | Workflows / modificar | Parcial: editor fix/feature | Editar etapas, agentes, perfiles y aprobaciones conservando los controles obligatorios | 1–2 días | WF-01, WF-03 | Modificar un flujo y usarlo en una ejecución nueva; bloquear un orden inválido y mantener intacto un flujo ya iniciado |
-| WF-03 | Workflows / guardar | Parcial: workflows.json actual | Guardar workflows nombrados y regenerar sus recursos para ambas herramientas | 0,5–1 día | WF-01, integración por proyecto | Cerrar/reabrir y conservar el diseño; detectar errores antes de escribir; comprobar recursos generados para ambas herramientas |
+| WF-01 | Workflows / añadir | Implementado; evidencia de cierre en H04 #10 | Crear workflows con nombre propio a partir de fix/feature y asignar agentes del catálogo | 1–2 días | AG-01, AG-03; contrato de workflows nombrados | Crear un flujo adicional y seleccionarlo explícitamente desde Codex y OpenCode tras preparar la integración |
+| WF-02 | Workflows / modificar | Implementado; evidencia de cierre en H04 #10 | Editar etapas, agentes, perfiles y aprobaciones conservando los controles obligatorios | 1–2 días | WF-01, WF-03 | Modificar un flujo y usarlo en una ejecución nueva; bloquear un orden inválido y mantener intacto un flujo ya iniciado |
+| WF-03 | Workflows / guardar | Implementado; evidencia de cierre en H04 #10 | Guardar workflows nombrados y regenerar sus recursos para ambas herramientas | 0,5–1 día | WF-01, integración por proyecto | Cerrar/reabrir y conservar el diseño; detectar errores antes de escribir; comprobar recursos generados para ambas herramientas |
 
 ## Orden propuesto
 
 1. Entregado: catálogo y persistencia de skills: SK-01 → SK-03 → SK-02.
 2. Entregado: catálogo de agentes personalizados, creación/edición/guardado; la asignación a etapas compatibles está implementada en H03.
-3. Pendiente: workflows nombrados: WF-01 → WF-03 → WF-02.
-4. Prueba completa: crear skill → asignarla a agente → incluirlo en workflow → guardar
+3. Entregado: workflows nombrados: WF-01 → WF-03 → WF-02.
+4. Pendiente de aceptación autenticada H05: crear skill → asignarla a agente → incluirlo en workflow → guardar
    → preparar proyecto → iniciar Codex/OpenCode externamente → ejecutar el flujo.
 
 ## Reglas comunes para los nueve hitos
@@ -59,15 +59,12 @@ Esfuerzos orientativos de implementación y pruebas, sujetos al diseño del cat�
 - No iniciar, autenticar ni diagnosticar Codex/OpenCode para crear o guardar recursos.
 - Marcar un hito terminado solo con evidencia del recorrido de uso y sus pruebas.
 
-## Decisiones antes de ampliar el catálogo
+## Decisiones del catálogo
 
-- Formato de identificadores y compatibilidad con las definiciones actuales.
-- Qué perfiles de agente pueden usarse en cada etapa sin debilitar los controles.
-- Cómo seleccionar un workflow nombrado y resolver peticiones naturales ambiguas.
-- Tratamiento de recursos importados y conflictos de edición externa.
-
-Estas decisiones se cerrarán en la implementación del catálogo; no se presentan como
-capacidades que ya estén disponibles.
+- Identificadores estables y formatos anteriores compatibles; workflows nuevos de hasta 48 caracteres portables.
+- Cada etapa conserva su rol y solo admite agentes de ese rol base.
+- Los flujos propios se seleccionan explícitamente; las intenciones ambiguas se aclaran.
+- Los cambios externos provocan conflicto y conservan el borrador. Las plantillas importables y el archivo de recursos siguen en H08/H09.
 
 ## Agentes: uso y formato entregados
 
@@ -126,3 +123,23 @@ de un agente referenciado. Desasigna primero al agente antes de cambiar su rol b
 Las revisiones de workflows incluyen la versión del catálogo de agentes. Las snapshots
 antiguas sin `agent_id` siguen siendo válidas; las nuevas congelan selección, preferencias,
 instrucciones y contenidos de skills, tanto en seguimiento nativo como en modo avanzado.
+
+## H04: workflows con nombre propio
+
+El selector del diseñador muestra todo el catálogo. **Crear a partir de** copia las
+etapas y agentes de fix, feature o un workflow ya configurado. **Crear workflow**
+abre un borrador con identificador, nombre y descripción. El identificador y el tipo
+base quedan fijos tras guardar; el nombre, descripción y etapas compatibles son editables.
+
+`.factoria/workflows.json` sigue siendo un objeto por identificador. Los básicos
+conservan su formato; los propios añaden `id`, `name` y `description`, y mantienen
+`kind` como tipo base. Guardar un recurso o preparar el proyecto conserva todos los demás.
+Se mantiene la revisión de catálogo/proyecto, la escritura atómica y la conservación
+de borradores ante errores; no se eliminan ni archivan recursos en este hito.
+
+Tras preparar, usar `factoria native start <id> --tool <codex|opencode> --task "..."`,
+`$factoria-<id>` o `/factoria-<id>`. `factoria project workflows` lista los identificadores.
+Las guías y el catálogo `.factoria/generated/workflows.md` explican la selección.
+Las snapshots guardan el identificador, nombre, tipo y definición originales; una
+edición posterior no cambia el diseño congelado. Los estados antiguos sin
+`workflow_id` conservan su interpretación fix/feature. H05 requiere aceptación real.

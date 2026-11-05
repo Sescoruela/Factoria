@@ -41,7 +41,8 @@ def main() -> int:
                     'url': f'http://127.0.0.1:{server.server_address[1]}',
                     'legacy_url': f'http://127.0.0.1:{legacy.server_address[1]}',
                 })
-                scenario = 'workflow_agents_smoke.cjs' if '--workflow-agents' in sys.argv else 'skills_smoke.cjs'
+                scenario = ('named_workflows_smoke.cjs' if '--named-workflows' in sys.argv else
+                            'workflow_agents_smoke.cjs' if '--workflow-agents' in sys.argv else 'skills_smoke.cjs')
                 return subprocess.run(['node', str(Path(__file__).with_name(scenario))],
                                       env=environment, timeout=45).returncode
             finally:

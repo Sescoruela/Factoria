@@ -8,7 +8,7 @@ async function until(fn){for(let i=0;i<300;i++){if(fn())return;await pause()}thr
 async function open(url){
  const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e.message));
  const dom=await JSDOM.fromURL(url+'/?token=ui-test-token',{runScripts:'dangerously',resources:'usable',virtualConsole:vc,beforeParse(w){w.structuredClone=structuredClone;w.fetch=(url,opts)=>fetch(new URL(url,w.location.href),opts);w.confirm=()=>answer;}});
- await until(()=>dom.window.eval('!!state.workflows?.feature?.revision'));
+ await until(()=>dom.window.document.readyState==='complete'&&typeof dom.window.newWorkflow==='function'&&dom.window.eval('!!state.workflows?.feature?.revision'));
  return dom;
 }
 (async()=>{

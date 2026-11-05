@@ -20,6 +20,7 @@ from factoria.application.review_runtime import parse_structured_review
 from factoria.application.state_store import LocalFlowStateStore
 from factoria.domain.flow import FlowState
 from factoria.config.loader import load_project_config
+from factoria.application.workflow_presets import load_preset, workflow_allowed
 from factoria.memory.loader import load_project_memory
 from factoria.security import SecretScanner
 from factoria.security.incidents import SecretIncidentStore
@@ -108,7 +109,10 @@ class NativeWorkflow:
 
     def start(self, kind: str, task: str, tool: str) -> dict:
         self._authorize()
-        if kind not in {'fix', 'feature'} or tool not in {'codex', 'opencode'} or not task.strip():
+        workflow_id = kind
+        preset = load_preset(self.root, workflow_id)
+        kind = preset.kind
+        if tool not in {'codex', 'opencode'} or not task.strip():
             raise ValueError('Flujo, plataforma o petición no válidos')
         if SecretScanner().scan_text(task, location='task'):
             raise ValueError('Posible secreto en la petición; no se guarda')
@@ -116,7 +120,7 @@ class NativeWorkflow:
         if not ProjectIntegration(self.root).check()['ready']:
             raise ValueError('Preparar o regenerar la integración: factoria project prepare --yes')
         definition = project_definition(self.root)
-        if kind not in definition['workflows']:
+        if workflow_id not in definition['workflows']:
             raise PermissionError('Flujo deshabilitado en este proyecto')
         branch = self._git('branch', '--show-current')
         if not branch or branch in {'main', 'master'}:
@@ -124,7 +128,7 @@ class NativeWorkflow:
         if self._git('status', '--porcelain'):
             raise ValueError('El árbol debe estar limpio antes de iniciar el flujo')
         load_project_memory(self.root)
-        steps = definition['workflows'][kind]
+        steps = definition['workflows'][workflow_id]
         sequence = []
         for step in steps:
             if step['name'] == 'review':
@@ -139,6 +143,7 @@ class NativeWorkflow:
         execution = self.service.start(self.service.create(flow_id=flow_id, kind=kind, label=task))
         session = {'schema_version': 1, 'flow_id': flow_id, 'kind': kind, 'task': task,
                    'tool': tool, 'branch': branch, 'definition': definition, 'sequence': sequence,
+                   'workflow_id': workflow_id, 'workflow_name': preset.name or workflow_id,
                    'index': 0, 'baseline_hash': self._tree_hash(), 'verified_hash': None, 'review_cycles': 0}
         # Freeze confirmed commands/memory together with the configured workflow.
         for name in ('AGENTS.md', 'docs/memoria/testing.md', 'docs/memoria/arquitectura.md', 'docs/memoria/flujos.md', 'docs/memoria/decisiones.md'):
@@ -154,11 +159,12 @@ class NativeWorkflow:
     def status(self, flow_id: str) -> dict:
         execution, session = self._load(flow_id)
         stage = session['sequence'][session['index']]
-        step = next((s for s in session['definition']['workflows'][session['kind']] if s['name'] == stage), None)
+        step = next((s for s in session['definition']['workflows'][session.get('workflow_id', session['kind'])] if s['name'] == stage), None)
         role = next((r for r in session['definition']['agents'] if step and r['role'] == (step.get('agent_id') or step['role'])), None)
         evidence = execution.workspace.root / _FILES[stage] if stage in _FILES else None
         return {'flow_id': flow_id, 'state': execution.flow.state.value, 'stage': stage,
                 'tool': session['tool'], 'step': step, 'agent': role,
+                'workflow_id': session.get('workflow_id', session['kind']), 'workflow_name': session.get('workflow_name', session['kind']),
                 'instruction': _INSTRUCTIONS[stage],
                 'evidence_file': str(evidence) if evidence else None,
                 'manual_steps': session.get('manual_steps', []),
@@ -173,7 +179,7 @@ class NativeWorkflow:
             raise ValueError('Reanudar el flujo antes de avanzar')
         stage = session['sequence'][session['index']]
         config = load_project_config(self.root / '.factoria/config.toml')
-        if session['kind'] in config.blocked_flows or (config.allowed_flows and session['kind'] not in config.allowed_flows):
+        if not workflow_allowed(config, session.get('workflow_id', session['kind']), session['kind']):
             raise PermissionError('Flujo deshabilitado en la configuración actual')
         if (approve_plan and stage != 'approve_plan') or (approve_final and stage != 'approve_final') or ((confirm_manual or confirm_external_impact) and stage != 'verify'):
             raise ValueError('La aprobación no corresponde a la etapa actual')
@@ -181,7 +187,7 @@ class NativeWorkflow:
             if tool not in {'codex', 'opencode'}:
                 raise ValueError('Plataforma no válida')
             session['tool'] = tool
-        step = next((s for s in session['definition']['workflows'][session['kind']] if s['name'] == stage), None)
+        step = next((s for s in session['definition']['workflows'][session.get('workflow_id', session['kind'])] if s['name'] == stage), None)
         if step and step['preferred_tool'] and step['preferred_tool'] != session['tool']:
             raise ValueError('Esta etapa requiere ' + step['preferred_tool'] + '; continuar allí con --tool')
         extra = tuple(p.relative_to(self.root).as_posix() for p in execution.workspace.root.glob('*') if p.is_file())

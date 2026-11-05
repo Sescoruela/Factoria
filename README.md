@@ -67,6 +67,25 @@ El onboarding explica el modelo de trabajo, permite preparar la memoria del repo
    las aprobaciones requeridas y ejecuta las verificaciones confirmadas.
 9. Revisa el resultado y autoriza el commit. Push y PR continúan siendo manuales.
 
+### Workflows propios
+
+En **Diseñador de flujo**, elige una plantilla en **Crear a partir de**, pulsa
+**Crear workflow** y completa identificador, nombre y descripción. Conserva el tipo
+base y sus controles; selecciona agentes compatibles, guarda y prepara la integración.
+
+Ejemplo: `fix-api`, basado en `fix`. Selección explícita:
+
+```bash
+factoria project workflows
+factoria native start fix-api --tool codex --task "Corregir contrato HTTP"
+# En OpenCode, usar --tool opencode.
+```
+
+También se generan `$factoria-fix-api` para Codex y `/factoria-fix-api` para OpenCode.
+Si la petición natural admite varios workflows, hay que aclarar cuál utilizar.
+El bloqueo del tipo base también bloquea sus variantes; una allowlist puede seleccionar
+un identificador propio, pero no anula un bloqueo.
+
 La configuración común vive en `.factoria/agents.json`, `.factoria/workflows.json`
 y `.factoria/config.toml`. La preparación importa las antiguas configuraciones locales
 `ui-agents.json` y `ui-workflows.json` si no hay configuración común, y no las borra.
@@ -135,4 +154,4 @@ En Windows, PyInstaller empaqueta ese runtime en un único `Factoria.exe`; Inno 
 
 ## Próximos hitos del editor
 
-Los nueve hitos de añadir, modificar y guardar **skills, agentes y workflows** están definidos con estado, dependencias y criterios de aceptación en [hitos del editor](docs/editor-milestones.md). El catálogo de agentes propios ya permite crear, modificar y guardar; el catálogo de skills también permite crear, modificar y guardar. El diseñador permite asignar agentes propios a etapas compatibles. Los workflows con nombre propio siguen pendientes. El [roadmap completo](docs/roadmap.md) separa el cierre del MVP de las mejoras posteriores.
+Los nueve hitos de añadir, modificar y guardar **skills, agentes y workflows** están definidos con estado, dependencias y criterios de aceptación en [hitos del editor](docs/editor-milestones.md). El catálogo de agentes propios ya permite crear, modificar y guardar; el catálogo de skills también permite crear, modificar y guardar. El diseñador permite asignar agentes propios a etapas compatibles. El diseñador también permite crear y guardar workflows con identificador propio basados en fix o feature. La aceptación real con herramientas autenticadas sigue pendiente. El [roadmap completo](docs/roadmap.md) separa el cierre del MVP de las mejoras posteriores.
