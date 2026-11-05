@@ -78,3 +78,16 @@ Smoke opcional DOM/API para ambos shells:
 Verifica formularios, base fija, guardado, reapertura, agentes, duplicados,
 borradores, conflictos y recursos generados. No es aceptación con navegador real
 ni con un proveedor autenticado: H05/H11 continúan separados.
+
+## H05 · Laboratorio de aceptación
+
+`tools/acceptance_lab.py` es una herramienta de desarrollo externa a la UI. Prepara
+repositorios aislados de fix/feature para tres entornos y permite inspeccionar
+artefactos. Su preflight solo lee presencia en PATH. No ejecuta ni autentica
+proveedores y no emite aceptación automática.
+
+`test_acceptance_lab.py` cubre aislamiento, protección de destinos existentes,
+baselines, estado parcial, approvals y el caso mecánico completo que sigue
+requiriendo revisión humana. Esos tests no prueban uso real de proveedores.
+El protocolo y la evidencia parcial están en `docs/acceptance/`; H05 permanece
+abierto hasta observar y revisar las sesiones, versiones/modelos y aprobaciones.

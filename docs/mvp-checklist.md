@@ -21,9 +21,9 @@ desde Codex u OpenCode. El LLM se utiliza principalmente en esas herramientas.
 | Pruebas deterministas | 270 pruebas en la entrega de agentes; resultados de nuevas entregas registrados por PR | `tests/test_project_integration.py` y suite existente |
 | CI multiplataforma | Configurado; resultado de ejecución registrado en GitHub | Ubuntu Python 3.11–3.13; Windows/macOS Python 3.11 |
 | Instalador Windows | Pipeline existente; resultado de build registrado en GitHub | Build, instalación, smoke de versión y desinstalación en CI |
-| Aceptación con Codex autenticado | Pendiente | Ejecutar el recorrido real documentado |
-| Aceptación con OpenCode autenticado | Pendiente | Ejecutar el recorrido real documentado |
-| Codex/ChatGPT con checkout | Pendiente de validar en el entorno elegido | Comprobar acceso a archivos y CLI, y comportamiento ante ausencia de herramientas |
+| Aceptación con Codex autenticado | Pendiente: CLI ausente en este entorno | Ejecutar el recorrido real documentado |
+| Aceptación con OpenCode autenticado | Pendiente: CLI ausente en este entorno | Ejecutar el recorrido real documentado |
+| Codex/ChatGPT con checkout | Parcial: fix listo para commit; feature esperando aprobación de plan | Comprobar acceso a archivos y CLI, y comportamiento ante ausencia de herramientas |
 | ChatGPT sin checkout | Contexto portable implementado | Modo propuesta; no equivale a ejecución de flujos |
 
 El estado «implementado» significa que existe código y una comprobación determinista;
@@ -41,9 +41,9 @@ la aceptación real en ambas herramientas y CI verde sobre el cambio revisado.
 
 | Entorno | Versión herramienta/modelo | Fix | Feature y aprobaciones | Bloqueos | Resultado |
 | --- | --- | --- | --- | --- | --- |
-| Codex local | Pendiente | Pendiente | Pendiente | Pendiente | Pendiente |
-| OpenCode local | Pendiente | Pendiente | Pendiente | Pendiente | Pendiente |
-| Codex/ChatGPT con repositorio | Pendiente | Pendiente | Pendiente | Pendiente | Pendiente |
+| Codex local | Desconocidos | No ejecutado | No ejecutado | CLI ausente | Pendiente |
+| OpenCode local | Desconocidos | No ejecutado | No ejecutado | CLI ausente | Pendiente |
+| Host actual ChatGPT/Codex con checkout | No expuestos | Parcial: 3 pruebas OK, ready_for_commit | Plan preparado; bloqueo sin aprobación observado | Aprobaciones, sesión nueva y finalización | No aceptado |
 
 ## Verificación local de esta entrega · 03/11/2026
 
@@ -92,3 +92,13 @@ preparados para ambas herramientas implementados. Se conservan tipos base,
 aprobaciones, políticas, referencias, conflictos y snapshots. Ver #10 para evidencia
 de pruebas y CI. El cierre de los editores no sustituye la aceptación real H05 ni
 la primera versión distribuible H06; el seguimiento documental H07 continúa.
+
+## H05 · Aceptación real en curso
+
+El [estado observado](acceptance/h05-status.md) distingue el recorrido parcial del
+agente anfitrión actual de las sesiones autenticadas externas, todavía pendientes.
+El [protocolo](acceptance/h05-protocol.md) y `tools/acceptance_lab.py` preparan seis
+repositorios nuevos y un informe pendiente; no inician proveedores ni certifican
+autenticación/modelos/aprobaciones. La feature está detenida por su aprobación de
+plan y el fix espera autorización de commit local. H05 #11 permanece abierto; H06
+no se considera desbloqueado por las pruebas deterministas.

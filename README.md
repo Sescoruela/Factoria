@@ -155,3 +155,11 @@ En Windows, PyInstaller empaqueta ese runtime en un único `Factoria.exe`; Inno 
 ## Próximos hitos del editor
 
 Los nueve hitos de añadir, modificar y guardar **skills, agentes y workflows** están definidos con estado, dependencias y criterios de aceptación en [hitos del editor](docs/editor-milestones.md). El catálogo de agentes propios ya permite crear, modificar y guardar; el catálogo de skills también permite crear, modificar y guardar. El diseñador permite asignar agentes propios a etapas compatibles. El diseñador también permite crear y guardar workflows con identificador propio basados en fix o feature. La aceptación real con herramientas autenticadas sigue pendiente. El [roadmap completo](docs/roadmap.md) separa el cierre del MVP de las mejoras posteriores.
+
+## Aceptación real (H05)
+
+El [protocolo de aceptación](docs/acceptance/h05-protocol.md) prepara casos de fix y
+feature en repositorios aislados, con registro de versiones, modelos y aprobaciones.
+El [estado observado](docs/acceptance/h05-status.md) es parcial: las pruebas de
+código/CI no equivalen a aceptación autenticada. El laboratorio no inicia ni
+autentica Codex/OpenCode desde la aplicación.

@@ -16,8 +16,8 @@ Los esfuerzos son orientativos; no hay fechas comprometidas. Cada enlace contien
 | [H01 #7](https://github.com/Sescoruela/Factoria/issues/7) | Guardado seguro de workflows | MVP / P0 | Completado en PR #20 | Ninguna | 0,5–1 día |
 | [H02 #8](https://github.com/Sescoruela/Factoria/issues/8) | Catálogo y editor de skills | MVP / P1 | Completado en PR #21 | H01 | 2–3 días |
 | [H03 #9](https://github.com/Sescoruela/Factoria/issues/9) | Asignar agentes propios a etapas | MVP / P1 | Completado en PR #22 | H01, H02 | 1–2 días |
-| [H04 #10](https://github.com/Sescoruela/Factoria/issues/10) | Workflows con nombre propio | MVP / P1 | Implementado; evidencia de cierre en #10 | H01, H03 | 2–4 días |
-| [H05 #11](https://github.com/Sescoruela/Factoria/issues/11) | Aceptación real en Codex y OpenCode | MVP / P1 | Pendiente | H02, H03, H04 | 1–2 días según incidencias |
+| [H04 #10](https://github.com/Sescoruela/Factoria/issues/10) | Workflows con nombre propio | MVP / P1 | Completado en PR #23 | H01, H03 | 2–4 días |
+| [H05 #11](https://github.com/Sescoruela/Factoria/issues/11) | Aceptación real en Codex y OpenCode | MVP / P1 | En curso: host parcial; CLIs y aprobaciones pendientes | H02, H03, H04 | 1–2 días según incidencias |
 | [H06 #12](https://github.com/Sescoruela/Factoria/issues/12) | Primera versión distribuible y actualización | MVP / P1 | Pendiente | H05, H07 | 0,5–1 día |
 | [H07 #13](https://github.com/Sescoruela/Factoria/issues/13) | Documentación y estado verificable | MVP / P1 | Parcial: documentación actualizada; seguimiento continuo | Ninguna | 0,5 día inicial y actualización continua |
 | [H08 #14](https://github.com/Sescoruela/Factoria/issues/14) | Plantillas reutilizables entre proyectos | Posterior / P2 | Pendiente | H04, H06 | Por estimar |
