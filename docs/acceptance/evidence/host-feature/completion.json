@@ -1,0 +1,31 @@
+{
+  "flow_id": "90ff9969-3709-41a7-b9f5-50053e1bd368",
+  "state": "completed",
+  "commit": "78504e3a18f72140c218c4ef3d1d3ca5d5ebaa0f",
+  "human_plan_approval": "First Sí, before implementation",
+  "human_final_and_commit_approval": "Second Sí, after tests and final result presented",
+  "inspection": {
+    "environment": "chatgpt-checkout",
+    "scenario": "feature",
+    "workflow_id": "feature-lab",
+    "automated_checks": {
+      "integration_current": true,
+      "working_tree_clean": true,
+      "completed_flow": true,
+      "completed_commit_is_head": true,
+      "configured_agent_frozen": true,
+      "configuration_markers_recorded": true,
+      "verification_recorded": true,
+      "review_recorded": true,
+      "protected_sources_unchanged": true
+    },
+    "active_flows": [],
+    "mechanical_result": "ready_for_human_review",
+    "provider_authenticated": null,
+    "tool_version": null,
+    "model": null,
+    "acceptance_status": "pending_human_review",
+    "note": "Artifacts cannot prove authentication, natural routing, real human approvals or model identity. Attach redacted session evidence."
+  },
+  "note": "Historical artifacts retain their original pending-approval wording; this record captures the subsequent authorized completion. Provider CLI acceptance remains pending."
+}

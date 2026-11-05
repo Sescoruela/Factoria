@@ -9,7 +9,7 @@ No es una ejecución de Codex CLI ni de OpenCode ni una sesión nueva de descubr
 | Codex CLI local / fix y feature | CLI ausente en este entorno | Instalación/sesión autenticada externa, versión/modelo y recorrido completo |
 | OpenCode local / fix y feature | CLI ausente en este entorno | Instalación/sesión autenticada externa, versión/modelo y recorrido completo |
 | Host actual con checkout / fix-lab | Agente y skill cargados; dos fallos iniciales; tres pruebas finales correctas; review registrada; commit local autorizado y flujo completado | Sesión nueva y ruta natural |
-| Host actual con checkout / feature-lab | Plan aprobado; count_even implementado; siete pruebas y aceptación correctas; pausado en approve_final | Aprobación humana final, autorización del commit local y finish |
+| Host actual con checkout / feature-lab | Plan aprobado; count_even implementado; siete pruebas y aceptación correctas; aprobación humana final y commit local; flujo completado | Sesión nueva y ruta natural |
 | ChatGPT sin checkout | No ejecutado | Conversación nueva con solo contexto portable y comprobación de modo propuesta |
 
 La versión del host y el modelo no están expuestos en esta sesión y se registran como
@@ -35,12 +35,14 @@ El flujo está completado, sin sesiones activas y con árbol limpio. El reposito
 sintético no tiene remotos; su código no se publica como código de Factoria.
 
 El «Sí» posterior del usuario aprobó el plan de count_even y el commit local del fix.
-Se utilizó `--approve-plan` para implementar la feature; no se ha utilizado
-`--approve-final`. El avance sin aprobación final devuelve el error esperado y
-el flujo está pausado en approve_final. Siete pruebas y acceptance_feature.py pasan;
+Se utilizó `--approve-plan` para implementar la feature. El avance sin aprobación
+final devolvió el error esperado. Tras presentar resultados y recibir un segundo
+«Sí», se utilizó `--approve-final`, se creó el commit local
+`78504e3a18f72140c218c4ef3d1d3ca5d5ebaa0f` (`feat: count even integers in H05 lab`)
+y se cerró el flujo. No quedan sesiones activas y el árbol está limpio. Siete pruebas y acceptance_feature.py pasan;
 sum_even, tests/test_app.py y acceptance_feature.py permanecen intactos.
 La revisión es secuencial por el mismo agente anfitrión. La propuesta de memoria
-no se aplica automáticamente. La feature todavía no tiene commit.
+no se aplica automáticamente. Ambos recorridos anfitriones están completados con autorización humana; esto no acredita las sesiones externas pendientes.
 
 Los siete tests nuevos de la herramienta de laboratorio son comprobaciones
 deterministas; sus fixtures sintéticos no se usan como evidencia de aceptación real.

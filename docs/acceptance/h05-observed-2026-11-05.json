@@ -1,6 +1,6 @@
 {
   "date": "2026-11-05",
-  "factoria_main_reviewed": "8fc220e582ace5806c223486292d6d74cc2b6ffb",
+  "factoria_main_reviewed": "7e733fa23dd61524d1080073729da00283cf3b9d",
   "acceptance_status": "partial_not_accepted",
   "preflight": {
     "factoria_version": "0.2.0",
@@ -70,24 +70,17 @@
       "workflow_id": "feature-lab",
       "automated_checks": {
         "integration_current": true,
-        "working_tree_clean": false,
-        "completed_flow": false,
-        "completed_commit_is_head": false,
+        "working_tree_clean": true,
+        "completed_flow": true,
+        "completed_commit_is_head": true,
         "configured_agent_frozen": true,
         "configuration_markers_recorded": true,
         "verification_recorded": true,
         "review_recorded": true,
         "protected_sources_unchanged": true
       },
-      "active_flows": [
-        {
-          "flow_id": "90ff9969-3709-41a7-b9f5-50053e1bd368",
-          "state": "paused",
-          "stage": "approve_final",
-          "workflow_id": "feature-lab"
-        }
-      ],
-      "mechanical_result": "incomplete",
+      "active_flows": [],
+      "mechanical_result": "ready_for_human_review",
       "provider_authenticated": null,
       "tool_version": null,
       "model": null,
@@ -109,16 +102,17 @@
       "failures": 0
     },
     "post_implementation_acceptance": "Feature acceptance: OK",
-    "human_final_approval": null,
-    "commit_authorized": false,
-    "commit_created": false,
+    "human_final_approval": "User Sí after explicit final result approval and local feature commit request",
+    "commit_authorized": true,
+    "commit_created": true,
     "unapproved_final_next_exit_code": 1,
-    "unapproved_final_next_error": "Esperando aprobación humana final: --approve-final"
+    "unapproved_final_next_error": "Esperando aprobación humana final: --approve-final",
+    "commit_sha": "78504e3a18f72140c218c4ef3d1d3ca5d5ebaa0f",
+    "flow_completed": true
   },
   "remaining": [
     "Authenticated Codex CLI and OpenCode sessions",
     "Fresh-session configuration and skill discovery",
-    "Feature final approval, local commit authorization and finish",
     "Negative cases in real provider sessions",
     "Proposal-only session without checkout"
   ]

@@ -7,4 +7,4 @@
 
 Criterios: count_even([1,2,4,-2,0]) == 4, count_even([]) == 0, count_even([-3,-2,-1]) == 1. sum_even conserva sus tres pruebas actuales.
 Riesgo: confundir pares con impares o excluir el cero; cubierto por las comprobaciones. Sin dependencias externas ni acceso a servicios.
-Aprobado por el usuario con «Sí» después de presentar este plan. Implementación y verificación completadas; aprobación final y commit local pendientes.
+Aprobado por el usuario con «Sí» después de presentar este plan. Implementación y verificación completadas; aprobación final y commit local autorizados posteriormente por el usuario y completados.
