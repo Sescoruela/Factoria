@@ -12,7 +12,7 @@ principalmente con Codex/OpenCode, que consumen la configuración generada.
 - `application/`: servicios de flujo, verificación, revisión, Git, historial y actualización.
 - `application/project_integration.py`: compilación de configuración compartida a assets por herramienta.
 - `application/native_workflow.py`: seguimiento directo sin llamadas LLM, con snapshots y evidencia.
-- `application/agent_profiles.py`, `workflow_presets.py`: configuración versionable con lectura de formatos locales anteriores. El catálogo de agentes admite identificadores propios y un rol base, con escritura atómica y revisión optimista para la edición web.
+- `application/agent_profiles.py`, `workflow_presets.py`: configuración versionable con lectura de formatos locales anteriores. El catálogo de agentes admite identificadores propios y un rol base. Los catálogos de agentes y workflows usan escritura atómica y revisión optimista para la edición web.
 - `adapters/`, `orchestration/`: ejecución opcional de agentes externos detrás de contratos neutrales.
 - `plugins/`: descubrimiento, compatibilidad, validación y ejecución de extensiones.
 - `entrypoint.py`, `project_cli.py`, `web_app_n8n.py`, `web_n8n_patch.py`: CLI, API y web local.

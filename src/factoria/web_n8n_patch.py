@@ -101,11 +101,11 @@ window.prepareIntegration=async function(apply){
 };
 function renderIntegration(){const i=state.integration;document.getElementById('integrationStatus').textContent=!state.selected_project?'Selecciona un proyecto.':i?.error||(i?.ready?'Integración preparada y actualizada.':'Integración pendiente o desactualizada.');}
 const previousSelectProject=selectProject;
-selectProject=async function(path){if(!canLeaveAgent()||(workflowDirty&&!confirm('Hay cambios de flujo sin guardar. ¿Cambiar de proyecto?')))return;await previousSelectProject(path);agentEdits=false;agentDraft=null;document.getElementById('agentRoleEditor').innerHTML='';await refresh();};
+selectProject=async function(path){if(!canLeaveAgent())return;if(await previousSelectProject(path)!==true)return;agentEdits=false;agentDraft=null;document.getElementById('agentRoleEditor').innerHTML='';await refresh();};
 const previousCreateProject=createProject;
-createProject=async function(){if(!canLeaveAgent())return;await previousCreateProject();agentEdits=false;agentDraft=null;document.getElementById('agentRoleEditor').innerHTML='';await refresh();};
+createProject=async function(){if(!canLeaveAgent())return;if(await previousCreateProject()!==true)return;agentEdits=false;agentDraft=null;document.getElementById('agentRoleEditor').innerHTML='';await refresh();};
 const previousSaveProjectsRoot=saveProjectsRoot;
-saveProjectsRoot=async function(){if(!canLeaveAgent())return;await previousSaveProjectsRoot();agentEdits=false;agentDraft=null;document.getElementById('agentRoleEditor').innerHTML='';await refresh();};
+saveProjectsRoot=async function(){if(!canLeaveAgent())return;if(await previousSaveProjectsRoot()!==true)return;agentEdits=false;agentDraft=null;document.getElementById('agentRoleEditor').innerHTML='';await refresh();};
 const oldRenderAll=renderAll;
 renderAll=function(){oldRenderAll();applyTerminology();renderIntegration()};
 const oldRenderWorkflowBoard=renderWorkflowBoard;

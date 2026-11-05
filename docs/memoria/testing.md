@@ -33,3 +33,7 @@ no borra un borrador, que **Descartar / recargar** lo elimina y que cambiar de
 proyecto pide confirmación. Con un borrador abierto, editar `agents.json` desde
 fuera: el guardado debe avisar del conflicto y conservar ambas versiones. Preparar
 la integración y revisar el catálogo, el contexto portable y los archivos OpenCode.
+
+## Guardado de workflows (H01)
+
+`test_workflow_persistence.py` cubre guardados atrasados y simultáneos, cambios externos durante la escritura, fallo de reemplazo, migración, JSON inválido, symlinks y API autenticada con proyecto/revisión. `test_project_integration.py` comprueba que editar workflows no altera la snapshot activa. Ambas interfaces conservan el borrador tras un conflicto y permiten recargar con confirmación. La aceptación real en proveedores continúa pendiente.

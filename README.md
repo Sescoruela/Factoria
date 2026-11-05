@@ -135,4 +135,4 @@ En Windows, PyInstaller empaqueta ese runtime en un único `Factoria.exe`; Inno 
 
 ## Próximos hitos del editor
 
-Los nueve hitos de añadir, modificar y guardar **skills, agentes y workflows** están definidos con estado, dependencias y criterios de aceptación en [hitos del editor](docs/editor-milestones.md). Los catálogos personalizados están pendientes; la edición actual cubre los cinco roles básicos y fix/feature.
+Los nueve hitos de añadir, modificar y guardar **skills, agentes y workflows** están definidos con estado, dependencias y criterios de aceptación en [hitos del editor](docs/editor-milestones.md). El catálogo de agentes propios ya permite crear, modificar y guardar; el editor de skills, la asignación de agentes a etapas y los workflows con nombre propio siguen pendientes. El [roadmap completo](docs/roadmap.md) separa el cierre del MVP de las mejoras posteriores.

@@ -1,6 +1,8 @@
 # Hitos de edición de la factoría
 
-Seguimiento: [issue #2](https://github.com/Sescoruela/Factoria/issues/2).
+Seguimiento: [issue #2](https://github.com/Sescoruela/Factoria/issues/2). Roadmap general: [issue #6](https://github.com/Sescoruela/Factoria/issues/6), `roadmap.md`.
+
+La protección de guardado de workflows se aborda primero en H01 (#7); skills en H02 (#8), asignación de agentes en H03 (#9) y workflows nombrados en H04 (#10).
 
 ## Objetivo
 

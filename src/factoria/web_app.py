@@ -23,6 +23,8 @@ from factoria.application.workflow_presets import (
     default_preset,
     load_preset,
     save_preset,
+    WorkflowCatalogConflict,
+    workflow_catalog_snapshot,
 )
 from factoria.config.loader import load_global_config
 from factoria.ui_agent_tools import _apply_agent_paths, _load_agent_paths, _save_agent_paths
@@ -96,13 +98,11 @@ def _workflow_payload(root: Path | None) -> dict[str, object]:
             "feature": default_preset("feature").to_mapping(),
             "fix": default_preset("fix").to_mapping(),
         }
-    result = {}
-    for kind in ('feature', 'fix'):
-        try:
-            result[kind] = load_preset(root, kind).to_mapping()
-        except (ValueError, OSError) as exc:
-            result[kind] = {'kind': kind, 'steps': [], 'error': str(exc)}
-    return result
+    try:
+        presets, revision = workflow_catalog_snapshot(root)
+        return {kind: {**preset.to_mapping(), 'revision': revision} for kind, preset in presets.items()}
+    except (ValueError, OSError) as exc:
+        return {kind: {'kind': kind, 'steps': [], 'error': str(exc)} for kind in ('feature', 'fix')}
 
 
 def _state() -> dict[str, object]:
@@ -361,8 +361,12 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
                 project = _selected_project(settings)
                 if project is None:
                     raise ValueError("Selecciona primero un proyecto")
+                if data.get('project_path') != str(project):
+                    raise WorkflowCatalogConflict('El proyecto del borrador ya no está seleccionado; vuelve a cargar')
+                if not isinstance(data.get('revision'), str):
+                    raise ValueError('Falta la versión del catálogo; vuelve a cargar el flujo')
                 preset = _preset_from_payload(data)
-                saved = save_preset(project, preset)
+                saved = save_preset(project, preset, expected_revision=data['revision'])
                 self._json({"ok": True, "path": str(saved), "state": _state()})
                 return
             if path == "/api/job/start":
@@ -382,6 +386,8 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
                 self._json({"ok": code == 0, "code": code, "output": output, "state": _state()})
                 return
             raise ValueError("Acción no soportada")
+        except WorkflowCatalogConflict as exc:
+            self._json({"ok": False, "error": str(exc)}, 409)
         except Exception as exc:
             self._json({"ok": False, "error": f"{type(exc).__name__}: {exc}"}, 400)
 
