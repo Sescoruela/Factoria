@@ -182,6 +182,12 @@ def _save_agent_profile(project_root: Path, profile: AgentRoleProfile, *, expect
         if not project_path(project_root, skill).is_file():
             raise ValueError(f'La skill no existe en el proyecto: {skill}')
     payload[checked.role] = checked.to_mapping()
+    # Changing a referenced agent's base role must not invalidate an existing flow.
+    from factoria.application.workflow_presets import load_preset, validate_assignments, workflow_catalog_revision
+    workflow_revision = workflow_catalog_revision(project_root)
+    profiles = tuple(AgentRoleProfile.from_mapping(value) for value in payload.values())
+    for kind in ('fix', 'feature'):
+        validate_assignments(load_preset(project_root, kind, validate_agents=False), profiles)
     text = json.dumps(payload, ensure_ascii=False, indent=2) + '\n'
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary: Path | None = None
@@ -191,7 +197,7 @@ def _save_agent_profile(project_root: Path, profile: AgentRoleProfile, *, expect
             handle.write(text)
             handle.flush()
             os.fsync(handle.fileno())
-        if agent_catalog_revision(project_root) != revision:
+        if agent_catalog_revision(project_root) != revision or workflow_catalog_revision(project_root) != workflow_revision:
             raise AgentCatalogConflict('El catálogo cambió durante el guardado; vuelve a cargarlo')
         os.replace(temporary, path)
     finally:

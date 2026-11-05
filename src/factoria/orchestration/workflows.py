@@ -11,6 +11,7 @@ class AgentStep:
     role: AgentRole
     profile: ModelProfile | None = None
     preferred_tool: str | None = None
+    agent_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

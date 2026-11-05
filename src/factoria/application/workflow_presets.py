@@ -3,13 +3,14 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import tempfile
 import threading
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from factoria.application.agent_profiles import load_agent_profiles
+from factoria.application.agent_profiles import agent_catalog_revision, load_agent_profiles
 from factoria.orchestration import AgentRole, AgentStep, AgentWorkflow, AgentWorkflowPlanner, ModelProfile
 
 _PRESET_FILE = Path('.factoria') / 'workflows.json'
@@ -40,17 +41,21 @@ class VisualWorkflowStep:
     profile: str | None = None
     tool: str | None = None
     enabled: bool = True
+    agent_id: str | None = None
 
     @classmethod
     def from_mapping(cls, data: dict[str, Any]) -> 'VisualWorkflowStep':
         if not isinstance(data.get('enabled', True), bool):
             raise ValueError('enabled debe ser booleano')
+        if data.get('agent_id') is not None and not isinstance(data['agent_id'], str):
+            raise ValueError('agent_id debe ser un identificador de texto o null')
         return cls(
             name=str(data.get('name', '')),
             role=str(data.get('role', '')),
             profile=str(data['profile']) if data.get('profile') else None,
             tool=str(data['tool']) if data.get('tool') else None,
             enabled=bool(data.get('enabled', True)),
+            agent_id=data.get('agent_id'),
         )
 
 
@@ -107,6 +112,8 @@ def validate_preset(preset: VisualWorkflowPreset) -> VisualWorkflowPreset:
         expected_role = _ROLE_BY_NAME[step.name].value
         if step.role != expected_role:
             raise ValueError(f'La etapa {step.name} debe usar el agente {expected_role}')
+        if step.agent_id is not None and (not isinstance(step.agent_id, str) or not re.fullmatch(r'[a-z][a-z0-9-]{0,63}', step.agent_id)):
+            raise ValueError(f'Identificador de agente no válido para {step.name}')
         if step.profile is not None:
             try:
                 ModelProfile(step.profile)
@@ -121,6 +128,7 @@ def validate_preset(preset: VisualWorkflowPreset) -> VisualWorkflowPreset:
                 profile=step.profile,
                 tool=step.tool or None,
                 enabled=step.enabled,
+                agent_id=step.agent_id,
             )
         )
 
@@ -146,7 +154,20 @@ def validate_preset(preset: VisualWorkflowPreset) -> VisualWorkflowPreset:
     return VisualWorkflowPreset(kind=preset.kind, steps=tuple(normalized))
 
 
-def load_preset(project_root: Path, kind: str, *, large_fix: bool = False, update_memory: bool = False) -> VisualWorkflowPreset:
+def validate_assignments(preset: VisualWorkflowPreset, profiles) -> VisualWorkflowPreset:
+    checked = validate_preset(preset)
+    agents = {agent.role: agent for agent in profiles}
+    for step in checked.steps:
+        identifier = step.agent_id or step.role
+        agent = agents.get(identifier)
+        if agent is None:
+            raise ValueError(f'El agente {identifier} de {step.name} no existe en el catálogo')
+        if (agent.base_role or agent.role) != step.role:
+            raise ValueError(f'El agente {identifier} no es compatible con el rol {step.role} de {step.name}')
+    return checked
+
+
+def load_preset(project_root: Path, kind: str, *, large_fix: bool = False, update_memory: bool = False, validate_agents: bool = True) -> VisualWorkflowPreset:
     fallback = default_preset(kind, large_fix=large_fix, update_memory=update_memory)
     from factoria.application.project_integration import project_path
     path = project_path(project_root, _PRESET_FILE.as_posix())
@@ -171,12 +192,14 @@ def load_preset(project_root: Path, kind: str, *, large_fix: bool = False, updat
     if any(not isinstance(item, dict) for item in raw_steps):
         raise ValueError('Cada etapa debe ser un objeto')
     preset = VisualWorkflowPreset(kind=kind, steps=tuple(VisualWorkflowStep.from_mapping(item) for item in raw_steps))
-    return validate_preset(preset)
+    return validate_assignments(preset, load_agent_profiles(project_root)) if validate_agents else validate_preset(preset)
 
 
 def workflow_catalog_revision(project_root: Path) -> str:
     from factoria.application.project_integration import project_path
     digest = hashlib.sha256()
+    # A draft's agent references must refer to the catalog version it displayed.
+    digest.update(agent_catalog_revision(project_root).encode())
     for relative in (_PRESET_FILE, _LEGACY_PRESET_FILE):
         path = project_path(project_root, relative.as_posix())
         digest.update(relative.as_posix().encode())
@@ -203,11 +226,11 @@ def _save_preset(project_root: Path, preset: VisualWorkflowPreset, *, expected_r
     from factoria.application.policy_runtime import build_execution_context
     from factoria.application.project_integration import project_path
     ExecutionGovernor().assert_allowed(GovernedAction.WRITE, build_execution_context(project_root))
-    checked = validate_preset(preset)
     path = project_path(project_root, _PRESET_FILE.as_posix())
     revision = workflow_catalog_revision(project_root)
     if expected_revision is not None and revision != expected_revision:
         raise WorkflowCatalogConflict('Los flujos cambiaron fuera de este editor; recarga antes de guardar')
+    checked = validate_assignments(preset, load_agent_profiles(project_root))
     payload = {kind: load_preset(project_root, kind).to_mapping() for kind in ('feature', 'fix')}
     payload[checked.kind] = checked.to_mapping()
     text = json.dumps(payload, ensure_ascii=False, indent=2) + '\n'
@@ -229,22 +252,24 @@ def _save_preset(project_root: Path, preset: VisualWorkflowPreset, *, expected_r
 
 
 def preset_to_workflow(preset: VisualWorkflowPreset, *, project_root: Path | None = None) -> AgentWorkflow:
-    checked = validate_preset(preset)
+    profiles = load_agent_profiles(project_root)
+    checked = validate_assignments(preset, profiles)
     agent_defaults = {
         item.role: item
-        for item in load_agent_profiles(project_root)
+        for item in profiles
     }
     steps: list[AgentStep] = []
     for item in checked.steps:
         if not item.enabled:
             continue
-        default = agent_defaults[item.role]
+        default = agent_defaults[item.agent_id or item.role]
         steps.append(
             AgentStep(
                 name=item.name,
                 role=_ROLE_BY_NAME[item.name],
                 profile=ModelProfile(item.profile or default.profile),
                 preferred_tool=item.tool or default.platform,
+                agent_id=item.agent_id,
             )
         )
     return AgentWorkflow(kind=checked.kind, steps=tuple(steps))
@@ -257,6 +282,7 @@ def workflow_snapshot(workflow: AgentWorkflow) -> tuple[dict[str, str | None], .
             'role': step.role.value,
             'profile': step.profile.value if step.profile else None,
             'preferred_tool': step.preferred_tool,
+            **({'agent_id': step.agent_id} if step.agent_id is not None else {}),
         }
         for step in workflow.steps
     )
@@ -269,12 +295,16 @@ def workflow_from_snapshot(kind: str, raw_steps: tuple[dict[str, Any], ...]) -> 
         role = AgentRole(str(raw.get('role', '')))
         profile_raw = raw.get('profile')
         preferred_tool = raw.get('preferred_tool')
+        agent_id = raw.get('agent_id')
+        if agent_id is not None and (not isinstance(agent_id, str) or not re.fullmatch(r'[a-z][a-z0-9-]{0,63}', agent_id)):
+            raise ValueError('Identificador de agente no válido en la snapshot')
         steps.append(
             AgentStep(
                 name=name,
                 role=role,
                 profile=ModelProfile(str(profile_raw)) if profile_raw else None,
                 preferred_tool=str(preferred_tool) if preferred_tool else None,
+                agent_id=agent_id,
             )
         )
     return AgentWorkflow(kind=kind, steps=tuple(steps))

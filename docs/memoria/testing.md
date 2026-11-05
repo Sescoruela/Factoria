@@ -50,3 +50,17 @@ navegador real): instalar jsdom en una carpeta temporal y ejecutar
 y preferencias temporales y cubre creación, edición, reapertura, conflictos, cambio
 de proyecto, selector de agentes y preparación de ambas herramientas. H11 conserva
 la tarea de automatizar pruebas con navegador real en CI.
+
+## H03 · Asignación de agentes a etapas
+
+`test_workflow_agent_assignment.py` verifica compatibilidad de roles, herencia y
+overrides, referencias inexistentes, cambios concurrentes de catálogo, compatibilidad
+con formatos antiguos, prompts congelados del modo avanzado, API y guías de ambas
+herramientas. Los tests nativos cubren fix/feature en ambos modos de herramienta,
+aprobaciones bloqueantes, cambio explícito de plataforma y snapshots independientes
+de cambios posteriores en agente, workflow o skill. No llaman a proveedores LLM.
+
+Smoke DOM/API opcional: `NODE_PATH=<carpeta>/node_modules python tests/ui/run_skills_smoke.py --workflow-agents`.
+Requiere Node y jsdom de desarrollo; cubre ambos shells, catálogo actualizado,
+selección compatible, guardado, reapertura y conflictos. H11 sigue reservando
+la automatización de pruebas con navegador real en CI.

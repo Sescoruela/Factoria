@@ -83,8 +83,8 @@ def workflow_guide(kind: str, definition: dict) -> str:
     rows = []
     agents = {a['role']: a for a in definition['agents']}
     for index, step in enumerate(definition['workflows'][kind], 1):
-        role = agents[step['role']]
-        rows.append(f"{index}. **{step['name']} / {step['role']}** · perfil `{step['profile']}` · plataforma `{step['preferred_tool'] or 'sesión actual'}`")
+        role = agents[step.get('agent_id') or step['role']]
+        rows.append(f"{index}. **{step['name']} / {step['role']}** · agente `{role['role']}` · perfil `{step['profile']}` · plataforma `{step['preferred_tool'] or 'sesión actual'}`")
         if role['instructions']:
             rows.append('\n' + role['instructions'] + '\n')
         for name in role['skills']:
@@ -158,7 +158,7 @@ class ProjectIntegration:
         # Source files are user-maintained; include them for migration, never own them.
         source_files = set(files)
         catalog = '# Agentes del proyecto\n\n'
-        catalog += 'Catálogo compartido por Codex y OpenCode. Los agentes personalizados se invocan explícitamente; no sustituyen las etapas de fix/feature.\n\n'
+        catalog += 'Catálogo compartido por Codex y OpenCode. Las etapas pueden seleccionar agentes compatibles por identificador, conservando el rol y los controles del flujo.\n\n'
         for agent in definition['agents']:
             catalog += f"## {agent['name'] or agent['role']} ({agent['role']})\n\n"
             catalog += f"Rol base: {agent['base_role'] or agent['role']} · perfil: {agent['profile']} · plataforma preferida: {agent['platform'] or 'sesión actual'}\n\n"
@@ -192,7 +192,7 @@ class ProjectIntegration:
 ## Factoría: agentes y flujos del proyecto
 Consultar el catálogo de agentes en `.factoria/generated/agents.md`.
 Consultar el catálogo de skills en `.factoria/generated/skills.md` y los archivos asignados a cada agente.
-Los agentes personalizados se solicitan explícitamente; no sustituyen automáticamente etapas del flujo.
+Cada etapa usa el agente configurado en su campo agent_id; si está vacío, usa el agente básico del rol. Mantener sus controles obligatorios.
 Antes de cambiar código, seleccionar el flujo configurado según la intención:
 - Corrección, bug, fallo o regresión → skill `factoria-fix`.
 - Funcionalidad o capacidad nueva → skill `factoria-feature`.

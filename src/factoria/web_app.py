@@ -25,6 +25,7 @@ from factoria.application.workflow_presets import (
     save_preset,
     WorkflowCatalogConflict,
     workflow_catalog_snapshot,
+    workflow_catalog_revision,
 )
 from factoria.config.loader import load_global_config
 from factoria.ui_agent_tools import _apply_agent_paths, _load_agent_paths, _save_agent_paths
@@ -100,7 +101,12 @@ def _workflow_payload(root: Path | None) -> dict[str, object]:
         }
     try:
         presets, revision = workflow_catalog_snapshot(root)
-        return {kind: {**preset.to_mapping(), 'revision': revision} for kind, preset in presets.items()}
+        from factoria.application.agent_profiles import load_agent_profiles
+        agents = [{'role': agent.role, 'base_role': agent.base_role, 'name': agent.name}
+                  for agent in load_agent_profiles(root)]
+        if revision != workflow_catalog_revision(root):
+            raise WorkflowCatalogConflict('El catálogo de agentes cambió; vuelve a cargar los flujos')
+        return {kind: {**preset.to_mapping(), 'revision': revision, 'agents': agents} for kind, preset in presets.items()}
     except (ValueError, OSError) as exc:
         return {kind: {'kind': kind, 'steps': [], 'error': str(exc)} for kind in ('feature', 'fix')}
 

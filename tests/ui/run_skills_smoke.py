@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from factoria.ui_workspace import UiWorkspaceSettings
-from factoria.web_app import FactoriaHTTPServer
+from factoria.web_app import FactoriaHTTPServer, FactoriaWebHandler
 from factoria.web_app_n8n import FactoriaN8NHandler
 
 
@@ -30,15 +30,24 @@ def main() -> int:
             server.factoria_token = 'ui-test-token'
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
+            legacy = FactoriaHTTPServer(('127.0.0.1', 0), FactoriaWebHandler)
+            legacy.factoria_token = 'ui-test-token'
+            legacy_thread = threading.Thread(target=legacy.serve_forever, daemon=True)
+            legacy_thread.start()
             try:
                 environment = os.environ.copy()
                 environment['FACTORIA_SKILL_FIXTURE'] = json.dumps({
                     'project': str(base / 'project'), 'other': str(base / 'other'),
                     'url': f'http://127.0.0.1:{server.server_address[1]}',
+                    'legacy_url': f'http://127.0.0.1:{legacy.server_address[1]}',
                 })
-                return subprocess.run(['node', str(Path(__file__).with_name('skills_smoke.cjs'))],
+                scenario = 'workflow_agents_smoke.cjs' if '--workflow-agents' in sys.argv else 'skills_smoke.cjs'
+                return subprocess.run(['node', str(Path(__file__).with_name(scenario))],
                                       env=environment, timeout=45).returncode
             finally:
+                legacy.shutdown()
+                legacy.server_close()
+                legacy_thread.join(timeout=2)
                 server.shutdown()
                 server.server_close()
                 thread.join(timeout=2)

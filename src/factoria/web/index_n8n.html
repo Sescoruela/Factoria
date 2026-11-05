@@ -34,8 +34,8 @@ function canonicalX(i){return 90+i*270}function nodeY(i){return 155+(i%2)*18}fun
 function loadWorkflowBoard(force=false){
  if(workflowDirty&&!force)return;
  const project=state.selected_project?.path||null;const kind=document.getElementById('workflowKind').value;
- if(!force&&workflowLoadedKind===kind&&workflowProject===project&&workflowDraft.length)return;
  const source=state.workflows?.[kind];
+ if(!force&&workflowLoadedKind===kind&&workflowProject===project&&workflowDraft.length&&workflowRevision===source?.revision)return;
  if(!project||!source||source.error){document.getElementById('workflowBoard').textContent=source?.error||'Selecciona un proyecto.';workflowRevision=null;return;}
  workflowDraft=(source.steps||[]).map((s,i)=>({...s,x:canonicalX(i),y:nodeY(i)}));
  workflowRevision=source.revision;workflowProject=project;workflowLoadedKind=kind;clearDirty();renderWorkflowBoard();
