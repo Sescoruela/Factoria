@@ -5,6 +5,7 @@
 - Framework: unittest, biblioteca estándar.
 - Comando confirmado: `python -m unittest discover -s tests`.
 - La suite cubre dominio, políticas, memoria, adaptadores, flujos, Git, plugins, UI e historial.
+- `test_agent_catalog.py` cubre catálogo propio, compatibilidad, API autenticada, referencias, guardado atómico y conflictos entre editores; las pruebas no inician proveedores.
 - `test_project_integration.py` comprueba exportación para ambas herramientas y recorridos directos en repositorios temporales, también por CLI pública.
 - CI configurado para Ubuntu Python 3.11–3.13 y Windows/macOS Python 3.11.
 - El instalador Windows tiene un pipeline separado de build, instalación y desinstalación.
@@ -22,3 +23,13 @@ LLM, autenticación de proveedores ni disponibilidad de shell en Codex/ChatGPT.
 El fixture POSIX de agente orquestado se omite en Windows; las pruebas del recorrido
 directo por CLI se ejecutan allí. No declarar CI remoto o aceptación real superados
 sin revisar su resultado correspondiente.
+
+## Editor de agentes
+
+En un repositorio temporal, abrir **Agentes**, crear un identificador propio y
+asignarle una skill Markdown existente. Guardar, reabrir y modificarlo. Comprobar
+que editar un agente básico conserva los personalizados. Verificar que refrescar
+no borra un borrador, que **Descartar / recargar** lo elimina y que cambiar de
+proyecto pide confirmación. Con un borrador abierto, editar `agents.json` desde
+fuera: el guardado debe avisar del conflicto y conservar ambas versiones. Preparar
+la integración y revisar el catálogo, el contexto portable y los archivos OpenCode.

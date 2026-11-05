@@ -154,6 +154,14 @@ class ProjectIntegration:
                  '.factoria/workflows.json': _json({kind: load_preset(self.root, kind).to_mapping() for kind in ('fix', 'feature')})}
         # Source files are user-maintained; include them for migration, never own them.
         source_files = set(files)
+        catalog = '# Agentes del proyecto\n\n'
+        catalog += 'Catálogo compartido por Codex y OpenCode. Los agentes personalizados se invocan explícitamente; no sustituyen las etapas de fix/feature.\n\n'
+        for agent in definition['agents']:
+            catalog += f"## {agent['name'] or agent['role']} ({agent['role']})\n\n"
+            catalog += f"Rol base: {agent['base_role'] or agent['role']} · perfil: {agent['profile']} · plataforma preferida: {agent['platform'] or 'sesión actual'}\n\n"
+            catalog += agent['description'] + '\n\n' + agent['instructions'] + '\n\n'
+            catalog += '\n'.join(f'Consultar `{skill}`.' for skill in agent['skills']) + '\n\n'
+        files['.factoria/generated/agents.md'] = catalog
         for kind in definition['workflows']:
             guide = workflow_guide(kind, definition)
             files[f'.factoria/generated/{kind}.md'] = guide
@@ -166,7 +174,7 @@ class ProjectIntegration:
                 f'Petición del usuario: $ARGUMENTS\n\n' + guide)
         for role in definition['agents']:
             permission = {'*': 'deny', 'read': 'allow', 'glob': 'allow', 'grep': 'allow', 'list': 'allow', 'skill': 'allow'}
-            if role['role'] == 'implementer':
+            if (role.get('base_role') or role['role']) == 'implementer':
                 permission['edit'] = 'ask'
             files[f".opencode/agents/factoria-{role['role']}.md"] = (
                 '---\ndescription: ' + role['role'] + ' del proyecto Factoría\nmode: subagent\npermission: '
@@ -175,6 +183,8 @@ class ProjectIntegration:
                 + '\n'.join(f'Consultar `{path}`.' for path in role['skills']) + '\n')
         block = START + '''
 ## Factoría: agentes y flujos del proyecto
+Consultar el catálogo de agentes en `.factoria/generated/agents.md`.
+Los agentes personalizados se solicitan explícitamente; no sustituyen automáticamente etapas del flujo.
 Antes de cambiar código, seleccionar el flujo configurado según la intención:
 - Corrección, bug, fallo o regresión → skill `factoria-fix`.
 - Funcionalidad o capacidad nueva → skill `factoria-feature`.
@@ -204,7 +214,7 @@ Los permisos y aprobaciones de la herramienta siguen vigentes.
         bundle += '\n\n'.join(workflow_guide(k, definition) for k in definition['workflows'])
         for relative in ('AGENTS.md', 'docs/memoria/arquitectura.md', 'docs/memoria/flujos.md', 'docs/memoria/decisiones.md', 'docs/memoria/testing.md'):
             path = project_path(self.root, relative)
-            if path.is_file():
+            if path.is_file() or relative == 'AGENTS.md':
                 bundle += f'\n\n## Archivo {relative}\n\n' + (files['AGENTS.md'] if relative == 'AGENTS.md' else _read(path))
         files['.factoria/generated/chatgpt-context.md'] = bundle
         manifest_path = project_path(self.root, MANIFEST)

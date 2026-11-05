@@ -6,7 +6,7 @@ from http import HTTPStatus
 from importlib.resources import files
 from urllib.parse import urlparse
 
-from factoria.application.agent_profiles import AgentRoleProfile, load_agent_profiles, save_agent_profile
+from factoria.application.agent_profiles import AgentCatalogConflict, AgentRoleProfile, agent_catalog_snapshot, save_agent_profile
 from factoria.application.project_integration import ProjectIntegration
 from factoria.ui_agent_tools import _apply_agent_paths
 from factoria.ui_workspace import UiWorkspaceSettings
@@ -59,7 +59,7 @@ class FactoriaN8NHandler(FactoriaWebHandler):
             except Exception as exc:
                 self._json({'ok': False, 'error': str(exc)}, 400)
             return
-        if path == "/api/agent-role/save":
+        if path in {"/api/agent-role/save", "/api/agent-role/create"}:
             if not self._authorized():
                 self._json({"error": "unauthorized"}, 403)
                 return
@@ -68,9 +68,16 @@ class FactoriaN8NHandler(FactoriaWebHandler):
                 project = _selected_project(UiWorkspaceSettings.load())
                 if project is None:
                     raise ValueError("Selecciona primero un proyecto")
+                if data.get('project_path') != str(project):
+                    raise AgentCatalogConflict('El proyecto seleccionado cambió; vuelve a cargar el editor')
+                if not isinstance(data.get('revision'), str):
+                    raise ValueError('Falta la versión del catálogo; vuelve a cargar el editor')
                 profile = AgentRoleProfile.from_mapping(data)
-                saved = save_agent_profile(project, profile)
+                saved = save_agent_profile(project, profile, expected_revision=data['revision'],
+                                           mode='create' if path.endswith('/create') else 'update')
                 self._json({"ok": True, "path": str(saved), "state": _extended_state()})
+            except AgentCatalogConflict as exc:
+                self._json({"ok": False, "error": str(exc)}, 409)
             except Exception as exc:
                 self._json({"ok": False, "error": f"{type(exc).__name__}: {exc}"}, 400)
             return
@@ -83,7 +90,9 @@ def _extended_state() -> dict[str, object]:
     platforms = list(payload.get("agents", []))
     payload["platforms"] = platforms
     try:
-        payload["agent_roles"] = [item.to_mapping() for item in load_agent_profiles(project)]
+        agents, revision = agent_catalog_snapshot(project)
+        payload["agent_roles"] = [item.to_mapping() for item in agents]
+        payload['agent_catalog_revision'] = revision
     except (ValueError, OSError) as exc:
         payload['agent_roles'] = []
         payload['agent_configuration_error'] = str(exc)

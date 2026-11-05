@@ -215,6 +215,14 @@ class IntegrationTests(ProjectFixture):
 
 
 class NativeWorkflowTests(ProjectFixture):
+    def test_agent_edits_preserve_the_running_flow_snapshot(self):
+        state = self.native.start('fix', 'Fix value', 'codex')
+        original = state['agent']
+        save_agent_profile(self.root, AgentRoleProfile('explorer', 'potente', instructions='New exploration rules'))
+        custom = AgentRoleProfile('api-reviewer', 'potente', base_role='reviewer', name='API reviewer')
+        save_agent_profile(self.root, custom, mode='create')
+        self.assertEqual(self.native.status(state['flow_id'])['agent'], original)
+
     def test_public_cli_uses_prepared_project_without_nested_agent(self):
         import os
         for tool in ('codex', 'opencode'):
