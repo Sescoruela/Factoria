@@ -1,6 +1,6 @@
 {
   "date": "2026-11-05",
-  "factoria_main_reviewed": "392eb24015d45b6e372739a30e0e7b9aa0af1d33",
+  "factoria_main_reviewed": "8fc220e582ace5806c223486292d6d74cc2b6ffb",
   "acceptance_status": "partial_not_accepted",
   "preflight": {
     "factoria_version": "0.2.0",
@@ -30,24 +30,17 @@
       "workflow_id": "fix-lab",
       "automated_checks": {
         "integration_current": true,
-        "working_tree_clean": false,
-        "completed_flow": false,
-        "completed_commit_is_head": false,
+        "working_tree_clean": true,
+        "completed_flow": true,
+        "completed_commit_is_head": true,
         "configured_agent_frozen": true,
         "configuration_markers_recorded": true,
         "verification_recorded": true,
         "review_recorded": true,
         "protected_sources_unchanged": true
       },
-      "active_flows": [
-        {
-          "flow_id": "25197bc3-13c3-423b-908c-beb04a6c164d",
-          "state": "paused",
-          "stage": "ready_for_commit",
-          "workflow_id": "fix-lab"
-        }
-      ],
-      "mechanical_result": "incomplete",
+      "active_flows": [],
+      "mechanical_result": "ready_for_human_review",
       "provider_authenticated": null,
       "tool_version": null,
       "model": null,
@@ -64,8 +57,11 @@
     },
     "change": "app.py: number % 2 != 0 replaced by number % 2 == 0",
     "review": "Structured review by the same host agent; not an isolated reviewer model",
-    "commit_authorized": false,
-    "commit_created": false
+    "commit_authorized": true,
+    "commit_created": true,
+    "commit_sha": "891d923e520e55608749dbc33518bd876856cd84",
+    "flow_completed": true,
+    "human_commit_approval": "User Sí after explicit request for local one-line fix commit and feature plan approval"
   },
   "feature": {
     "inspection": {
@@ -74,20 +70,20 @@
       "workflow_id": "feature-lab",
       "automated_checks": {
         "integration_current": true,
-        "working_tree_clean": true,
+        "working_tree_clean": false,
         "completed_flow": false,
         "completed_commit_is_head": false,
         "configured_agent_frozen": true,
-        "configuration_markers_recorded": false,
-        "verification_recorded": false,
-        "review_recorded": false,
+        "configuration_markers_recorded": true,
+        "verification_recorded": true,
+        "review_recorded": true,
         "protected_sources_unchanged": true
       },
       "active_flows": [
         {
           "flow_id": "90ff9969-3709-41a7-b9f5-50053e1bd368",
           "state": "paused",
-          "stage": "approve_plan",
+          "stage": "approve_final",
           "workflow_id": "feature-lab"
         }
       ],
@@ -106,14 +102,23 @@
     "unapproved_next_exit_code": 1,
     "unapproved_next_error": "Esperando aprobación humana del plan: --approve-plan",
     "plan_file": "feature-plan.md",
-    "implementation_started": false,
-    "human_plan_approval": null
+    "implementation_started": true,
+    "human_plan_approval": "User Sí after presenting count_even plan and separate fix commit authorization",
+    "post_implementation_tests": {
+      "total": 7,
+      "failures": 0
+    },
+    "post_implementation_acceptance": "Feature acceptance: OK",
+    "human_final_approval": null,
+    "commit_authorized": false,
+    "commit_created": false,
+    "unapproved_final_next_exit_code": 1,
+    "unapproved_final_next_error": "Esperando aprobación humana final: --approve-final"
   },
   "remaining": [
     "Authenticated Codex CLI and OpenCode sessions",
     "Fresh-session configuration and skill discovery",
-    "Feature plan/final approval and completion",
-    "Local commit authorization and finish for fix",
+    "Feature final approval, local commit authorization and finish",
     "Negative cases in real provider sessions",
     "Proposal-only session without checkout"
   ]
