@@ -1,7 +1,9 @@
-version = "0.2.0"
+version = "0.3.0"
 notes = [
-  "Adds portable installation diagnostics and self-update/rollback infrastructure.",
-  "Keeps project memory migrations manual and explicit.",
+  "Configura skills, agentes propios y workflows con nombre para Codex y OpenCode iniciados externamente.",
+  "Guarda catálogos con revisión optimista, escritura atómica y snapshots de ejecución.",
+  "Incluye comprobación de integridad de distribución y guía de actualización conservando los proyectos.",
+  "Preparación de release: aceptación externa y validación Windows todavía pendientes; no declara el MVP aceptado.",
 ]
 memory_changes = []
 config_changes = []

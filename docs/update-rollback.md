@@ -2,6 +2,23 @@
 
 Factoria uses Semantic Versioning for released versions. Stable updates are deliberately explicit: Factoria previews an immutable tagged release, verifies its source identity, and never installs it without confirmation.
 
+This Git/pip updater applies to Python installations. A frozen Windows executable
+refuses `update`/`rollback` before constructing the Python updater: close Factoria
+and reinstall the verified versioned installer into the same directory. Back up
+the project and user configuration first. See [release and binary update steps](release-process.md).
+
+For a source checkout installed with `pip install -e .`, editing/pulling the source
+can change runtime code immediately; this is a development installation, not an
+immutable release. Keep local work committed, inspect the target tag, check it out
+explicitly and reinstall in the venv. Revert using the recorded previous commit
+and reinstall; preserve project/user configuration. Do not use reset/clean to update.
+For immutable provenance, install with `python -m pip install 'git+<remote>@<full-commit-sha>'`;
+pip records `direct_url.json`. Never put credentials in the URL.
+
+Version 0.3.0 is currently preparation only; no tag or downloadable release is
+asserted. H05, H07, Windows verification and CI remain publication gates. Actions
+is disabled until the user requests reactivation.
+
 ## Exact installation provenance
 
 Safe rollback depends on knowing the exact Git commit that produced the currently installed package. Factoria therefore keeps installation provenance under:

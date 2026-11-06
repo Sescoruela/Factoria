@@ -1,0 +1,5 @@
+include CHANGELOG.md
+recursive-include docs *.md *.json *.diff
+recursive-include tools *.py
+recursive-include packaging *.py *.iss
+recursive-include .github/workflows *.yml

@@ -1,0 +1,13 @@
+{
+  "platform": "linux",
+  "python": "3.12.14",
+  "previous": "factoria 0.2.0",
+  "candidate": "factoria 0.3.0",
+  "upgrade_and_reopen_twice": "PASS",
+  "files_preserved": 37,
+  "custom_workflow": "feature-lab",
+  "resources": "PASS",
+  "previous_wheel_sha256": "554bf420614279ea1586a994d70562938e54b408201421dabc9db29ff0a396d6",
+  "candidate_wheel_sha256": "1b43aba1f5d05732c5a6a8bb6bb9dea12bf5507ec6a9037883c2d6c5236ce440",
+  "limits": "Local wheel smoke only; not a tagged release, installer or provider acceptance."
+}

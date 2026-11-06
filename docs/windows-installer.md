@@ -18,7 +18,7 @@ El instalador:
 3. Crea accesos en el menú Inicio.
 4. Permite añadir Factoria al `PATH` del usuario.
 5. Registra únicamente el directorio añadido por Factoria y lo retira al desinstalar.
-6. No instala Codex ni OpenCode; el onboarding de Factoria detecta y valida esas herramientas por separado.
+6. No instala ni inicia Codex/OpenCode; la aplicación detecta su presencia y el usuario los inicia externamente.
 
 Después de instalar y abrir una terminal nueva:
 
@@ -26,7 +26,7 @@ Después de instalar y abrir una terminal nueva:
 factoria
 ```
 
-abre la TUI y el onboarding del MVP.
+abre la interfaz web local. `factoria tui` abre la interfaz de terminal.
 
 ## Build reproducible en CI
 
@@ -55,4 +55,19 @@ Antes de una distribución más amplia se recomienda:
 - verificar la firma después del build;
 - publicar hashes SHA-256 junto a cada release.
 
-El instalador tampoco incorpora Git ni los CLIs de los proveedores. Factoria sigue requiriendo un repositorio Git para operar y un adapter disponible cuando se quiera ejecutar un flujo con agentes reales.
+El instalador tampoco incorpora Git ni los CLIs de los proveedores. El modo directo
+requiere un repositorio Git y se consume desde Codex/OpenCode iniciados externamente.
+
+## Actualización y estado H06
+
+Cerrar Factoria y ejecutar el nuevo instalador en la misma carpeta. No guardar
+proyectos dentro de la carpeta del programa. Antes de actualizar, respaldar los
+proyectos completos y `%USERPROFILE%\.factoria`. No desinstalar para actualizar.
+El ejecutable no utiliza `pip` para actualizarse ni aplica migraciones automáticas.
+Para volver atrás se necesita el instalador anterior verificado y la copia de datos.
+
+El pipeline preparado incluye reinstalación/reapertura de un proyecto configurado y
+`SHA256SUMS` junto al instalador y ejecutable. No sustituye una actualización desde
+el binario anterior ni una prueba visual. Actions está deshabilitado por petición
+del usuario; estos cambios aún no se han ejecutado en Windows. Ver el
+[procedimiento de release e integridad](release-process.md).

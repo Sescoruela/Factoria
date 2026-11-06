@@ -148,6 +148,10 @@ factoria update              # actualización por release etiquetada
 
 ## Portabilidad
 
+La versión 0.3.0 está en preparación; todavía no es una release publicada ni un MVP
+aceptado. Instalación, actualización y checksums: [procedimiento de release](docs/release-process.md).
+GitHub Actions permanece deshabilitado hasta nuevo aviso.
+
 El runtime principal se mantiene sin dependencias externas obligatorias. Las interfaces web local y de terminal usan únicamente la biblioteca estándar de Python y funciona como una capa sobre los mismos servicios y comandos del núcleo.
 
 En Windows, PyInstaller empaqueta ese runtime en un único `Factoria.exe`; Inno Setup envuelve el ejecutable en un instalador por usuario. Las dependencias de build (`pyinstaller` e Inno Setup) solo son necesarias en CI/desarrollo, no en el equipo del usuario final.
