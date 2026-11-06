@@ -27,8 +27,9 @@ el('templateFile').onchange=async()=>{
 };
 el('templateExport').onclick=()=>action(async()=>{
  if(el('templateText').value&&!confirm('¿Reemplazar el contenido de plantilla abierto con una nueva exportación?'))return;
- const selected=project();const data=await api('/api/template/export','POST',{project_path:selected,name:el('templateName').value});
+ const selected=project(),text=el('templateText').value;const data=await api('/api/template/export','POST',{project_path:selected,name:el('templateName').value});
  if(project()!==selected)throw new Error('El proyecto cambió durante la exportación.');
+ if(el('templateText').value!==text)throw new Error('El contenido se editó durante la exportación; se conserva el borrador.');
  el('templateText').value=JSON.stringify(data.template,null,2);invalidate();result('Exportación lista para revisar y descargar.');
 });
 el('templatePreview').onclick=()=>action(async()=>{

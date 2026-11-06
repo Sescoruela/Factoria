@@ -8,6 +8,8 @@ repositorio nuevo, ambas integraciones, conflictos/idempotencia, tokens de previ
 concurrencia, políticas, secretos/rutas, fallos de escritura/restauración, snapshots,
 CLI y autenticación API de ambos shells. Suite local H08: 351 tests correctos,
 Linux/Python 3.12.14. Sintaxis de templates.js y recurso del wheel comprobados.
+Smoke de controlador Node con DOM/API simulados: `node tests/ui/templates_controller_smoke.cjs`;
+cubre borradores durante exportación asíncrona, destino/contenido, apply y conflictos.
 No hay CI/Windows nuevos; Actions deshabilitado. El navegador disponible rechazó
 conexión al laboratorio local, por lo que no se afirma validación visual.
 

@@ -80,6 +80,9 @@ H08: **351 tests** locales en Linux/Python 3.12.14, incluidos 16 de plantillas.
 Cubren equivalencia en repositorio nuevo, ambas integraciones, idempotencia,
 conflictos, concurrencia, política, secretos/rutas, disco, snapshots, CLI y API
 autenticada de ambos shells. Sintaxis JS y recurso empaquetado comprobados.
+Además, `node tests/ui/templates_controller_smoke.cjs` verifica el controlador con
+DOM/API simulados: exportación asíncrona sin perder el borrador, cambios de destino
+/contenido, aplicación y conflictos. No equivale a una prueba de navegador.
 
 El navegador disponible devolvió conexión rechazada al laboratorio local; no se
 afirma validación visual. Tampoco aceptación de proveedores, CI remoto o Windows
