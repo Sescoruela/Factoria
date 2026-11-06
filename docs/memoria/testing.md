@@ -1,5 +1,17 @@
-<!-- factoria-memory: type=active | reviewed_commit=e23d54381c460f37b8ade59bbdcb267f2bbfe366 | date=2026-11-06 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=a73de1abbf011a9a16b99a1e7859cd1908d7e3d7 | date=2026-11-06 | factoria=0.3.0 -->
 # Verificación y pruebas
+
+## H08 · Plantillas reutilizables
+
+`test_project_templates.py` añade 16 pruebas de export/import, equivalencia en un
+repositorio nuevo, ambas integraciones, conflictos/idempotencia, tokens de preview,
+concurrencia, políticas, secretos/rutas, fallos de escritura/restauración, snapshots,
+CLI y autenticación API de ambos shells. Suite local H08: 351 tests correctos,
+Linux/Python 3.12.14. Sintaxis de templates.js y recurso del wheel comprobados.
+Smoke de controlador Node con DOM/API simulados: `node tests/ui/templates_controller_smoke.cjs`;
+cubre borradores durante exportación asíncrona, destino/contenido, apply y conflictos.
+No hay CI/Windows nuevos; Actions deshabilitado. El navegador disponible rechazó
+conexión al laboratorio local, por lo que no se afirma validación visual.
 
 ## Estado
 - Framework: unittest, biblioteca estándar.

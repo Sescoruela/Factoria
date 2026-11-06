@@ -67,7 +67,7 @@ Esfuerzos orientativos de implementación y pruebas, sujetos al diseño del cat�
 - Identificadores estables y formatos anteriores compatibles; workflows nuevos de hasta 48 caracteres portables.
 - Cada etapa conserva su rol y solo admite agentes de ese rol base.
 - Los flujos propios se seleccionan explícitamente; las intenciones ambiguas se aclaran.
-- Los cambios externos provocan conflicto y conservan el borrador. Las plantillas importables y el archivo de recursos siguen en H08/H09.
+- Los cambios externos provocan conflicto y conservan el borrador. Las plantillas importables se entregan en H08; duplicar/archivar recursos sigue en H09. Ver [plantillas](project-templates.md).
 
 ## Agentes: uso y formato entregados
 

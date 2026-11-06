@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=e23d54381c460f37b8ade59bbdcb267f2bbfe366 | date=2026-11-06 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=a73de1abbf011a9a16b99a1e7859cd1908d7e3d7 | date=2026-11-06 | factoria=0.3.0 -->
 # Decisiones
 
 - La memoria y configuración compartida viven junto al código del proyecto.
@@ -21,3 +21,4 @@
 - Las cifras de pruebas se registran con fecha, plataforma y alcance; el [estado vigente](../project-status.md) enlaza evidencias y límites.
 - 0.3.0 es preparación de código; no se declara release publicada. El ejecutable frozen dirige update/rollback al instalador, sin pip.
 - Actions se deshabilitó por petición del usuario y solo se reactiva cuando lo indique.
+- H08 comparte recursos mediante JSON v1 cerrado, sin memoria, políticas ni configuración de máquina. Se reutilizan idénticos; conflictos bloquean sin sobrescritura. La copia local permite recuperación manual; no se promete transacción multiarchivo ante caídas (H13).

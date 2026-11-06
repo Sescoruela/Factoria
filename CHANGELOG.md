@@ -2,6 +2,8 @@
 
 ## 0.3.0 — Preparación, sin release publicada
 
+- Plantillas JSON portables de skills, agentes y workflows: exportación, preview, conflictos e importación confirmada desde web/CLI; recuperación local ante fallos.
+
 - Catálogos de skills y agentes: crear, editar y guardar con revisiones y escritura atómica.
 - Agentes propios asignados a etapas y workflows con nombre basados en fix/feature.
 - Integración compartida para Codex y OpenCode, iniciados externamente; snapshots y aprobaciones humanas.

@@ -37,7 +37,7 @@ Implementación no equivale a aceptación autenticada. Detalle: [editores](edito
 
 | Comprobación | Resultado y alcance | Registro |
 | --- | --- | --- |
-| Suite determinista | H06: 335 tests correctos en Linux/Python 3.12.14 | [Estado H06](release-h06-status.md) |
+| Suite determinista | H08: 351 tests correctos en Linux/Python 3.12.14 | [Plantillas y límites](project-templates.md) |
 | Interfaz | Smokes DOM/API históricos; sin validación de navegador real en esta entrega | [Memoria de pruebas](memoria/testing.md) |
 | Host con checkout / fix | Completado tras autorización; 3 pruebas, review y commit local | [H05](acceptance/h05-status.md) |
 | Host con checkout / feature | Plan y resultado aprobados; 7 pruebas, aceptación, review y commit local; completado | [Cierre de feature](acceptance/evidence/host-feature/completion.json) |
