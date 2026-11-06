@@ -74,7 +74,15 @@ código y rama. No hay stash, reset ni borrado de ramas automáticos.
 aprobaciones ni equivale al sandbox de la herramienta externa. Las políticas del
 proyecto, revisión y controles de secretos siguen aplicándose.
 
-## Actualización
+## Plantillas entre proyectos
+
+`factoria project templates export --name "Equipo" --output equipo.json` exporta
+configuración guardada sin datos de máquina. `factoria project templates import
+equipo.json` muestra el preview; aplicar exige `--yes --token TOKEN_DEL_PREVIEW`.
+Usar `--project` antes del subcomando para elegir origen/destino. Un conflicto
+bloquea toda la importación. Ver [plantillas](project-templates.md).
+
+## Actualización de Factoria
 
 [Guía de actualización y rollback](update-rollback.md) para Python con procedencia
 verificada. [Guía de distribución](release-process.md) para checksums, copia de

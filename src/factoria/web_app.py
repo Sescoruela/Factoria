@@ -313,8 +313,8 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlparse(self.path).path
-        if path == '/assets/workflows.js':
-            body = files('factoria.web').joinpath('workflows.js').read_bytes()
+        if path in {'/assets/workflows.js', '/assets/templates.js'}:
+            body = files('factoria.web').joinpath(path.rsplit('/', 1)[-1]).read_bytes()
             self.send_response(HTTPStatus.OK)
             self.send_header('Content-Type', 'application/javascript; charset=utf-8')
             self.send_header('Cache-Control', 'no-store')
@@ -356,7 +356,26 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             return
         path = urlparse(self.path).path
         try:
+            if path.startswith('/api/template/') and not 0 <= int(self.headers.get('Content-Length', '0')) <= 1052672:
+                raise ValueError('Tamaño de plantilla no válido o superior al permitido')
             data = self._body()
+            if path in {'/api/template/export', '/api/template/preview', '/api/template/apply'}:
+                from factoria.application.project_templates import export_template, preview_template, apply_template, TemplateConflict
+                project = _selected_project(UiWorkspaceSettings.load())
+                if project is None or data.get('project_path') != str(project):
+                    self._json({'error': 'El proyecto seleccionado cambió; vuelve a previsualizar'}, 409)
+                    return
+                try:
+                    if path.endswith('/export'):
+                        result = {'template': export_template(project, data.get('name', ''))}
+                    elif path.endswith('/preview'):
+                        result = preview_template(project, data.get('template'))
+                    else:
+                        result = apply_template(project, data.get('template'), expected_token=data.get('token'), confirmed=data.get('confirmed') is True)
+                    self._json({'ok': True, **result})
+                except TemplateConflict as exc:
+                    self._json({'error': str(exc)}, 409)
+                return
             if path == "/api/projects/root":
                 target = _set_projects_root(str(data.get("path", "")))
                 self._json({"ok": True, "path": str(target), "state": _state()})

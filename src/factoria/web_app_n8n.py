@@ -32,7 +32,7 @@ class FactoriaN8NHandler(FactoriaWebHandler):
             return
         if path == "/":
             html = files("factoria.web").joinpath("index_n8n.html").read_text(encoding="utf-8")
-            html = html.replace("</body>", UI_PATCH + '<script src="/assets/skills.js"></script></body>')
+            html = html.replace("</body>", UI_PATCH + '<script src="/assets/skills.js"></script><script src="/assets/templates.js"></script></body>')
             body = html.encode("utf-8")
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")

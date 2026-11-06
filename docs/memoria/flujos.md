@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=e23d54381c460f37b8ade59bbdcb267f2bbfe366 | date=2026-11-06 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=a73de1abbf011a9a16b99a1e7859cd1908d7e3d7 | date=2026-11-06 | factoria=0.3.0 -->
 # Flujos
 
 ## memoria-init y memoria-update
@@ -7,6 +7,11 @@ escribe tras confirmación. La actualización conserva datos confirmados y el bl
 de integración de AGENTS.md; requiere regenerar los assets si cambia la memoria.
 
 ## Preparación del proyecto
+
+Para reutilizar recursos entre proyectos, exportar una plantilla, elegir destino,
+previsualizar y confirmar con el token revisado. Los conflictos bloquean toda la
+importación y no se copian memoria/políticas/comandos. Después revisar el diff y
+preparar la integración. Ver [plantillas](../project-templates.md).
 `project prepare` valida configuración y genera una propuesta para Codex y OpenCode.
 Con `--yes` escribe solo si no hay conflictos. `project check` comprueba vigencia.
 

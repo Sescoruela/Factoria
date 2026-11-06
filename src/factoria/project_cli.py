@@ -21,6 +21,14 @@ def run_project_cli(argv: list[str]) -> int:
     prepare.add_argument('--yes', action='store_true')
     project.add_parser('check', help='Check freshness and ownership without calling an LLM')
     project.add_parser('workflows', help='List configured workflow identifiers and base types')
+    templates = project.add_parser('templates', help='Export or preview/import portable project resources').add_subparsers(dest='template_action', required=True)
+    export = templates.add_parser('export')
+    export.add_argument('--name', required=True)
+    export.add_argument('--output', type=Path)
+    importing = templates.add_parser('import')
+    importing.add_argument('file', type=Path)
+    importing.add_argument('--yes', action='store_true')
+    importing.add_argument('--token', help='Token returned by the reviewed preview')
     native = group.add_parser('native').add_subparsers(dest='action', required=True)
     start = native.add_parser('start')
     start.add_argument('kind', help='Identificador del workflow: fix, feature o uno propio del catálogo')
@@ -47,9 +55,28 @@ def run_project_cli(argv: list[str]) -> int:
         root = Path(located.stdout.strip()).resolve()
         if args.profile:
             raise ValueError('El modo directo usa la política del proyecto; no cambia perfiles por ejecución')
+        if args.read_only and args.command == 'project' and args.action == 'templates' and getattr(args, 'output', None):
+            raise PermissionError('Modo solo lectura: exportar a archivo está bloqueado')
         if args.read_only and not (args.command == 'project' and (args.action in {'check', 'workflows'} or not getattr(args, 'yes', False))) and not (args.command == 'native' and args.action == 'status'):
             raise PermissionError('Modo solo lectura: operación bloqueada')
         if args.command == 'project':
+            if args.action == 'templates':
+                from factoria.application.project_templates import export_template, read_template, preview_template, apply_template
+                if args.template_action == 'export':
+                    result = export_template(root, args.name)
+                    if args.output:
+                        from factoria.application.governance import ExecutionGovernor, GovernedAction
+                        from factoria.application.policy_runtime import build_execution_context
+                        ExecutionGovernor().assert_allowed(GovernedAction.WRITE, build_execution_context(root))
+                        with args.output.open('xb') as stream:
+                            stream.write((json.dumps(result, ensure_ascii=False, indent=2) + '\n').encode('utf-8'))
+                        result = {'exported': str(args.output)}
+                else:
+                    data = read_template(args.file)
+                    result = (apply_template(root, data, expected_token=args.token, confirmed=True)
+                              if args.yes else preview_template(root, data))
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+                return 1 if result.get('conflicts') else 0
             service = ProjectIntegration(root)
             if args.action == 'workflows':
                 from factoria.application.workflow_presets import load_catalog

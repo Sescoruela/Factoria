@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=e23d54381c460f37b8ade59bbdcb267f2bbfe366 | date=2026-11-06 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=a73de1abbf011a9a16b99a1e7859cd1908d7e3d7 | date=2026-11-06 | factoria=0.3.0 -->
 # Factoria
 
 ## Propósito
@@ -46,6 +46,7 @@ Las reglas obligatorias no se ignoran automáticamente aunque el código actual 
 ## Integración directa
 - Objetivo y contrato: `docs/direct-project-integration.md`.
 - Criterios de cierre: `docs/mvp-checklist.md`.
+- Plantillas portables web/CLI: `docs/project-templates.md`; preview y confirmación sin sobrescribir recursos en conflicto.
 - No confundir las pruebas deterministas con aceptación en una sesión real de Codex/OpenCode.
 - Estado vigente y límites: `docs/project-status.md`. Código 0.3.0 preparado; no hay release publicada ni aceptación externa completa.
 - GitHub Actions está deshabilitado por petición del usuario hasta nuevo aviso; no reactivarlo como parte de una tarea.

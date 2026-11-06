@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=e23d54381c460f37b8ade59bbdcb267f2bbfe366 | date=2026-11-06 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=a73de1abbf011a9a16b99a1e7859cd1908d7e3d7 | date=2026-11-06 | factoria=0.3.0 -->
 # Arquitectura
 
 ## Objetivo
@@ -12,6 +12,7 @@ principalmente con Codex/OpenCode, que consumen la configuración generada.
 - `application/`: servicios de flujo, verificación, revisión, Git, historial y actualización.
 - `application/skill_catalog.py`: skills Markdown versionables, creación exclusiva, guardado atómico y revisiones de catálogo.
 - `application/project_integration.py`: compilación de configuración compartida a assets por herramienta.
+- `application/project_templates.py`: bundles JSON v1 cerrados, preview ligado a catálogos/proyecto/contenido, importación conservadora y copia de recuperación en Git; sin copiar memoria ni políticas.
 - `orchestration/workflows.py`: cada etapa conserva su rol de seguridad y puede seleccionar un agente del catálogo con `agent_id`.
 - `application/native_workflow.py`: seguimiento directo sin llamadas LLM, con snapshots y evidencia.
 - `application/agent_profiles.py`, `workflow_presets.py`: configuración versionable con lectura de formatos locales anteriores. El catálogo de agentes admite identificadores propios y un rol base. Los catálogos de agentes y workflows usan escritura atómica y revisión optimista para la edición web. Los workflows propios tienen identificador estable y un tipo base fix/feature; el seguimiento nativo congela ambos junto con la definición.
