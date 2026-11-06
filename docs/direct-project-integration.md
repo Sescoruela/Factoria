@@ -10,7 +10,7 @@ uso; la aplicación web no necesita permanecer abierta.
 | Componente | Responsabilidad |
 | --- | --- |
 | `.factoria/agents.json` | Roles, instrucciones, rutas de skills, perfil y plataforma preferida |
-| `.factoria/workflows.json` | Etapas de fix/feature y preferencias por etapa |
+| `.factoria/workflows.json` | Workflows básicos y propios basados en fix/feature; agentes y preferencias por etapa |
 | `.factoria/config.toml` | Políticas y flujos permitidos o bloqueados |
 | `AGENTS.md`, `docs/memoria/` | Contexto y comandos confirmados del proyecto |
 | `project prepare` | Validar y generar las integraciones compartidas |
@@ -33,7 +33,7 @@ Se generan:
 
 - `.agents/skills/factoria-fix/SKILL.md` y `factoria-feature/SKILL.md`, descubribles por ambas herramientas.
 - `.opencode/commands/factoria-fix.md` y `factoria-feature.md`, selección explícita en OpenCode.
-- `.opencode/agents/factoria-<rol>.md`, subagentes OpenCode con lectura permitida y edición solicitada solo para implementación.
+- `.opencode/agents/factoria-<identificador>.md`, agentes básicos y propios con lectura permitida y edición solicitada solo para implementación.
 - `.factoria/generated/<identificador>.md`, instrucciones por workflow, incluidos fix/feature y los propios.
 - `.factoria/generated/workflows.md`, catálogo e instrucciones de selección explícita.
 - `.factoria/generated/chatgpt-context.md`, contexto portable para sesiones sin checkout.
@@ -145,6 +145,11 @@ Para aceptación real, repetir en Codex y OpenCode autenticados:
 
 Registrar versiones, plataforma, modelos, resultado y limitaciones en la lista de
 cierre. No declarar esa aceptación superada a partir de las pruebas deterministas.
+
+Estado vigente: [capacidades, evidencia y pendientes](project-status.md).
+Los dos recorridos del host con checkout están completados; las sesiones externas,
+el descubrimiento natural en sesión nueva y el modo propuesta siguen pendientes
+en [H05](acceptance/h05-status.md). Actions continúa deshabilitado hasta nuevo aviso.
 
 ## Fuentes de formatos
 

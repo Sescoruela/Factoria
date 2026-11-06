@@ -1,8 +1,8 @@
 # Preparar y verificar una distribución
 
 Estado al 06/11/2026: versión de código **0.3.0 preparada**, sin tag ni release.
-Actions permanece deshabilitado hasta nuevo aviso. H06 continúa abierto: H05/H07
-y las comprobaciones de Windows son dependencias de publicación. No confundir
+Actions permanece deshabilitado hasta nuevo aviso. H06 continúa abierto por H05,
+Windows, CI y publicación. H07 mantiene la [documentación reconciliada](project-status.md). No confundir
 un build local o un hash correcto con aceptación del MVP o firma del editor.
 
 ## Preparación local

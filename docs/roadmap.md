@@ -19,7 +19,7 @@ Los esfuerzos son orientativos; no hay fechas comprometidas. Cada enlace contien
 | [H04 #10](https://github.com/Sescoruela/Factoria/issues/10) | Workflows con nombre propio | MVP / P1 | Completado en PR #23 | H01, H03 | 2–4 días |
 | [H05 #11](https://github.com/Sescoruela/Factoria/issues/11) | Aceptación real en Codex y OpenCode | MVP / P1 | En curso: fix/feature anfitriones completados; sesiones externas pendientes | H02, H03, H04 | 1–2 días según incidencias |
 | [H06 #12](https://github.com/Sescoruela/Factoria/issues/12) | Primera versión distribuible y actualización | MVP / P1 | En curso: 0.3.0 preparada; release, Windows y CI pendientes; Actions deshabilitado | H05, H07 | 0,5–1 día |
-| [H07 #13](https://github.com/Sescoruela/Factoria/issues/13) | Documentación y estado verificable | MVP / P1 | Parcial: documentación actualizada; seguimiento continuo | Ninguna | 0,5 día inicial y actualización continua |
+| [H07 #13](https://github.com/Sescoruela/Factoria/issues/13) | Documentación y estado verificable | MVP / P1 | Completado documentalmente; mantenimiento por entrega | Ninguna | 0,5 día inicial y actualización continua |
 | [H08 #14](https://github.com/Sescoruela/Factoria/issues/14) | Plantillas reutilizables entre proyectos | Posterior / P2 | Pendiente | H04, H06 | Por estimar |
 | [H09 #15](https://github.com/Sescoruela/Factoria/issues/15) | Duplicar y archivar recursos | Posterior / P2 | Pendiente | H02, H03, H04 | Por estimar |
 | [H10 #16](https://github.com/Sescoruela/Factoria/issues/16) | Vista de relaciones del proyecto | Posterior / P2 | Pendiente | H02, H03, H04 | Por estimar |
@@ -35,4 +35,6 @@ H01 → H02 → H03 → H04 → H05 → H06. H07 acompaña cada entrega y se cie
 
 Crear skill → asignarla a un agente propio → incluirlo en un workflow → guardar → cerrar/reabrir → preparar las dos herramientas → iniciar externamente → ejecutar fix y feature con aprobaciones y evidencia. Registrar la aceptación autenticada por separado de las pruebas deterministas.
 
-H01 solo se cierra con pruebas de conflictos, escritura atómica, borradores e identidad de proyecto y CI verde. No declarar completado el editor de skills ni los workflows propios por la existencia de agentes personalizados.
+H01–H04 tienen entregas y evidencia de implementación. H07 reconcilia la documentación;
+no cierra la aceptación H05 ni la distribución H06. Consultar el [estado vigente](project-status.md)
+y el [registro de revisión documental](h07-documentation-review.md).

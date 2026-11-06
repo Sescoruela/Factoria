@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=1a2e02c9692177fb5c7d63a10efa70379b5dca17 | date=2026-11-03 | factoria=0.2.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=e23d54381c460f37b8ade59bbdcb267f2bbfe366 | date=2026-11-06 | factoria=0.3.0 -->
 # Arquitectura
 
 ## Objetivo
@@ -18,6 +18,7 @@ principalmente con Codex/OpenCode, que consumen la configuración generada.
 - `adapters/`, `orchestration/`: ejecución opcional de agentes externos detrás de contratos neutrales.
 - `plugins/`: descubrimiento, compatibilidad, validación y ejecución de extensiones.
 - `entrypoint.py`, `project_cli.py`, `web_app_n8n.py`, `web_n8n_patch.py`: CLI, API y web local.
+- `tools/release_artifacts.py`, `distribution_smoke.py`: herramientas de desarrollo para integridad y pruebas aisladas de paquetes; fuera del runtime del producto.
 
 ## Persistencia
 - Compartida en Git: memoria, `config.toml`, `agents.json`, `workflows.json`, `.factoria/skills/*.md` y assets preparados.
@@ -30,3 +31,8 @@ La selección natural del flujo depende del agente anfitrión. Las comprobacione
 CLI controlan el avance registrado; los permisos y sandbox de la sesión controlan
 sus acciones externas. ChatGPT sin checkout recibe un contexto portable y propone;
 no puede afirmar ejecución. Ver `docs/direct-project-integration.md`.
+
+El entrypoint bloquea update/rollback por pip en ejecutables frozen; la actualización
+del binario usa el instalador. La versión canónica está en pyproject.toml y los
+metadatos de release se incluyen como recurso del paquete. Estado actual y pruebas:
+[registro vigente](../project-status.md).

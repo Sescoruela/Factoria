@@ -10,7 +10,8 @@
 - El ejecutable dirige la actualización al instalador; no intenta ejecutarse como Python/pip.
 - Documentación de instalación, actualización y conservación de configuración.
 
-Pendientes para etiquetar/publicar: H05 (aceptación externa), H07, validación del
+Documentación H07 reconciliada; [estado verificable](docs/project-status.md).
+Pendientes para etiquetar/publicar: H05 (aceptación externa), validación del
 instalador y actualización entre versiones en Windows, CI multiplataforma y descarga
 de los artefactos finales. Actions está deshabilitado por petición del usuario.
 Los binarios de pruebas no tienen firma Authenticode. Esta preparación no certifica el MVP.

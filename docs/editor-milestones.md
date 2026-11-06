@@ -11,7 +11,7 @@ mantiene sus definiciones por proyecto y prepara los archivos que consumen Codex
 OpenCode. El usuario inicia y autentica esas herramientas por su cuenta, fuera de la
 aplicación. Abrir, refrescar o configurar Factoría no debe arrancar ninguno de sus CLIs.
 
-## Estado confirmado al 05/11/2026
+## Estado confirmado al 06/11/2026
 
 - Corregido el diagnóstico de proveedores que se repetía al actualizar el panel.
 - La web y la terminal de la aplicación permiten detección pasiva y guardar preferencias/rutas.
@@ -23,7 +23,10 @@ aplicación. Abrir, refrescar o configurar Factoría no debe arrancar ninguno de
 - El editor de agentes ofrece un selector de skills del catálogo y conserva las rutas Markdown anteriores.
 - El diseñador permite asignar agentes personalizados a etapas con el mismo rol base. El diseñador también permite crear workflows con nombre propio basados en fix/feature.
 
-Los editores están implementados; la aceptación autenticada del recorrido completo sigue pendiente en H05.
+Los nueve editores están implementados. El host con checkout completó fix y feature
+con aprobaciones y commits locales; no acredita sesiones externas independientes.
+La aceptación autenticada del recorrido completo sigue pendiente en H05.
+Consultar [estado vigente](project-status.md) y [evidencia del host](acceptance/h05-status.md).
 
 ## Hitos
 
@@ -34,9 +37,9 @@ Esfuerzos orientativos de implementación y pruebas, sujetos al diseño del cat�
 | SK-01 | Skills / añadir | Implementado; evidencia de cierre en H02 #8 | Crear una skill con identificador, nombre, descripción y contenido; reutilizar conocimiento propio | 0,5–1 día | Formato y ubicación del catálogo | Crear desde la UI y verla en la lista del proyecto; rechazar identificadores duplicados |
 | SK-02 | Skills / modificar | Implementado; evidencia de cierre en H02 #8 | Abrir contenido existente y editarlo con indicador de cambios pendientes | 0,5–1 día | SK-01, SK-03 | Editar, descartar o guardar; conservar el resto de skills y avisar al cambiar de proyecto con cambios sin guardar |
 | SK-03 | Skills / guardar | Implementado; evidencia de cierre en H02 #8 | Persistencia Markdown segura y regeneración de integración | 0,5–1 día | SK-01 | Cerrar/reabrir y recuperar exactamente el texto; detectar conflictos y no sobrescribir contenido ajeno; bloquear rutas externas y secretos detectables |
-| AG-01 | Agentes / añadir | Completado | Crear agentes propios basados en un rol, con instrucciones, skills y preferencias | 1–2 días | Skills Markdown existentes; base_role validado | Crear un agente distinto de los cinco básicos, asignarle skills existentes y mantenerlo tras reabrir |
+| AG-01 | Agentes / añadir | Implementado en PR #5 | Crear agentes propios basados en un rol, con instrucciones, skills y preferencias | 1–2 días | Skills Markdown existentes; base_role validado | Crear un agente distinto de los cinco básicos, asignarle skills existentes y mantenerlo tras reabrir |
 | AG-02 | Agentes / modificar | Implementado; evidencia de cierre en H03 #9 | Editar agentes propios y básicos, referencias a skills y preferencias | 0,5–1 día | AG-01, AG-03 | Cambiar un agente, ver sus datos guardados y comprobar que se usan en el siguiente flujo preparado |
-| AG-03 | Agentes / guardar | Completado | Guardar el catálogo versionable con validación de referencias y conflictos | 0,5–1 día | AG-01 | Reabrir con el mismo catálogo; rechazar referencias inexistentes y no alterar snapshots de flujos iniciados |
+| AG-03 | Agentes / guardar | Implementado en PR #5 | Guardar el catálogo versionable con validación de referencias y conflictos | 0,5–1 día | AG-01 | Reabrir con el mismo catálogo; rechazar referencias inexistentes y no alterar snapshots de flujos iniciados |
 | WF-01 | Workflows / añadir | Implementado; evidencia de cierre en H04 #10 | Crear workflows con nombre propio a partir de fix/feature y asignar agentes del catálogo | 1–2 días | AG-01, AG-03; contrato de workflows nombrados | Crear un flujo adicional y seleccionarlo explícitamente desde Codex y OpenCode tras preparar la integración |
 | WF-02 | Workflows / modificar | Implementado; evidencia de cierre en H04 #10 | Editar etapas, agentes, perfiles y aprobaciones conservando los controles obligatorios | 1–2 días | WF-01, WF-03 | Modificar un flujo y usarlo en una ejecución nueva; bloquear un orden inválido y mantener intacto un flujo ya iniciado |
 | WF-03 | Workflows / guardar | Implementado; evidencia de cierre en H04 #10 | Guardar workflows nombrados y regenerar sus recursos para ambas herramientas | 0,5–1 día | WF-01, integración por proyecto | Cerrar/reabrir y conservar el diseño; detectar errores antes de escribir; comprobar recursos generados para ambas herramientas |

@@ -6,13 +6,14 @@ El recorrido principal es **configurar en Factoria → preparar el proyecto para
 
 El inicio, autenticación y diagnóstico de Codex/OpenCode se hacen fuera de la aplicación. El panel usa detección pasiva y guarda preferencias sin arrancar sus ejecutables. El modo avanzado `factoria fix/feature` sigue disponible únicamente al invocarlo explícitamente desde una terminal externa.
 
-> Estado: implementación del MVP con pruebas deterministas; la aceptación con instalaciones reales de Codex/OpenCode se registra por separado. Ver [criterios de cierre](docs/mvp-checklist.md).
+> Estado al 06/11/2026: código 0.3.0 preparado, sin release publicada. Editores implementados; aceptación externa H05 y distribución H06 pendientes. Actions deshabilitado hasta nuevo aviso. Ver [estado verificable](docs/project-status.md) y [criterios de cierre](docs/mvp-checklist.md).
 
 ## Inicio rápido
 
 ### Windows
 
-La distribución de Windows genera dos artefactos:
+El pipeline de Windows está preparado para generar dos artefactos. El instalador
+0.3.0 todavía no está validado ni publicado; esta sección describe su uso previsto:
 
 - `Factoria.exe`: ejecutable standalone; no requiere Python instalado.
 - `Factoria-Setup-<version>.exe`: instalador por usuario, sin permisos de administrador.
@@ -31,9 +32,13 @@ Los instaladores generados por CI todavía no están firmados digitalmente. La f
 
 ### Python / desarrollo
 
-Requisitos: Python 3.11+ y un repositorio Git.
+Requisitos: Python 3.11+ y Git. Desde un checkout de Factoria, crea un entorno
+virtual y actívalo (`source .venv/bin/activate` en Linux/macOS;
+`.\.venv\Scripts\Activate.ps1` en PowerShell). Después instala el proyecto:
 
 ```bash
+python -m venv .venv
+# Activar el entorno virtual antes de los siguientes comandos.
 python -m pip install -e .
 factoria
 ```
@@ -44,13 +49,15 @@ Ejecutar `factoria` sin argumentos abre la interfaz web local en el navegador. T
 factoria ui
 ```
 
-La primera vez, Factoria ofrece un onboarding guiado. Puedes repetirlo cuando quieras:
+Puedes abrir el onboarding de terminal cuando necesites una guía:
 
 ```bash
 factoria onboarding
 ```
 
-El onboarding explica el modelo de trabajo, permite preparar la memoria del repositorio, ejecuta el diagnóstico seguro de herramientas y enseña el recorrido de una feature/fix sin saltarse ninguna confirmación.
+El onboarding explica el modelo de trabajo, permite preparar la memoria y muestra
+presencia pasiva de herramientas. No inicia, autentica ni ejecuta diagnósticos de
+Codex/OpenCode; esos pasos se hacen externamente.
 
 ## Uso principal: trabajar desde Codex u OpenCode
 
@@ -59,8 +66,10 @@ El onboarding explica el modelo de trabajo, permite preparar la memoria del repo
 3. Abre **Integración**, revisa los cambios y pulsa **Preparar ambas herramientas**.
 4. Revisa y guarda los archivos del proyecto en Git; selecciona una rama de trabajo.
 5. Abre Codex u OpenCode en el repositorio. Puedes cerrar la aplicación de Factoria.
-6. Pide «corrige este error» o «añade esta funcionalidad». `AGENTS.md` dirige la petición
-   a `factoria-fix` o `factoria-feature`; si la intención es ambigua, se aclara primero.
+6. Pide «corrige este error» o «añade esta funcionalidad». `AGENTS.md` contiene la
+   instrucción para seleccionar `factoria-fix` o `factoria-feature`; su cumplimiento
+   depende del agente anfitrión y sigue pendiente de aceptación en una sesión nueva.
+   Si la intención o el workflow son ambiguos, se aclaran primero.
 7. Como selección explícita, usa `$factoria-fix` / `$factoria-feature` en Codex,
    o `/factoria-fix` / `/factoria-feature` en OpenCode.
 8. La herramienta sigue las etapas con `factoria native`, registra evidencia, espera
@@ -167,3 +176,11 @@ feature en repositorios aislados, con registro de versiones, modelos y aprobacio
 El [estado observado](docs/acceptance/h05-status.md) es parcial: las pruebas de
 código/CI no equivalen a aceptación autenticada. El laboratorio no inicia ni
 autentica Codex/OpenCode desde la aplicación.
+
+## Guías y evidencia
+
+- [Estado vigente y límites](docs/project-status.md).
+- [Uso de skills, agentes y workflows](docs/editor-milestones.md).
+- [CLI y seguimiento directo](docs/cli.md).
+- [Instalación, actualización e integridad](docs/release-process.md).
+- [Roadmap y siguientes hitos](docs/roadmap.md).

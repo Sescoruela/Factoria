@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=1a2e02c9692177fb5c7d63a10efa70379b5dca17 | date=2026-11-03 | factoria=0.2.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=e23d54381c460f37b8ade59bbdcb267f2bbfe366 | date=2026-11-06 | factoria=0.3.0 -->
 # Flujos
 
 ## memoria-init y memoria-update
@@ -11,8 +11,9 @@ de integración de AGENTS.md; requiere regenerar los assets si cambia la memoria
 Con `--yes` escribe solo si no hay conflictos. `project check` comprueba vigencia.
 
 ## Uso directo
-Codex/OpenCode carga AGENTS.md y selecciona la skill `factoria-fix` o
-`factoria-feature`. `native start` congela el flujo y la memoria; `native next`
+Las guías piden a Codex/OpenCode leer AGENTS.md y seleccionar `factoria-fix`,
+`factoria-feature` o un workflow propio. La selección natural depende del agente
+y su aceptación desde una sesión nueva sigue pendiente. `native start` congela el flujo y la memoria; `native next`
 comprueba evidencia, aprobaciones, verificación y review antes de avanzar.
 Pausa, reanudación y cancelación conservan código y ramas. El cierre exige árbol
 limpio con el contenido verificado y archiva el resultado.
@@ -23,5 +24,9 @@ plan y aprobación final; fix pequeño sigue su ruta acotada. Verificación, rev
 estructurada, commit confirmado e historial se gestionan por los servicios existentes.
 
 ## Estado de aceptación
-Hay pruebas deterministas de los recorridos. La validación autenticada en las dos
-herramientas y el CI de esta entrega se registran en `docs/mvp-checklist.md`.
+Fix y feature del host con checkout están completados con aprobaciones y commits
+locales. No prueban aislamiento de modelos, descubrimiento natural ni sesiones
+externas autenticadas. H05 mantiene esas comprobaciones pendientes.
+H06 tiene paquetes y upgrade Python comprobados; Windows y release siguen pendientes.
+Actions está deshabilitado hasta nuevo aviso. Ver [estado vigente](../project-status.md)
+y [criterios de cierre](../mvp-checklist.md).
