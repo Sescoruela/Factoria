@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=1a2e02c9692177fb5c7d63a10efa70379b5dca17 | date=2026-11-03 | factoria=0.2.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=e23d54381c460f37b8ade59bbdcb267f2bbfe366 | date=2026-11-06 | factoria=0.3.0 -->
 # Verificación y pruebas
 
 ## Estado

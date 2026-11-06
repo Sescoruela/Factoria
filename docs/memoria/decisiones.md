@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=1a2e02c9692177fb5c7d63a10efa70379b5dca17 | date=2026-11-03 | factoria=0.2.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=e23d54381c460f37b8ade59bbdcb267f2bbfe366 | date=2026-11-06 | factoria=0.3.0 -->
 # Decisiones
 
 - La memoria y configuración compartida viven junto al código del proyecto.
@@ -17,4 +17,7 @@
 - La firma de binarios y distribución amplia se difieren hasta disponer de certificado.
 
 - La aplicación no inicia ni diagnostica proveedores: Codex/OpenCode se arrancan externamente.
-- La ampliación añadir/modificar/guardar skills, agentes y workflows se planifica en `docs/editor-milestones.md`.
+- Añadir/modificar/guardar skills, agentes y workflows propios está implementado; la aceptación conjunta sigue en H05/#2.
+- Las cifras de pruebas se registran con fecha, plataforma y alcance; el [estado vigente](../project-status.md) enlaza evidencias y límites.
+- 0.3.0 es preparación de código; no se declara release publicada. El ejecutable frozen dirige update/rollback al instalador, sin pip.
+- Actions se deshabilitó por petición del usuario y solo se reactiva cuando lo indique.

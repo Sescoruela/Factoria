@@ -35,7 +35,8 @@ no se ha ejecutado CI remoto ni construido un binario Windows en esta entrega.
 
 ## Para cerrar H06
 
-Cerrar la aceptación externa de H05 y la documentación H07. Cuando el usuario
+Cerrar la aceptación externa de H05; H07 reconcilia la documentación en la entrega
+posterior (ver [estado vigente](project-status.md)). Cuando el usuario
 autorice reactivar Actions, ejecutar y revisar CI multiplataforma e instalador.
 Probar además actualización desde el binario anterior en un Windows de pruebas,
 reapertura visual, conservación de configuración y recuperación desde copia.

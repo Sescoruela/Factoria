@@ -7,18 +7,18 @@ La entrada principal abre la interfaz web local. Este documento describe la TUI 
 ## Cómo abrirla
 
 ```bash
-factoria
-# o
-factoria ui
+factoria tui
 ```
 
-La primera ejecución ofrece el onboarding. También puede repetirse en cualquier momento:
+La TUI puede ofrecer el onboarding inicial. También puede abrirse directamente:
 
 ```bash
 factoria onboarding
 ```
 
-Al terminar el onboarding, Factoria continúa directamente al dashboard; no finaliza el proceso.
+`factoria` y `factoria ui` abren la web local. Esta guía describe el dashboard de
+terminal; no confundirlo con el shell web. Para estado de aceptación y límites,
+consultar [estado vigente](project-status.md).
 
 ## Carpeta de proyectos
 
