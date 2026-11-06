@@ -16,7 +16,8 @@ from factoria.adapters import (
 
 
 class AdapterCommandTests(unittest.TestCase):
-    def test_codex_builds_non_interactive_command(self) -> None:
+    @patch.object(CodexAdapter, "_resolved_executable", return_value=None)
+    def test_codex_builds_non_interactive_command(self, _discovery) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             request = AgentRequest(
                 prompt="Review this repository",

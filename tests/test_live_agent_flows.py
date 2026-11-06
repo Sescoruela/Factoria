@@ -64,7 +64,8 @@ class LiveAgentFlowTests(unittest.TestCase):
         self.assertIn("OPENCODE_PERMISSION", environment)
         self.assertIn('"edit":"allow"', environment["OPENCODE_PERMISSION"])
 
-    def test_codex_places_sandbox_flags_before_exec(self) -> None:
+    @patch.object(CodexAdapter, "_resolved_executable", return_value=None)
+    def test_codex_places_sandbox_flags_before_exec(self, _discovery) -> None:
         command = CodexAdapter().build_command(
             AgentRequest(
                 prompt="Inspect",

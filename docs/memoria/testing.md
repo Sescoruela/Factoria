@@ -91,3 +91,14 @@ baselines, estado parcial, approvals y el caso mecánico completo que sigue
 requiriendo revisión humana. Esos tests no prueban uso real de proveedores.
 El protocolo y la evidencia parcial están en `docs/acceptance/`; H05 permanece
 abierto hasta observar y revisar las sesiones, versiones/modelos y aprobaciones.
+
+## H06 · Distribución y actualización
+
+`test_release_artifacts.py` comprueba versión/metadatos, hashes, corrupción,
+archivos ausentes, manifiestos inválidos, duplicados/traversal y bloqueo del updater
+Python en ejecutables frozen. `tools/distribution_smoke.py` instala dos wheels
+locales en un venv/HOME aislados, prepara un proyecto con recursos propios y
+comprueba actualización y dos reaperturas sin cambios en los datos.
+Evidencias y límites: [estado H06](../release-h06-status.md).
+Actions está deshabilitado hasta nuevo aviso: no declarar CI o instalador Windows
+superados para esta entrega a partir de los tests locales.

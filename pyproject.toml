@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "factoria"
-version = "0.2.0"
+version = "0.3.0"
 description = "Extensible development-flow factory for agent-assisted software delivery."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -18,5 +18,6 @@ factoria = "factoria.entrypoint:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
+"factoria" = ["release.toml"]
 "factoria.adapters" = ["capabilities.toml"]
 "factoria.web" = ["*.html", "*.js"]

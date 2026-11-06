@@ -6,12 +6,16 @@ on:
       - "src/**"
       - "packaging/windows/**"
       - "pyproject.toml"
+      - "tools/release_artifacts.py"
+      - "tools/acceptance_lab.py"
       - ".github/workflows/windows-installer.yml"
   pull_request:
     paths:
       - "src/**"
       - "packaging/windows/**"
       - "pyproject.toml"
+      - "tools/release_artifacts.py"
+      - "tools/acceptance_lab.py"
       - ".github/workflows/windows-installer.yml"
   workflow_dispatch:
 
@@ -47,7 +51,8 @@ jobs:
       - name: Read package version
         shell: pwsh
         run: |
-          $version = python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])"
+          $version = python tools/release_artifacts.py version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           "FACTORIA_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "Building Factoria $version"
 
@@ -60,6 +65,7 @@ jobs:
             --onefile `
             --name Factoria `
             --copy-metadata factoria `
+            --collect-data factoria `
             --collect-data factoria.adapters `
             --collect-data factoria.web `
             packaging/windows/factoria_launcher.py
@@ -92,15 +98,40 @@ jobs:
         run: |
           $installer = "dist\installer\Factoria-Setup-$env:FACTORIA_VERSION.exe"
           $installDir = Join-Path $env:RUNNER_TEMP "FactoriaInstalled"
-          & $installer /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /TASKS="" /DIR="$installDir"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $installArgs = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/TASKS=""', "/DIR=`"$installDir`"")
+          $process = Start-Process -FilePath $installer -ArgumentList $installArgs -Wait -PassThru
+          if ($process.ExitCode -ne 0) { exit $process.ExitCode }
           $output = & (Join-Path $installDir "Factoria.exe") --version
           Write-Host $output
           if ($output -ne "factoria $env:FACTORIA_VERSION") {
             throw "Installed executable returned unexpected version: $output"
           }
+          # Reinstall the same build and reopen a configured project. This tests
+          # reinstall preservation, not acceptance of a previous-version upgrade.
+          $labRoot = Join-Path $env:RUNNER_TEMP "FactoriaReinstallLab"
+          python tools/acceptance_lab.py prepare $labRoot --python-command python
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $project = Join-Path $labRoot "chatgpt-checkout\fix"
+          $before = @(Get-ChildItem $project -Recurse -File | Where-Object { $_.FullName -notmatch '[\\/]\.git[\\/]' } | Get-FileHash | ForEach-Object { "$($_.Path) $($_.Hash)" })
+          $process = Start-Process -FilePath $installer -ArgumentList $installArgs -Wait -PassThru
+          if ($process.ExitCode -ne 0) { exit $process.ExitCode }
+          & (Join-Path $installDir "Factoria.exe") --project $project project check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & (Join-Path $installDir "Factoria.exe") --project $project project workflows
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $after = @(Get-ChildItem $project -Recurse -File | Where-Object { $_.FullName -notmatch '[\\/]\.git[\\/]' } | Get-FileHash | ForEach-Object { "$($_.Path) $($_.Hash)" })
+          if (Compare-Object $before $after) { throw "Project changed during reinstall/reopen" }
           $uninstaller = Join-Path $installDir "unins000.exe"
-          & $uninstaller /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
+          $process = Start-Process -FilePath $uninstaller -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru
+          if ($process.ExitCode -ne 0) { exit $process.ExitCode }
+
+      - name: Generate and verify distribution checksums
+        shell: pwsh
+        run: |
+          Copy-Item dist/Factoria.exe dist/installer/Factoria.exe
+          python tools/release_artifacts.py checksums dist/installer Factoria.exe "Factoria-Setup-$env:FACTORIA_VERSION.exe"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/release_artifacts.py verify dist/installer
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload Windows artifacts
@@ -109,5 +140,4 @@ jobs:
           name: Factoria-Windows-${{ env.FACTORIA_VERSION }}
           if-no-files-found: error
           path: |
-            dist/Factoria.exe
-            dist/installer/Factoria-Setup-${{ env.FACTORIA_VERSION }}.exe
+            dist/installer/*

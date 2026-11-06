@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from factoria.adapters import (
@@ -14,7 +15,8 @@ from factoria.adapters import (
 
 
 class CommandArgumentPolicyTests(unittest.TestCase):
-    def test_codex_accepts_only_expected_read_only_safety_flags(self) -> None:
+    @patch.object(CodexAdapter, "_resolved_executable", return_value=None)
+    def test_codex_accepts_only_expected_read_only_safety_flags(self, _discovery) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             command = CodexAdapter().build_command(
                 AgentRequest(

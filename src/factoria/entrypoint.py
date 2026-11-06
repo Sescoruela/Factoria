@@ -99,6 +99,15 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = build_update_parser()
     args = parser.parse_args(argv)
+    if getattr(sys, "frozen", False):
+        print(
+            "El ejecutable se actualiza reinstalando Factoria-Setup-<version>.exe "
+            "en la misma carpeta, después de cerrar Factoria y verificar SHA256SUMS. "
+            "No usa pip. Conserva ~/.factoria y las carpetas de tus proyectos; "
+            "para volver atrás utiliza el instalador anterior y tu copia de seguridad.",
+            file=sys.stderr,
+        )
+        return 1
     service = UpdateService()
     base = Path.home() / ".factoria" / "update-state"
     state_path = base / "previous.json"
