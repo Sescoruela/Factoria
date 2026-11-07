@@ -26,12 +26,7 @@
     el('templateDownload').disabled = !el('templateText').value;
   }
   function drafts() {
-    return (
-      window.hasUnsavedSkills?.() ||
-      window.hasUnsavedAgents?.() ||
-      (typeof agentEdits !== 'undefined' && agentEdits) ||
-      (typeof workflowDirty !== 'undefined' && workflowDirty)
-    );
+    return window.hasUnsavedProjectChanges();
   }
   button.onclick = () => {
     document.querySelectorAll('.nav button,.section').forEach((x) => x.classList.remove('active'));

@@ -28,28 +28,7 @@ END = "<!-- factoria:integration:end -->"
 MANIFEST = ".factoria/integration-manifest.json"
 
 
-def project_path(root: Path, relative: str) -> Path:
-    """Reject traversal, symlink targets and Windows drive paths on every OS."""
-    from pathlib import PurePosixPath, PureWindowsPath
-
-    if (
-        not relative
-        or "\\" in relative
-        or PurePosixPath(relative).is_absolute()
-        or PureWindowsPath(relative).drive
-        or ".." in PurePosixPath(relative).parts
-    ):
-        raise ValueError("La ruta debe ser relativa al proyecto")
-    root = root.resolve()
-    target = root / relative
-    for item in (target, *target.parents):
-        if item == root:
-            break
-        if item.is_symlink():
-            raise ValueError("La integración no sigue enlaces simbólicos")
-    if not target.resolve().is_relative_to(root):
-        raise ValueError("Ruta fuera del proyecto")
-    return target
+from factoria.project_paths import project_path as project_path
 
 
 def _digest(text: str) -> str:
@@ -374,7 +353,7 @@ Los permisos y aprobaciones de la herramienta siguen vigentes.
         return IntegrationPlan(files, tuple(changed), tuple(conflicts))
 
     def apply(self, *, confirmed: bool = False) -> IntegrationPlan:
-        from factoria.application.project_templates import _locks
+        from factoria.application.resource_support import catalog_locks as _locks
 
         with _locks():
             from factoria.application.config_schema import assert_config_writable

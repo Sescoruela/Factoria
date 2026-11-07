@@ -18,7 +18,8 @@ function harness({legacy=false,hash='',project='/project%name'}={}){
   renderAll(){},loadWorkflowBoard:force=>edited.push('workflow:'+get('workflowKind').value+':'+force),
   api:async(route,method,payload)=>{calls.push({route,payload});if(route==='/api/state')return structuredClone(fresh);if(defer)return new Promise(resolve=>{resolveGraph=resolve;});return structuredClone(graph);}};
  if(!legacy){context.window.editAgentRole=id=>edited.push('agent:'+id);context.window.editSkill=id=>edited.push('skill:'+id);}
- vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../src/factoria/web/relations.js'),'utf8'),context);
+ vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../src/factoria/web/editor-state.js'),'utf8'),context);
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../src/factoria/web/relations.js'),'utf8'),context);
  const descendants=node=>[node,...node.children.flatMap(descendants)];
  return {context,get,graph,fresh,calls,edited,opened,all,
   button:label=>descendants(get('relationsMap')).find(e=>e.tag==='button'&&e.textContent.startsWith(label)),

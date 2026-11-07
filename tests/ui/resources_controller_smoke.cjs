@@ -12,6 +12,7 @@ const context={document,window:{},state:{selected_project:{path:'/project'}},con
   if(route.endsWith('/list'))return {active:[{kind:'skill',id:'rules',name:'Rules'}],history:[{kind:'skill',id:'old',status:'archived',archive_id:'a'.repeat(32)}]};
   if(route.endsWith('/preview')){if(defer)return new Promise(resolve=>{resolvePreview=resolve;});return {token:'revision',blockers:blocked?['agent:consumer']:[],snapshots_preserved:[]};}
   return {applied:true};}};
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../src/factoria/web/editor-state.js'),'utf8'),context);
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../src/factoria/web/resources.js'),'utf8'),context);
 const get=id=>document.getElementById(id),applies=()=>calls.filter(c=>c.route.endsWith('/apply'));
 (async()=>{

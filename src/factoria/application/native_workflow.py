@@ -16,11 +16,8 @@ from factoria.application.governance import ExecutionGovernor, GovernedAction
 from factoria.application.history import LocalExecutionHistoryStore
 from factoria.application.impact import ImpactAnalyzer
 from factoria.application.policy_runtime import build_execution_context
-from factoria.application.project_integration import (
-    ProjectIntegration,
-    project_definition,
-    project_path,
-)
+from factoria.application.project_integration import ProjectIntegration, project_definition
+from factoria.project_paths import project_path
 from factoria.application.review_runtime import parse_structured_review
 from factoria.application.state_store import LocalFlowStateStore
 from factoria.domain.flow import FlowState

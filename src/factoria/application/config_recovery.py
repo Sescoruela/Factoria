@@ -6,11 +6,12 @@ A pending transaction can only restore bytes it actually owned.
 
 from __future__ import annotations
 
+from factoria.storage import atomic_write_bytes, sync_directory
+
 import base64
 from datetime import datetime, UTC
 import hashlib
 import json
-import os
 from pathlib import Path
 import re
 import subprocess
@@ -18,8 +19,12 @@ import tempfile
 import uuid
 
 from factoria.application.config_schema import SCHEMA_PATH, schema_version
-from factoria.application.project_integration import project_path
-from factoria.application.project_templates import _locks, _json, _scan
+from factoria.project_paths import project_path
+from factoria.application.resource_support import (
+    catalog_locks as _locks,
+    json_bytes as _json,
+    scan_secrets as _scan,
+)
 
 FIXED = {
     SCHEMA_PATH,
@@ -291,13 +296,7 @@ def preview_config(root, action, identifier=None):
         return _plan(root.resolve(), action, identifier)[0]
 
 
-def _sync_directory(path):
-    if os.name == "posix":
-        descriptor = os.open(path, os.O_RDONLY)
-        try:
-            os.fsync(descriptor)
-        finally:
-            os.close(descriptor)
+_sync_directory = sync_directory
 
 
 def _write(path, content):
@@ -306,16 +305,8 @@ def _write(path, content):
         path.unlink(missing_ok=True)
         _sync_directory(path.parent)
         return
-    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as handle:
-        temporary = Path(handle.name)
-        handle.write(content)
-        handle.flush()
-        os.fsync(handle.fileno())
-    try:
-        os.replace(temporary, path)
-        _sync_directory(path.parent)
-    finally:
-        temporary.unlink(missing_ok=True)
+    atomic_write_bytes(path, content)
+    _sync_directory(path.parent)
 
 
 def _save_record(root, record):

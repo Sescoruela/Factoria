@@ -158,7 +158,7 @@ def load_global_config(path: Path) -> GlobalConfig:
 
 def load_project_config(path: Path) -> ProjectConfig:
     if path.parent.name == ".factoria":
-        from factoria.application.config_schema import schema_version
+        from factoria.config.schema import schema_version
 
         schema_version(path.parent.parent)
     return project_config_from_mapping(_read_toml(path))

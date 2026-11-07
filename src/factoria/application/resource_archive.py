@@ -11,7 +11,7 @@ DIRECTORY = ".factoria/archive"
 
 
 def archive_records(root: Path) -> dict[str, dict]:
-    from factoria.application.project_integration import project_path
+    from factoria.project_paths import project_path
 
     folder = project_path(root, DIRECTORY)
     if not folder.exists():

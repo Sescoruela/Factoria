@@ -2,19 +2,20 @@
 
 from __future__ import annotations
 
+from factoria.storage import staged_bytes
+from factoria.application.resource_support import skill_bytes
+
 import hashlib
 import json
 import os
 import re
-import tempfile
-import threading
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
 _DIRECTORY = ".factoria/skills"
 _MARKER = "<!-- factoria:skill:v1 -->"
-_LOCK = threading.RLock()
+from factoria.application.resource_locks import SKILL_LOCK as _LOCK
 
 
 class SkillCatalogConflict(ValueError):
@@ -65,7 +66,7 @@ def validate_skill(skill: SkillDefinition) -> SkillDefinition:
 
 
 def _files(root: Path) -> tuple[Path, ...]:
-    from factoria.application.project_integration import project_path
+    from factoria.project_paths import project_path
 
     directory = project_path(root, _DIRECTORY)
     if not directory.exists():
@@ -155,7 +156,7 @@ def save_skill(
         assert_config_writable(root)
     from factoria.application.governance import ExecutionGovernor, GovernedAction
     from factoria.application.policy_runtime import build_execution_context
-    from factoria.application.project_integration import project_path
+    from factoria.project_paths import project_path
     from factoria.security import SecretScanner
 
     root = root.resolve()
@@ -188,23 +189,15 @@ def save_skill(
                 raise ValueError("La skill que quieres modificar no existe")
             if _decode(target) is None:
                 raise ValueError("El archivo es ajeno al catálogo; no se sobrescribe")
-        header = "\n".join(
-            f"{key}: {json.dumps(value, ensure_ascii=False)}"
-            for key, value in (
-                ("id", skill.id),
-                ("name", skill.name),
-                ("description", skill.description),
-            )
+        content = skill_bytes(
+            {
+                "id": skill.id,
+                "name": skill.name,
+                "description": skill.description,
+                "content": skill.content,
+            }
         )
-        text = _MARKER + "\n---\n" + header + "\n---\n" + skill.content
-        target.parent.mkdir(parents=True, exist_ok=True)
-        temporary: Path | None = None
-        try:
-            with tempfile.NamedTemporaryFile(mode="wb", dir=target.parent, delete=False) as handle:
-                temporary = Path(handle.name)
-                handle.write(text.encode("utf-8"))
-                handle.flush()
-                os.fsync(handle.fileno())
+        with staged_bytes(target, content) as temporary:
             if revision != skill_catalog_revision(root):
                 raise SkillCatalogConflict(
                     "Las skills cambiaron durante el guardado; vuelve a cargar"
@@ -219,7 +212,4 @@ def save_skill(
                     ) from exc
             else:
                 os.replace(temporary, target)
-        finally:
-            if temporary is not None:
-                temporary.unlink(missing_ok=True)
         return target

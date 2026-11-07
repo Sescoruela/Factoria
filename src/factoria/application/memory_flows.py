@@ -5,7 +5,7 @@ from datetime import date
 from pathlib import Path
 from typing import Protocol, Sequence
 
-from factoria.domain.models import MemoryMetadata, ProjectMemory
+from factoria.domain.models import MemoryChange, MemoryMetadata, ProjectMemory
 from factoria.memory.filesystem import write_initial_memory
 from factoria.memory.initializer import MemoryInitProposal, MemoryInitializer
 from factoria.memory.renderer import render_agents_md, render_memory_document
@@ -14,13 +14,6 @@ from factoria.domain.models import MemoryDocumentKind, ProjectKind
 
 class MemoryAnalyzer(Protocol):
     def analyze(self, project_root: Path, current: ProjectMemory) -> ProjectMemory: ...
-
-
-@dataclass(frozen=True, slots=True)
-class MemoryChange:
-    target: str
-    reason: str
-    evidence: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

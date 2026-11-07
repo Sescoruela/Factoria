@@ -342,6 +342,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             "/assets/shell-main.js",
             "/assets/resources.js",
             "/assets/shell-common.js",
+            "/assets/editor-state.js",
             "/assets/relations.js",
             "/assets/shell-main.css",
         }:
@@ -408,46 +409,10 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             handle_editor_post(self)
             return
         try:
-            if path in {"/api/config/status", "/api/config/preview", "/api/config/apply"}:
-                if not 0 <= int(self.headers.get("Content-Length", "0")) <= 16384:
-                    raise ValueError("Solicitud demasiado grande")
-                data = self._body()
-                project = _selected_project(UiWorkspaceSettings.load())
-                if project is None or data.get("project_path") != str(project):
-                    self._json({"error": "El proyecto cambió; volver a revisar"}, 409)
-                    return
-                from factoria.application.config_recovery import (
-                    config_status,
-                    preview_config,
-                    apply_config,
-                )
+            from factoria.web_project_api import PROJECT_RESOURCE_ROUTES, handle_project_post
 
-                result = (
-                    config_status(project)
-                    if path.endswith("/status")
-                    else apply_config(
-                        project,
-                        data.get("action"),
-                        identifier=data.get("backup_id"),
-                        token=data.get("token"),
-                        confirmed=data.get("confirmed") is True,
-                    )
-                    if path.endswith("/apply")
-                    else preview_config(project, data.get("action"), data.get("backup_id"))
-                )
-                self._json({"ok": True, **result})
-                return
-            if path == "/api/project/relations":
-                if not 0 <= int(self.headers.get("Content-Length", "0")) <= 16384:
-                    raise ValueError("Solicitud demasiado grande")
-                data = self._body()
-                project = _selected_project(UiWorkspaceSettings.load())
-                if project is None or data.get("project_path") != str(project):
-                    self._json({"error": "El proyecto cambió; vuelve a cargar las relaciones"}, 409)
-                    return
-                from factoria.application.project_relations import project_relations
-
-                self._json({"ok": True, **project_relations(project)})
+            if path in PROJECT_RESOURCE_ROUTES:
+                handle_project_post(self, path)
                 return
             if (
                 path.startswith("/api/resource/")
@@ -460,64 +425,6 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             ):
                 raise ValueError("Tamaño de plantilla no válido o superior al permitido")
             data = self._body()
-            if path in {"/api/resource/list", "/api/resource/preview", "/api/resource/apply"}:
-                from factoria.application.resource_lifecycle import (
-                    resource_inventory,
-                    preview_resource,
-                    apply_resource,
-                    ResourceConflict,
-                )
-
-                project = _selected_project(UiWorkspaceSettings.load())
-                if project is None or data.get("project_path") != str(project):
-                    self._json({"error": "El proyecto cambió; vuelve a revisar impacto"}, 409)
-                    return
-                try:
-                    if path.endswith("/list"):
-                        result = resource_inventory(project)
-                    elif path.endswith("/preview"):
-                        result = preview_resource(project, data.get("request"))
-                    else:
-                        result = apply_resource(
-                            project,
-                            data.get("request"),
-                            token=data.get("token"),
-                            confirmed=data.get("confirmed") is True,
-                        )
-                    self._json({"ok": True, **result})
-                except ResourceConflict as exc:
-                    self._json({"error": str(exc)}, 409)
-                return
-            if path in {"/api/template/export", "/api/template/preview", "/api/template/apply"}:
-                from factoria.application.project_templates import (
-                    export_template,
-                    preview_template,
-                    apply_template,
-                    TemplateConflict,
-                )
-
-                project = _selected_project(UiWorkspaceSettings.load())
-                if project is None or data.get("project_path") != str(project):
-                    self._json(
-                        {"error": "El proyecto seleccionado cambió; vuelve a previsualizar"}, 409
-                    )
-                    return
-                try:
-                    if path.endswith("/export"):
-                        result = {"template": export_template(project, data.get("name", ""))}
-                    elif path.endswith("/preview"):
-                        result = preview_template(project, data.get("template"))
-                    else:
-                        result = apply_template(
-                            project,
-                            data.get("template"),
-                            expected_token=data.get("token"),
-                            confirmed=data.get("confirmed") is True,
-                        )
-                    self._json({"ok": True, **result})
-                except TemplateConflict as exc:
-                    self._json({"error": str(exc)}, 409)
-                return
             if path == "/api/projects/root":
                 target = _set_projects_root(str(data.get("path", "")))
                 self._json({"ok": True, "path": str(target), "state": _editor_state()})
@@ -589,10 +496,10 @@ class FactoriaHTTPServer(ThreadingHTTPServer):
     factoria_token: str
 
 
-def run_web_ui(*, open_browser: bool = True) -> int:
+def serve_web_ui(handler_class, *, open_browser: bool = True) -> int:
     _apply_agent_paths()
     token = secrets.token_urlsafe(24)
-    server = FactoriaHTTPServer((_HOST, 0), FactoriaWebHandler)
+    server = FactoriaHTTPServer((_HOST, 0), handler_class)
     server.factoria_token = token
     host, port = server.server_address[:2]
     url = f"http://{host}:{port}/?token={token}"
@@ -606,3 +513,7 @@ def run_web_ui(*, open_browser: bool = True) -> int:
     finally:
         server.server_close()
     return 0
+
+
+def run_web_ui(*, open_browser: bool = True) -> int:
+    return serve_web_ui(FactoriaWebHandler, open_browser=open_browser)

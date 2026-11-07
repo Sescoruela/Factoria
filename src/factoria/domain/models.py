@@ -121,3 +121,10 @@ class ProjectMemory:
     non_functional_priorities: tuple[str, ...] = field(default_factory=tuple)
     decisions: tuple[str, ...] = field(default_factory=tuple)
     manual_verification: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True, slots=True)
+class MemoryChange:
+    target: str
+    reason: str
+    evidence: tuple[str, ...] = ()

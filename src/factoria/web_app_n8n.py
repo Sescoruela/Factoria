@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import threading
-import webbrowser
 from http import HTTPStatus
 from urllib.parse import urlparse
 
-from factoria.ui_agent_tools import _apply_agent_paths
-from factoria.web_app import FactoriaHTTPServer, FactoriaWebHandler, _HOST
+from factoria.web_app import FactoriaWebHandler, serve_web_ui
 
 
 from factoria.web_shell import main_shell_html
@@ -33,21 +30,4 @@ class FactoriaN8NHandler(FactoriaWebHandler):
 
 
 def run_web_ui(*, open_browser: bool = True) -> int:
-    _apply_agent_paths()
-    import secrets
-
-    token = secrets.token_urlsafe(24)
-    server = FactoriaHTTPServer((_HOST, 0), FactoriaN8NHandler)
-    server.factoria_token = token
-    host, port = server.server_address[:2]
-    url = f"http://{host}:{port}/?token={token}"
-    print(f"Factoria Web: {url}")
-    if open_browser:
-        threading.Timer(0.35, lambda: webbrowser.open(url)).start()
-    try:
-        server.serve_forever(poll_interval=0.25)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        server.server_close()
-    return 0
+    return serve_web_ui(FactoriaN8NHandler, open_browser=open_browser)

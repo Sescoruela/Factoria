@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from factoria.storage import atomic_write_bytes
+
 from dataclasses import asdict, replace
 from datetime import UTC, datetime
 import hashlib
 import json
-import os
 from pathlib import Path
 import re
 import tempfile
@@ -19,14 +20,14 @@ from factoria.application import (
 )
 from factoria.application.governance import ExecutionGovernor, GovernedAction
 from factoria.application.policy_runtime import build_execution_context
-from factoria.application.project_integration import project_path
-from factoria.application.project_templates import (
-    _json,
-    _locks,
-    _raw,
-    _revision,
-    _scan,
-    _skill_bytes,
+from factoria.project_paths import project_path
+from factoria.application.resource_support import (
+    json_bytes as _json,
+    catalog_locks as _locks,
+    read_catalog as _raw,
+    catalog_revision as _revision,
+    scan_secrets as _scan,
+    skill_bytes as _skill_bytes,
 )
 from factoria.application.resource_archive import DIRECTORY, archive_records, assert_not_archived
 
@@ -349,19 +350,7 @@ def preview_resource(root: Path, request: dict) -> dict:
 
 
 def _write(path: Path, content: bytes, *, create=False):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as handle:
-        temporary = Path(handle.name)
-        handle.write(content)
-        handle.flush()
-        os.fsync(handle.fileno())
-    try:
-        if create:
-            os.link(temporary, path)
-        else:
-            os.replace(temporary, path)
-    finally:
-        temporary.unlink(missing_ok=True)
+    atomic_write_bytes(path, content, create=create)
 
 
 def apply_resource(root: Path, request: dict, *, token: str, confirmed: bool) -> dict:

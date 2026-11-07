@@ -10,7 +10,7 @@ from factoria.application.native_workflow import NativeWorkflow
 from factoria.application.project_integration import ProjectIntegration
 
 
-def run_project_cli(argv: list[str]) -> int:
+def build_project_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="factoria")
     parser.add_argument("--project", default=".")
     parser.add_argument("--read-only", action="store_true")
@@ -75,7 +75,166 @@ def run_project_cli(argv: list[str]) -> int:
             command.add_argument("--tool", choices=("codex", "opencode"))
         if name == "cancel":
             command.add_argument("--yes", action="store_true")
-    args = parser.parse_args(argv)
+    return parser
+
+
+def _run_config(args, root: Path) -> int:
+    from factoria.application.config_recovery import (
+        config_status,
+        preview_config,
+        apply_config,
+    )
+
+    action = args.config_action
+    result = (
+        config_status(root)
+        if action == "status"
+        else apply_config(
+            root,
+            action,
+            identifier=getattr(args, "backup_id", None),
+            token=args.token,
+            confirmed=True,
+        )
+        if args.yes
+        else preview_config(root, action, getattr(args, "backup_id", None))
+    )
+    print(json.dumps(result, ensure_ascii=True, indent=2))
+    return 1 if result.get("conflicts") or result.get("error") else 0
+
+
+def _run_relations(args, root: Path) -> int:
+    from factoria.application.project_relations import project_relations
+
+    result = project_relations(root)
+    print(json.dumps(result, ensure_ascii=True, indent=2))
+    return (
+        1
+        if not result["consistent"] or any(d["severity"] == "error" for d in result["diagnostics"])
+        else 0
+    )
+
+
+def _run_resources(args, root: Path) -> int:
+    from factoria.application.resource_lifecycle import (
+        resource_inventory,
+        preview_resource,
+        apply_resource,
+    )
+
+    if args.resource_action in (None, "list"):
+        result = resource_inventory(root)
+    else:
+        request = {
+            "action": args.resource_action,
+            "kind": args.kind,
+            "archive_id" if args.resource_action == "restore" else "id": args.identifier,
+        }
+        if args.resource_action == "duplicate":
+            request.update(new_id=args.new_id, name=args.name)
+        result = (
+            apply_resource(root, request, token=args.token, confirmed=True)
+            if args.yes
+            else preview_resource(root, request)
+        )
+    print(json.dumps(result, ensure_ascii=True, indent=2))
+    return 1 if result.get("blockers") else 0
+
+
+def _run_templates(args, root: Path) -> int:
+    from factoria.application.project_templates import (
+        export_template,
+        read_template,
+        preview_template,
+        apply_template,
+    )
+
+    if args.template_action == "export":
+        result = export_template(root, args.name)
+        if args.output:
+            from factoria.application.governance import (
+                ExecutionGovernor,
+                GovernedAction,
+            )
+            from factoria.application.policy_runtime import build_execution_context
+
+            ExecutionGovernor().assert_allowed(GovernedAction.WRITE, build_execution_context(root))
+            with args.output.open("xb") as stream:
+                stream.write(
+                    (json.dumps(result, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+                )
+            result = {"exported": str(args.output)}
+    else:
+        data = read_template(args.file)
+        result = (
+            apply_template(root, data, expected_token=args.token, confirmed=True)
+            if args.yes
+            else preview_template(root, data)
+        )
+    print(json.dumps(result, ensure_ascii=True, indent=2))
+    return 1 if result.get("conflicts") else 0
+
+
+def _run_integration(args, root: Path) -> int:
+    service = ProjectIntegration(root)
+    if args.action == "workflows":
+        from factoria.application.workflow_presets import load_catalog
+
+        result = {
+            "workflows": [
+                {
+                    "id": item.identifier,
+                    "name": item.name or item.identifier,
+                    "kind": item.kind,
+                    "description": item.description,
+                }
+                for item in load_catalog(root).values()
+            ]
+        }
+        print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0
+    if args.action == "check":
+        result = service.check()
+        print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result["ready"] else 1
+    plan = service.apply(confirmed=True) if args.yes else service.plan()
+    result = {
+        "applied": args.yes,
+        "changed": plan.changed,
+        "conflicts": plan.conflicts,
+        "next": "Guardar los cambios del proyecto en Git y abrir Codex u OpenCode.",
+    }
+
+    print(json.dumps(result, ensure_ascii=True, indent=2))
+    return 0
+
+
+def _run_native(args, root: Path) -> int:
+    workflow = NativeWorkflow(root)
+    if args.action == "start":
+        result = workflow.start(args.kind, args.task, args.tool)
+    elif args.action == "next":
+        result = workflow.next(
+            args.flow_id,
+            approve_plan=args.approve_plan,
+            approve_final=args.approve_final,
+            confirm_manual=args.confirm_manual,
+            confirm_external_impact=args.confirm_external_impact,
+            tool=args.tool,
+        )
+    elif args.action in {"status", "retry"}:
+        result = getattr(workflow, args.action)(args.flow_id)
+    else:
+        result = workflow.lifecycle(
+            args.flow_id, args.action, confirmed=getattr(args, "yes", False)
+        )
+
+    print(json.dumps(result, ensure_ascii=True, indent=2))
+    return 0
+
+
+def run_project_cli(argv: list[str]) -> int:
+    args = build_project_parser().parse_args(argv)
     try:
         root = Path(args.project).expanduser().resolve()
         located = subprocess.run(
@@ -108,151 +267,14 @@ def run_project_cli(argv: list[str]) -> int:
         ):
             raise PermissionError("Modo solo lectura: operación bloqueada")
         if args.command == "project":
-            if args.action == "config":
-                from factoria.application.config_recovery import (
-                    config_status,
-                    preview_config,
-                    apply_config,
-                )
-
-                action = args.config_action
-                result = (
-                    config_status(root)
-                    if action == "status"
-                    else apply_config(
-                        root,
-                        action,
-                        identifier=getattr(args, "backup_id", None),
-                        token=args.token,
-                        confirmed=True,
-                    )
-                    if args.yes
-                    else preview_config(root, action, getattr(args, "backup_id", None))
-                )
-                print(json.dumps(result, ensure_ascii=True, indent=2))
-                return 1 if result.get("conflicts") or result.get("error") else 0
-            if args.action == "relations":
-                from factoria.application.project_relations import project_relations
-
-                result = project_relations(root)
-                print(json.dumps(result, ensure_ascii=True, indent=2))
-                return (
-                    1
-                    if not result["consistent"]
-                    or any(d["severity"] == "error" for d in result["diagnostics"])
-                    else 0
-                )
-            if args.action == "resources":
-                from factoria.application.resource_lifecycle import (
-                    resource_inventory,
-                    preview_resource,
-                    apply_resource,
-                )
-
-                if args.resource_action in (None, "list"):
-                    result = resource_inventory(root)
-                else:
-                    request = {
-                        "action": args.resource_action,
-                        "kind": args.kind,
-                        "archive_id"
-                        if args.resource_action == "restore"
-                        else "id": args.identifier,
-                    }
-                    if args.resource_action == "duplicate":
-                        request.update(new_id=args.new_id, name=args.name)
-                    result = (
-                        apply_resource(root, request, token=args.token, confirmed=True)
-                        if args.yes
-                        else preview_resource(root, request)
-                    )
-                print(json.dumps(result, ensure_ascii=True, indent=2))
-                return 1 if result.get("blockers") else 0
-            if args.action == "templates":
-                from factoria.application.project_templates import (
-                    export_template,
-                    read_template,
-                    preview_template,
-                    apply_template,
-                )
-
-                if args.template_action == "export":
-                    result = export_template(root, args.name)
-                    if args.output:
-                        from factoria.application.governance import (
-                            ExecutionGovernor,
-                            GovernedAction,
-                        )
-                        from factoria.application.policy_runtime import build_execution_context
-
-                        ExecutionGovernor().assert_allowed(
-                            GovernedAction.WRITE, build_execution_context(root)
-                        )
-                        with args.output.open("xb") as stream:
-                            stream.write(
-                                (json.dumps(result, ensure_ascii=False, indent=2) + "\n").encode(
-                                    "utf-8"
-                                )
-                            )
-                        result = {"exported": str(args.output)}
-                else:
-                    data = read_template(args.file)
-                    result = (
-                        apply_template(root, data, expected_token=args.token, confirmed=True)
-                        if args.yes
-                        else preview_template(root, data)
-                    )
-                print(json.dumps(result, ensure_ascii=True, indent=2))
-                return 1 if result.get("conflicts") else 0
-            service = ProjectIntegration(root)
-            if args.action == "workflows":
-                from factoria.application.workflow_presets import load_catalog
-
-                result = {
-                    "workflows": [
-                        {
-                            "id": item.identifier,
-                            "name": item.name or item.identifier,
-                            "kind": item.kind,
-                            "description": item.description,
-                        }
-                        for item in load_catalog(root).values()
-                    ]
-                }
-                print(json.dumps(result, ensure_ascii=True, indent=2))
-                return 0
-            if args.action == "check":
-                result = service.check()
-                print(json.dumps(result, ensure_ascii=True, indent=2))
-                return 0 if result["ready"] else 1
-            plan = service.apply(confirmed=True) if args.yes else service.plan()
-            result = {
-                "applied": args.yes,
-                "changed": plan.changed,
-                "conflicts": plan.conflicts,
-                "next": "Guardar los cambios del proyecto en Git y abrir Codex u OpenCode.",
+            handlers = {
+                "config": _run_config,
+                "relations": _run_relations,
+                "resources": _run_resources,
+                "templates": _run_templates,
             }
-        else:
-            workflow = NativeWorkflow(root)
-            if args.action == "start":
-                result = workflow.start(args.kind, args.task, args.tool)
-            elif args.action == "next":
-                result = workflow.next(
-                    args.flow_id,
-                    approve_plan=args.approve_plan,
-                    approve_final=args.approve_final,
-                    confirm_manual=args.confirm_manual,
-                    confirm_external_impact=args.confirm_external_impact,
-                    tool=args.tool,
-                )
-            elif args.action in {"status", "retry"}:
-                result = getattr(workflow, args.action)(args.flow_id)
-            else:
-                result = workflow.lifecycle(
-                    args.flow_id, args.action, confirmed=getattr(args, "yes", False)
-                )
-        print(json.dumps(result, ensure_ascii=True, indent=2))
-        return 0
+            return handlers.get(args.action, _run_integration)(args, root)
+        return _run_native(args, root)
     except (ValueError, OSError, RuntimeError, subprocess.CalledProcessError) as exc:
         print(json.dumps({"error": str(exc)}, ensure_ascii=True), file=sys.stderr)
         return 1

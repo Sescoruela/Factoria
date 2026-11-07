@@ -4,8 +4,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Protocol, Sequence
 
-from factoria.application.memory_flows import MemoryChange
-from factoria.domain.models import ModuleMemory, ProjectMemory
+from factoria.domain.models import MemoryChange, ModuleMemory, ProjectMemory
 from factoria.memory.git_staleness import MemoryStalenessReport
 
 

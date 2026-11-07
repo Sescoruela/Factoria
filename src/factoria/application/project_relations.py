@@ -19,8 +19,9 @@ from factoria.application.workflow_presets import (
     validate_preset,
     workflow_allowed,
 )
-from factoria.application.project_integration import project_path, ProjectIntegration
-from factoria.application.project_templates import _locks, _json
+from factoria.application.project_integration import ProjectIntegration
+from factoria.project_paths import project_path
+from factoria.application.resource_support import catalog_locks as _locks, json_bytes as _json
 from factoria.application.resource_archive import archive_records
 from factoria.application.skill_catalog import decode_skill_text
 from factoria.config.loader import project_config_from_mapping

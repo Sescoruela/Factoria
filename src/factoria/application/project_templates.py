@@ -2,23 +2,30 @@
 
 from __future__ import annotations
 
-from contextlib import ExitStack
+from factoria.storage import staged_bytes
+
 from dataclasses import asdict
 import hashlib
 import json
 import os
 from pathlib import Path
 import subprocess
-import tempfile
 import uuid
 
 from factoria.application import agent_profiles as agents
 from factoria.application import skill_catalog as skills
 from factoria.application import workflow_presets as workflows
-from factoria.application.project_integration import project_path
+from factoria.project_paths import project_path
 from factoria.application.governance import ExecutionGovernor, GovernedAction
 from factoria.application.policy_runtime import build_execution_context
-from factoria.security import SecretScanner
+from factoria.application.resource_support import (
+    json_bytes as _json,
+    scan_secrets as _scan,
+    catalog_locks as _locks,
+    catalog_revision as _revision,
+    skill_bytes as _skill_bytes,
+    read_catalog as _raw,
+)
 
 MAX_TEMPLATE_BYTES = 1024 * 1024
 
@@ -27,24 +34,9 @@ class TemplateConflict(ValueError):
     pass
 
 
-def _json(value) -> bytes:
-    return (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
-
-
 def _fields(value, allowed, required=()):
     if not isinstance(value, dict) or set(value) - set(allowed) or set(required) - set(value):
         raise ValueError("Formato de plantilla no válido o campos no portables")
-
-
-def _scan(value):
-    if isinstance(value, str) and SecretScanner().scan_text(value, location="template"):
-        raise ValueError("Posible secreto en la plantilla; no se exporta ni aplica")
-    if isinstance(value, dict):
-        for item in value.values():
-            _scan(item)
-    if isinstance(value, (list, tuple)):
-        for item in value:
-            _scan(item)
 
 
 def validate_template(data: dict) -> dict:
@@ -121,23 +113,6 @@ def read_template(path: Path) -> dict:
     return validate_template(json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique))
 
 
-def _locks():
-    stack = ExitStack()
-    for lock in (skills._LOCK, agents._CATALOG_LOCK, workflows._WORKFLOW_LOCK):
-        stack.enter_context(lock)
-    return stack
-
-
-def _revision(root: Path) -> str:
-    values = [
-        str(root.resolve()),
-        skills.skill_catalog_revision(root),
-        agents.agent_catalog_revision(root),
-        workflows.workflow_catalog_revision(root),
-    ]
-    return hashlib.sha256(_json(values)).hexdigest()
-
-
 def export_template(root: Path, name: str) -> dict:
     root = root.resolve()
     with _locks():
@@ -159,23 +134,6 @@ def export_template(root: Path, name: str) -> dict:
                 "La configuración cambió durante la exportación; vuelve a cargar"
             )
         return payload
-
-
-def _skill_bytes(raw) -> bytes:
-    header = "\n".join(
-        f"{key}: {json.dumps(raw.get(key, ''), ensure_ascii=False)}"
-        for key in ("id", "name", "description")
-    )
-    return ("<!-- factoria:skill:v1 -->\n---\n" + header + "\n---\n" + raw["content"]).encode(
-        "utf-8"
-    )
-
-
-def _raw(root: Path, current: str, legacy: str) -> dict:
-    target = project_path(root, current)
-    if not target.exists():
-        target = project_path(root, legacy)
-    return json.loads(target.read_text(encoding="utf-8")) if target.exists() else {}
 
 
 def _plan(root: Path, payload: dict):
@@ -314,21 +272,13 @@ def apply_template(root: Path, data: dict, *, expected_token: str, confirmed: bo
                 target = project_path(root, name)
                 if (target.read_bytes() if target.exists() else None) != originals[name]:
                     raise TemplateConflict("Cambio externo durante importación")
-                target.parent.mkdir(parents=True, exist_ok=True)
-                with tempfile.NamedTemporaryFile(dir=target.parent, delete=False) as handle:
-                    temporary = Path(handle.name)
-                    handle.write(content)
-                    handle.flush()
-                    os.fsync(handle.fileno())
-                try:
+                with staged_bytes(target, content) as temporary:
                     project_path(root, name)
                     if originals[name] is None:
                         os.link(temporary, target)
                     else:
                         os.replace(temporary, target)
                     completed.append(name)
-                finally:
-                    temporary.unlink(missing_ok=True)
             journal["state"] = "applied"
         except Exception as error:
             journal["state"] = "failed"
@@ -343,15 +293,8 @@ def apply_template(root: Path, data: dict, *, expected_token: str, confirmed: bo
                     if originals[name] is None:
                         target.unlink()
                     else:
-                        with tempfile.NamedTemporaryFile(dir=target.parent, delete=False) as handle:
-                            temporary = Path(handle.name)
-                            handle.write(originals[name])
-                            handle.flush()
-                            os.fsync(handle.fileno())
-                        try:
+                        with staged_bytes(target, originals[name]) as temporary:
                             os.replace(temporary, target)
-                        finally:
-                            temporary.unlink(missing_ok=True)
                 except Exception:
                     journal["recovery_needed"].append(name)
             if journal["recovery_needed"]:

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from factoria.storage import staged_bytes
+
 import hashlib
 import json
 import os
 import re
-import tempfile
-import threading
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -15,7 +15,7 @@ from factoria.orchestration.models import AgentRole, ModelProfile, ROLE_SPECS
 _AGENT_FILE = Path(".factoria") / "agents.json"
 _LEGACY_AGENT_FILE = Path(".factoria") / "ui-agents.json"
 _ALLOWED_PLATFORMS = {None, "", "codex", "opencode"}
-_CATALOG_LOCK = threading.RLock()
+from factoria.application.resource_locks import AGENT_LOCK as _CATALOG_LOCK
 
 
 class AgentCatalogConflict(ValueError):
@@ -135,7 +135,7 @@ def load_agent_profiles(project_root: Path | None) -> tuple[AgentRoleProfile, ..
     defaults = {item.role: item for item in default_agent_profiles()}
     if project_root is None:
         return tuple(defaults.values())
-    from factoria.application.project_integration import project_path
+    from factoria.project_paths import project_path
 
     path = project_path(project_root, _AGENT_FILE.as_posix())
     if not path.exists():
@@ -164,7 +164,7 @@ def load_agent_profiles(project_root: Path | None) -> tuple[AgentRoleProfile, ..
 
 def agent_catalog_revision(project_root: Path | None) -> str:
     """Hash source bytes, including legacy data, to detect external editor changes."""
-    from factoria.application.project_integration import project_path
+    from factoria.project_paths import project_path
 
     digest = hashlib.sha256()
     if project_root is not None:
@@ -209,7 +209,7 @@ def _save_agent_profile(
         assert_config_writable(project_root)
     from factoria.application.governance import ExecutionGovernor, GovernedAction
     from factoria.application.policy_runtime import build_execution_context
-    from factoria.application.project_integration import project_path
+    from factoria.project_paths import project_path
     from factoria.security import SecretScanner
 
     ExecutionGovernor().assert_allowed(GovernedAction.WRITE, build_execution_context(project_root))
@@ -252,25 +252,13 @@ def _save_agent_profile(
     for preset in load_catalog(project_root, validate_agents=False).values():
         validate_assignments(preset, profiles)
     text = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary: Path | None = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode="w", encoding="utf-8", newline="\n", dir=path.parent, delete=False
-        ) as handle:
-            temporary = Path(handle.name)
-            handle.write(text)
-            handle.flush()
-            os.fsync(handle.fileno())
+    with staged_bytes(path, text.encode("utf-8")) as temporary:
         if (
             agent_catalog_revision(project_root) != revision
             or workflow_catalog_revision(project_root) != workflow_revision
         ):
             raise AgentCatalogConflict("El catálogo cambió durante el guardado; vuelve a cargarlo")
         os.replace(temporary, path)
-    finally:
-        if temporary is not None:
-            temporary.unlink(missing_ok=True)
     return path
 
 

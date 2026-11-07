@@ -18,9 +18,7 @@
   let plan = null,
     busy = false;
   function dirty() {
-    return (
-      window.hasUnsavedAgents?.() || window.hasUnsavedSkills?.() || workflowDirty || workflowSaving
-    );
+    return window.hasUnsavedProjectChanges();
   }
   function invalidate() {
     plan = null;

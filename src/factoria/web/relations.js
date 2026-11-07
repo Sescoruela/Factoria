@@ -19,14 +19,7 @@
   const el = (id) => document.getElementById(id),
     project = () => state.selected_project?.path || null;
   function drafts() {
-    return (
-      window.hasUnsavedSkills?.() ||
-      window.hasUnsavedAgents?.() ||
-      (typeof agentEdits !== 'undefined' && agentEdits) ||
-      (typeof agentSaving !== 'undefined' && agentSaving) ||
-      (typeof workflowDirty !== 'undefined' && workflowDirty) ||
-      (typeof workflowSaving !== 'undefined' && workflowSaving)
-    );
+    return window.hasUnsavedProjectChanges();
   }
   function status(text) {
     el('relationsStatus').textContent = text;

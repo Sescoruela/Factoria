@@ -37,12 +37,7 @@
   async function action(work) {
     if (busy) return;
     if (!project()) return (el('resourceResult').textContent = 'Selecciona un proyecto');
-    if (
-      window.hasUnsavedSkills?.() ||
-      window.hasUnsavedAgents?.() ||
-      (typeof agentEdits !== 'undefined' && agentEdits) ||
-      (typeof workflowDirty !== 'undefined' && workflowDirty)
-    )
+    if (window.hasUnsavedProjectChanges())
       return (el('resourceResult').textContent =
         'Guarda o descarta los borradores antes de continuar');
     busy = true;
