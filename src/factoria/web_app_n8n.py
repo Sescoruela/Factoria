@@ -15,6 +15,11 @@ from factoria.web_app import FactoriaHTTPServer, FactoriaWebHandler, _HOST, _sel
 from factoria.web_n8n_patch import UI_PATCH
 
 
+def main_shell_html() -> str:
+    html=files('factoria.web').joinpath('index_n8n.html').read_text(encoding='utf-8')
+    return html.replace('</body>', UI_PATCH + '<script src="/assets/skills.js"></script><script src="/assets/templates.js"></script><script src="/assets/resources.js"></script><script src="/assets/relations.js"></script></body>')
+
+
 class FactoriaN8NHandler(FactoriaWebHandler):
     """Serve the n8n-style shell while reusing the existing local API."""
 
@@ -31,8 +36,7 @@ class FactoriaN8NHandler(FactoriaWebHandler):
             self.wfile.write(body)
             return
         if path == "/":
-            html = files("factoria.web").joinpath("index_n8n.html").read_text(encoding="utf-8")
-            html = html.replace("</body>", UI_PATCH + '<script src="/assets/skills.js"></script><script src="/assets/templates.js"></script><script src="/assets/resources.js"></script></body>')
+            html = main_shell_html()
             body = html.encode("utf-8")
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")

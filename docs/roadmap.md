@@ -22,7 +22,7 @@ Los esfuerzos son orientativos; no hay fechas comprometidas. Cada enlace contien
 | [H07 #13](https://github.com/Sescoruela/Factoria/issues/13) | Documentación y estado verificable | MVP / P1 | Completado documentalmente; mantenimiento por entrega | Ninguna | 0,5 día inicial y actualización continua |
 | [H08 #14](https://github.com/Sescoruela/Factoria/issues/14) | Plantillas reutilizables entre proyectos | Posterior / P2 | Implementado H08; distribución H06 pendiente | H04, H06 | Entregado |
 | [H09 #15](https://github.com/Sescoruela/Factoria/issues/15) | Duplicar y archivar recursos | Posterior / P2 | Implementado y validado localmente H09 | H02, H03, H04 | Entregado |
-| [H10 #16](https://github.com/Sescoruela/Factoria/issues/16) | Vista de relaciones del proyecto | Posterior / P2 | Pendiente | H02, H03, H04 | Por estimar |
+| [H10 #16](https://github.com/Sescoruela/Factoria/issues/16) | Vista de relaciones del proyecto | Posterior / P2 | Implementado y validado localmente H10 | H02, H03, H04 | Entregado |
 | [H11 #17](https://github.com/Sescoruela/Factoria/issues/17) | Pruebas de navegador en CI | Posterior / P2 | Pendiente | H02, H04 | Por estimar |
 | [H12 #18](https://github.com/Sescoruela/Factoria/issues/18) | Simplificar el frontend | Posterior / P2 | Pendiente | H11 | Por estimar |
 | [H13 #19](https://github.com/Sescoruela/Factoria/issues/19) | Migraciones y recuperación de configuración | Posterior / P2 | Pendiente | H04, H06 | Por estimar |

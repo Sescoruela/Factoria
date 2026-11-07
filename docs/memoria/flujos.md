@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=0fe34442e94bf5eb620b36a8682a87213ddff671 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=f97e3760d8e84e972e18ca3be8ef3ec4da110137 | date=2026-11-07 | factoria=0.3.0 -->
 # Flujos
 
 ## memoria-init y memoria-update
@@ -7,6 +7,11 @@ escribe tras confirmación. La actualización conserva datos confirmados y el bl
 de integración de AGENTS.md; requiere regenerar los assets si cambia la memoria.
 
 ## Preparación del proyecto
+
+**Relaciones** o `project relations` permite revisar workflow → etapa → agente →
+skills, recursos sin ruta activa, referencias rotas/archivadas e integración.
+La consulta no escribe; actualizarla no reemplaza borradores. Abrir un editor exige
+proyecto/revisión vigentes y ausencia de borradores o guardados pendientes.
 
 **Archivo de recursos** o `project resources` permite duplicar, previsualizar
 impacto, archivar y restaurar con confirmación y token vigente. Las referencias

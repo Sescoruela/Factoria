@@ -1,5 +1,16 @@
-<!-- factoria-memory: type=active | reviewed_commit=0fe34442e94bf5eb620b36a8682a87213ddff671 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=f97e3760d8e84e972e18ca3be8ef3ec4da110137 | date=2026-11-07 | factoria=0.3.0 -->
 # Verificación y pruebas
+
+## H10 · Relaciones del proyecto
+
+Suite local del 07/11/2026: 382 tests correctos, Linux/Python 3.12.14; 14 nuevos
+de relaciones, diagnóstico parcial, reachability, archivos/symlinks/límites,
+consistencia, ausencia de escrituras, CLI y autenticación/proyecto de ambas APIs.
+El puente de editores conserva las validaciones/revisiones de los endpoints previos.
+`node tests/ui/relations_controller_smoke.cjs` usa DOM/API simulados para editores,
+borradores/carreras, revisiones/proyectos y enlace del shell clásico; no es navegador
+real. Smokes H08/H09, sintaxis JS y empaquetado comprobados; Actions deshabilitado,
+sin CI/Windows/proveedores nuevos. Ver [guía](../project-relations.md).
 
 ## H09 · Ciclo de vida de recursos
 

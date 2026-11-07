@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=0fe34442e94bf5eb620b36a8682a87213ddff671 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=f97e3760d8e84e972e18ca3be8ef3ec4da110137 | date=2026-11-07 | factoria=0.3.0 -->
 # Decisiones
 
 - La memoria y configuración compartida viven junto al código del proyecto.
@@ -21,5 +21,6 @@
 - Las cifras de pruebas se registran con fecha, plataforma y alcance; el [estado vigente](../project-status.md) enlaza evidencias y límites.
 - 0.3.0 es preparación de código; no se declara release publicada. El ejecutable frozen dirige update/rollback al instalador, sin pip.
 - Actions se deshabilitó por petición del usuario y solo se reactiva cuando lo indique.
+- H10 diagnostica sin reparar ni ejecutar: fuentes rotas producen mapa parcial, no defaults inventados. Los huérfanos requieren información suficiente. Navegar a editores vuelve a comprobar revisión/proyecto y bloquea si hay borradores; el shell clásico reutiliza el editor completo en otra pestaña local.
 - H09 no archiva básicos ni elimina referencias automáticamente: primero se retiran consumidores. Conserva snapshots/historial y reserva IDs archivados hasta restaurar. La copia de recuperación no sustituye una transacción frente a caídas ni cierra H13.
 - H08 comparte recursos mediante JSON v1 cerrado, sin memoria, políticas ni configuración de máquina. Se reutilizan idénticos; conflictos bloquean sin sobrescritura. La copia local permite recuperación manual; no se promete transacción multiarchivo ante caídas (H13).

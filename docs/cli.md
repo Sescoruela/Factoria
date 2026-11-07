@@ -6,6 +6,10 @@ Estado del producto y evidencia: [estado vigente](project-status.md).
 
 ## Elegir el modo
 
+`factoria --project /ruta/proyecto --read-only project relations` consulta las
+relaciones y diagnósticos sin modificar fuentes. Para interpretar sus estados y
+límites ver [mapa del proyecto](project-relations.md).
+
 | Modo | Comandos | Efecto |
 | --- | --- | --- |
 | Web local | `factoria`, `factoria ui`, `factoria web` | Configurar proyectos sin iniciar proveedores |
