@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=999bb373751a8cc7445dfe5ad5381809d2517028 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=e06933195e3231bebacbe25aacaf19f529dc2164 | date=2026-11-07 | factoria=0.3.0 -->
 # Flujos
 
 ## memoria-init y memoria-update
@@ -53,3 +53,11 @@ Actualizar tras seleccionar otro proyecto en otra pestaña conserva los borrador
 de skills, agentes y workflows. El formulario de agente valida el origen antes de
 guardar; regresar al proyecto original o descartar requiere una acción explícita.
 Los conflictos conservan la versión guardada por la otra pestaña y el borrador local.
+
+## H13 · Recuperación
+
+Seleccionar proyecto → revisar migración/copia/restauración → confirmar token
+vigente → actualizar editores. Un fallo deja journal pendiente y bloquea nuevas
+escrituras; revisar/restaurar explícitamente. Resolver cambios externos antes de
+reintentar. La restauración conserva snapshots y no regenera integración ni inicia
+proveedores. [Detalle](../configuration-recovery.md).

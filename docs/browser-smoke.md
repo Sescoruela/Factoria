@@ -34,7 +34,9 @@ no en la aplicación distribuida. No reutiliza servidores que ya estén escuchan
 
 ## Cobertura
 
-22 casos con Chromium real, formularios y HTTP reales:
+25 casos actuales con Chromium real, formularios y HTTP reales: 22 de H11,
+uno H12 sobre borradores de agente en Relaciones y dos H13 de recuperación web.
+La evidencia histórica H11 de abajo conserva sus cifras originales.
 
 | Recorrido | Comprobación |
 | --- | --- |

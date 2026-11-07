@@ -215,10 +215,13 @@ def _write(path: Path, content: bytes, *, create=False):
 
 
 def apply_resource(root: Path, request: dict, *, token: str, confirmed: bool) -> dict:
+    from factoria.application.config_schema import assert_config_writable
+    if root is not None: assert_config_writable(root)
     if not confirmed:raise PermissionError('Revisar impacto y confirmar antes de aplicar')
     root=root.resolve()
     ExecutionGovernor().assert_allowed(GovernedAction.WRITE, build_execution_context(root))
     with _locks():
+        assert_config_writable(root)
         plan, relative, content, record_id, record, payload, original, previous_record, source_files = _plan(root,request)
         if token != plan['token']:raise ResourceConflict('El proyecto o la operación cambió; volver a previsualizar')
         if plan['blockers']:raise ResourceConflict('Hay referencias o conflictos: no se aplica la operación')

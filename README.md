@@ -186,6 +186,7 @@ autentica Codex/OpenCode desde la aplicación.
 - [Mapa de relaciones, diagnóstico y navegación a editores](docs/project-relations.md).
 - [Pruebas de navegador y CI pendiente (H11)](docs/browser-smoke.md)
 - [Estructura del frontend (H12)](docs/frontend.md)
+- [Migración y recuperación de configuración (H13)](docs/configuration-recovery.md)
 - [CLI y seguimiento directo](docs/cli.md).
 - [Instalación, actualización e integridad](docs/release-process.md).
 - [Roadmap y siguientes hitos](docs/roadmap.md).

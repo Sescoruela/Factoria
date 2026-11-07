@@ -205,6 +205,8 @@ def _raw_catalog(project_root: Path) -> dict:
 
 
 def load_catalog(project_root: Path, *, validate_agents: bool = True) -> dict[str, VisualWorkflowPreset]:
+    from factoria.application.config_schema import schema_version
+    if project_root is not None: schema_version(project_root)
     presets = {kind: default_preset(kind) for kind in ('feature', 'fix')}
     for identifier, entry in _raw_catalog(project_root).items():
         from factoria.application.resource_archive import assert_not_archived
@@ -279,6 +281,8 @@ def save_preset(project_root: Path, preset: VisualWorkflowPreset, *, expected_re
 
 
 def _save_preset(project_root: Path, preset: VisualWorkflowPreset, *, expected_revision: str | None, create: bool) -> Path:
+    from factoria.application.config_schema import assert_config_writable
+    if project_root is not None: assert_config_writable(project_root)
     from factoria.application.governance import ExecutionGovernor, GovernedAction
     from factoria.application.policy_runtime import build_execution_context
     from factoria.application.project_integration import project_path

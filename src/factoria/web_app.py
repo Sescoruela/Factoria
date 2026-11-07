@@ -320,7 +320,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlparse(self.path).path
-        if path in {'/assets/shell-classic.css', '/assets/agents.js', '/assets/skills.js', '/assets/templates.js', '/assets/workflows.js', '/assets/shell-classic.js', '/assets/agents.css', '/assets/shell-main.js', '/assets/resources.js', '/assets/shell-common.js', '/assets/relations.js', '/assets/shell-main.css'}:
+        if path in {'/assets/shell-classic.css', '/assets/configuration.js', '/assets/agents.js', '/assets/skills.js', '/assets/templates.js', '/assets/workflows.js', '/assets/shell-classic.js', '/assets/agents.css', '/assets/shell-main.js', '/assets/resources.js', '/assets/shell-common.js', '/assets/relations.js', '/assets/shell-main.css'}:
             body = files('factoria.web').joinpath(path.rsplit('/', 1)[-1]).read_bytes()
             self.send_response(HTTPStatus.OK)
             self.send_header('Content-Type', ('text/css' if path.endswith('.css') else 'application/javascript') + '; charset=utf-8')
@@ -371,6 +371,16 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             handle_editor_post(self)
             return
         try:
+            if path in {'/api/config/status', '/api/config/preview', '/api/config/apply'}:
+                if not 0 <= int(self.headers.get('Content-Length', '0')) <= 16384: raise ValueError('Solicitud demasiado grande')
+                data=self._body(); project=_selected_project(UiWorkspaceSettings.load())
+                if project is None or data.get('project_path') != str(project):
+                    self._json({'error': 'El proyecto cambió; volver a revisar'}, 409); return
+                from factoria.application.config_recovery import config_status, preview_config, apply_config
+                result = (config_status(project) if path.endswith('/status') else
+                          apply_config(project, data.get('action'), identifier=data.get('backup_id'), token=data.get('token'), confirmed=data.get('confirmed') is True) if path.endswith('/apply') else
+                          preview_config(project, data.get('action'), data.get('backup_id')))
+                self._json({'ok': True, **result}); return
             if path=='/api/project/relations':
                 if not 0<=int(self.headers.get('Content-Length','0'))<=16384:raise ValueError('Solicitud demasiado grande')
                 data=self._body();project=_selected_project(UiWorkspaceSettings.load())

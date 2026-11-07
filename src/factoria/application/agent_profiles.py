@@ -109,6 +109,8 @@ def validate_agent_profile(profile: AgentRoleProfile) -> AgentRoleProfile:
 
 
 def load_agent_profiles(project_root: Path | None) -> tuple[AgentRoleProfile, ...]:
+    from factoria.application.config_schema import schema_version
+    if project_root is not None: schema_version(project_root)
     defaults = {item.role: item for item in default_agent_profiles()}
     if project_root is None:
         return tuple(defaults.values())
@@ -166,6 +168,8 @@ def save_agent_profile(project_root: Path, profile: AgentRoleProfile, *, expecte
 
 
 def _save_agent_profile(project_root: Path, profile: AgentRoleProfile, *, expected_revision: str | None, mode: str) -> Path:
+    from factoria.application.config_schema import assert_config_writable
+    if project_root is not None: assert_config_writable(project_root)
     from factoria.application.governance import ExecutionGovernor, GovernedAction
     from factoria.application.policy_runtime import build_execution_context
     from factoria.application.project_integration import project_path

@@ -104,6 +104,8 @@ def decode_skill_text(text: str, filename: str) -> SkillDefinition | None:
 
 
 def skill_catalog_snapshot(root: Path | None) -> tuple[tuple[SkillDefinition, ...], str, tuple[str, ...]]:
+    from factoria.application.config_schema import schema_version
+    if root is not None: schema_version(root)
     with _LOCK:
         revision = skill_catalog_revision(root)
         skills, foreign = [], []
@@ -122,6 +124,8 @@ def skill_catalog_snapshot(root: Path | None) -> tuple[tuple[SkillDefinition, ..
 
 
 def save_skill(root: Path, skill: SkillDefinition, *, expected_revision: str, create: bool = False) -> Path:
+    from factoria.application.config_schema import assert_config_writable
+    if root is not None: assert_config_writable(root)
     from factoria.application.governance import ExecutionGovernor, GovernedAction
     from factoria.application.policy_runtime import build_execution_context
     from factoria.application.project_integration import project_path
@@ -135,6 +139,7 @@ def save_skill(root: Path, skill: SkillDefinition, *, expected_revision: str, cr
            for value in (skill.name, skill.description, skill.content)):
         raise ValueError('Posible secreto en la skill; no se guarda')
     with _LOCK:
+        assert_config_writable(root)
         assert_not_archived(root, 'skill', checked.id)
         revision = skill_catalog_revision(root)
         if revision != expected_revision:

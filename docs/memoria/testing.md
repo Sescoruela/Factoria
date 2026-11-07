@@ -1,5 +1,14 @@
-<!-- factoria-memory: type=active | reviewed_commit=999bb373751a8cc7445dfe5ad5381809d2517028 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=e06933195e3231bebacbe25aacaf19f529dc2164 | date=2026-11-07 | factoria=0.3.0 -->
 # Verificación y pruebas
+
+## H13 · Configuración y recuperación
+
+07/11/2026: 398 unittest correctos (16 H13) y 25/25 Chromium locales. Incluye
+esquemas incompatibles, previews/tokens, límites/secretos/symlinks, fallos de
+escritura/proceso, reintento, cambios externos, concurrencia y una snapshot nativa
+real conservada. Dos recorridos web migran/copían/restauran. No hay CI remoto,
+Windows o proveedores nuevos. [Guía y límites](../configuration-recovery.md);
+[resumen con hashes](../acceptance/h13-local-evidence.json).
 
 ## H12 · Frontend
 

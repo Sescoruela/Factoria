@@ -22,6 +22,13 @@ def run_project_cli(argv: list[str]) -> int:
     project.add_parser('check', help='Check freshness and ownership without calling an LLM')
     project.add_parser('workflows', help='List configured workflow identifiers and base types')
     project.add_parser('relations',help='Read-only workflow, stage, agent and skill relationships')
+    configuration = project.add_parser('config', help='Inspect, migrate and recover saved configuration').add_subparsers(dest='config_action', required=True)
+    configuration.add_parser('status')
+    for action in ('migrate', 'snapshot', 'restore'):
+        command = configuration.add_parser(action)
+        if action == 'restore': command.add_argument('backup_id')
+        command.add_argument('--yes', action='store_true')
+        command.add_argument('--token', help='Token returned by the reviewed preview')
     resources = project.add_parser('resources', help='Duplicate, archive or restore project resources').add_subparsers(dest='resource_action')
     resources.add_parser('list')
     for operation in ('duplicate','archive','restore'):
@@ -72,6 +79,14 @@ def run_project_cli(argv: list[str]) -> int:
         if args.read_only and not (args.command == 'project' and (args.action in {'check', 'workflows'} or not getattr(args, 'yes', False))) and not (args.command == 'native' and args.action == 'status'):
             raise PermissionError('Modo solo lectura: operación bloqueada')
         if args.command == 'project':
+            if args.action == 'config':
+                from factoria.application.config_recovery import config_status, preview_config, apply_config
+                action = args.config_action
+                result = (config_status(root) if action == 'status' else
+                          apply_config(root, action, identifier=getattr(args, 'backup_id', None), token=args.token, confirmed=True) if args.yes else
+                          preview_config(root, action, getattr(args, 'backup_id', None)))
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+                return 1 if result.get('conflicts') or result.get('error') else 0
             if args.action=='relations':
                 from factoria.application.project_relations import project_relations
                 result=project_relations(root)

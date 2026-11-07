@@ -2,6 +2,8 @@
 
 ## 0.3.0 — Preparación, sin release publicada
 
+- H13: esquema 1 explícito, migración revisada de catálogos legacy, checkpoints locales y restauración con integridad, journal pendiente y bloqueo de ediciones tras interrupciones. Web y CLI, sin migraciones automáticas.
+
 - H12: assets JS/CSS, sesión/API y composición de estado compartidos; interfaz principal definida y borradores de agentes respetados en paneles auxiliares.
 
 - Smoke de navegador real con 22 casos y workflow de informes/trazas (H11; CI pendiente con Actions deshabilitado). Conservación de autenticación al recargar, catálogos tras guardar workflows y borradores de agente ante cambios externos de proyecto.
