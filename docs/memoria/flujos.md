@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=59ac469a2145faddac857b669c4aa0bfa5fef149 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=ca9c7f10802c565080a8edb996f404505926ae71 | date=2026-11-07 | factoria=0.3.0 -->
 # Flujos
 
 ## memoria-init y memoria-update

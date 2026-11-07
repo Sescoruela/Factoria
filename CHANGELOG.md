@@ -2,6 +2,8 @@
 
 ## 0.3.0 — Preparación, sin release publicada
 
+- Interfaz clara con navegación por tareas, resumen del proyecto, formularios de agentes/skills en dos columnas, menú móvil y conexiones del diagrama alineadas. Los enlaces a editores conservan el destino al retirar el token de la URL.
+
 - Refactor transversal: formato consistente, contratos neutros de rutas y persistencia, recursos compartidos, separación CLI/API, límites de capas y consulta común de borradores.
 
 - H13: esquema 1 explícito, migración revisada de catálogos legacy, checkpoints locales y restauración con integridad, journal pendiente y bloqueo de ediciones tras interrupciones. Web y CLI, sin migraciones automáticas.

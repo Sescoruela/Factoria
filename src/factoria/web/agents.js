@@ -36,7 +36,7 @@
     s.id = 'agentRoles';
     s.className = 'section';
     s.innerHTML =
-      '<div class="concept-note"><strong>Agentes de Factoria</strong><div class="muted">Crea especialistas a partir de Explorer, Planner, Implementer, Reviewer o Documenter. Codex y OpenCode son las plataformas que los ejecutan. Los agentes propios se pueden asignar a etapas compatibles en el diseñador de flujo. Prepara la integración tras guardar.</div></div><div class="actions"><button class="primary" id="newAgentButton" onclick="newAgentRole()">Crear agente</button></div><p id="agentEditorStatus" role="status" aria-live="polite"></p><div id="agentRoleList" class="agent-grid"></div><div id="agentRoleEditor"></div>';
+      '<div class="concept-note"><strong>Agentes de Factoria</strong><div class="muted">Define las instrucciones y skills de cada especialista. Después podrás asignarlo a una etapa y preparar el proyecto para Codex u OpenCode.</div></div><div class="actions"><button class="primary" id="newAgentButton" onclick="newAgentRole()">Crear agente</button></div><p id="agentEditorStatus" role="status" aria-live="polite"></p><div id="agentRoleList" class="agent-grid"></div><div id="agentRoleEditor"></div>';
     document.querySelector('main.main').appendChild(s);
   }
   function openAgentRoles(button) {
@@ -90,9 +90,12 @@
     el.innerHTML = items
       .map(
         (a) =>
-          `<div class="agent-editor"><h3>${esc(a.name || roleLabels[a.role] || a.role)}</h3><div class="role-note">${esc(a.role)} · ${esc(roleLabels[a.base_role || a.role] || '')}</div><p>${esc(a.description || roleNotes[a.base_role || a.role] || '')}</p><button class="secondary" onclick="editAgentRole('${a.role}')">Modificar</button></div>`,
+          `<div class="agent-editor" data-resource-id="${esc(a.role)}"><h3>${esc(a.name || roleLabels[a.role] || a.role)}</h3><div class="role-note">${esc(a.role)} · ${esc(roleLabels[a.base_role || a.role] || '')}</div><p>${esc(a.description || roleNotes[a.base_role || a.role] || '')}</p><button class="secondary" onclick="editAgentRole('${a.role}')">Modificar</button></div>`,
       )
       .join('');
+    if (!agentDraft)
+      document.getElementById('agentRoleEditor').innerHTML =
+        '<div class="editor-placeholder"><h3>Selecciona un agente</h3><p>Abre uno de la lista para revisar sus instrucciones y skills, o crea un especialista nuevo.</p></div>';
     if (agentDraft) {
       const current = items.find((a) => a.role === agentDraft.role);
       if (current) {
@@ -139,6 +142,9 @@
   };
   function renderAgentEditor() {
     const a = agentDraft;
+    document
+      .querySelectorAll('#agentRoleList [data-resource-id]')
+      .forEach((item) => item.classList.toggle('selected', item.dataset.resourceId === a?.role));
     if (!a) return;
     const base = a.base_role || a.role;
     const fixed = !!roleLabels[a.role] && !agentCreating;
@@ -152,7 +158,7 @@
         )
         .join(
           '',
-        )}</select></label><label>Perfil de modelo<select id="agent-profile">${['rapido', 'equilibrado', 'potente'].map((v) => `<option value="${v}" ${a.profile === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label><label>Plataforma preferida<select id="agent-platform"><option value="" ${!a.platform ? 'selected' : ''}>Predeterminada</option><option value="codex" ${a.platform === 'codex' ? 'selected' : ''}>Codex</option><option value="opencode" ${a.platform === 'opencode' ? 'selected' : ''}>OpenCode</option></select></label><label>Instrucciones del agente<textarea id="agent-instructions" rows="8" maxlength="20000">${esc(a.instructions || '')}</textarea></label><label>Añadir skill del catálogo<select id="agentSkillPicker" onchange="assignCatalogSkill(this.value);this.value=''"><option value="">Selecciona una skill…</option>${(state.skills || []).map((skill) => `<option value="${esc(skill.path)}">${esc(skill.name)}</option>`).join('')}</select></label><label>Skills existentes · una ruta Markdown relativa por línea<textarea id="agent-skills" rows="3">${esc((a.skills || []).join('\n'))}</textarea></label><div class="actions"><button class="primary" id="saveAgentButton" onclick="saveAgentRole()">Guardar agente</button><button class="secondary" onclick="discardAgentRole()">Descartar / recargar</button></div><p class="muted">Tras guardar, prepara la integración para actualizar las dos herramientas. Los flujos ya iniciados conservan su snapshot.</p></fieldset></div>`;
+        )}</select></label><label>Perfil de modelo<select id="agent-profile">${['rapido', 'equilibrado', 'potente'].map((v) => `<option value="${v}" ${a.profile === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label><label>Plataforma preferida<select id="agent-platform"><option value="" ${!a.platform ? 'selected' : ''}>Predeterminada</option><option value="codex" ${a.platform === 'codex' ? 'selected' : ''}>Codex</option><option value="opencode" ${a.platform === 'opencode' ? 'selected' : ''}>OpenCode</option></select></label><label>Instrucciones del agente<textarea id="agent-instructions" rows="6" maxlength="20000">${esc(a.instructions || '')}</textarea></label><label>Añadir skill del catálogo<select id="agentSkillPicker" onchange="assignCatalogSkill(this.value);this.value=''"><option value="">Selecciona una skill…</option>${(state.skills || []).map((skill) => `<option value="${esc(skill.path)}">${esc(skill.name)}</option>`).join('')}</select></label><label>Skills existentes · una ruta Markdown relativa por línea<textarea id="agent-skills" rows="3">${esc((a.skills || []).join('\n'))}</textarea></label><div class="actions"><button class="primary" id="saveAgentButton" onclick="saveAgentRole()">Guardar agente</button><button class="secondary" onclick="discardAgentRole()">Descartar / recargar</button></div><p class="muted">Tras guardar, prepara la integración para actualizar las dos herramientas. Los flujos ya iniciados conservan su snapshot.</p></fieldset></div>`;
   }
   window.discardAgentRole = async function () {
     if (!canLeaveAgent()) return;
@@ -352,7 +358,7 @@
             )
             .join(
               '',
-            )}${s.agent_id && !candidates.some((a) => a.role === s.agent_id && (a.base_role || a.role) === s.role) ? `<option selected value="${esc(s.agent_id)}">${esc(s.agent_id)} · no disponible</option>` : ''}</select><label class="label">Perfil de modelo</label><select onclick="event.stopPropagation()" onchange="setNodeProfile(${i},this.value)"><option value="" ${!s.profile ? 'selected' : ''}>Usar agente</option><option value="rapido" ${s.profile === 'rapido' ? 'selected' : ''}>Rápido</option><option value="equilibrado" ${s.profile === 'equilibrado' ? 'selected' : ''}>Equilibrado</option><option value="potente" ${s.profile === 'potente' ? 'selected' : ''}>Potente</option></select><label class="label">Plataforma</label><select onclick="event.stopPropagation()" onchange="setNodeTool(${i},this.value)"><option value="" ${!s.tool ? 'selected' : ''}>Usar agente/predeterminada</option><option value="codex" ${s.tool === 'codex' ? 'selected' : ''}>Codex</option><option value="opencode" ${s.tool === 'opencode' ? 'selected' : ''}>OpenCode</option></select>${requiredStep(kind, s.name) ? '<div class="node-lock">🔒 etapa obligatoria</div>' : `<label class="node-toggle" onclick="event.stopPropagation()"><input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleNode(${i},this.checked)"> etapa activa</label>`}<div class="node-meta"><span class="pill">${s.enabled ? 'activa' : 'apagada'}</span></div></div></div>`,
+            )}${s.agent_id && !candidates.some((a) => a.role === s.agent_id && (a.base_role || a.role) === s.role) ? `<option selected value="${esc(s.agent_id)}">${esc(s.agent_id)} · no disponible</option>` : ''}</select><label class="label">Perfil de modelo</label><select onclick="event.stopPropagation()" onchange="setNodeProfile(${i},this.value)"><option value="" ${!s.profile ? 'selected' : ''}>Usar agente</option><option value="rapido" ${s.profile === 'rapido' ? 'selected' : ''}>Rápido</option><option value="equilibrado" ${s.profile === 'equilibrado' ? 'selected' : ''}>Equilibrado</option><option value="potente" ${s.profile === 'potente' ? 'selected' : ''}>Potente</option></select><label class="label">Plataforma</label><select onclick="event.stopPropagation()" onchange="setNodeTool(${i},this.value)"><option value="" ${!s.tool ? 'selected' : ''}>Usar agente/predeterminada</option><option value="codex" ${s.tool === 'codex' ? 'selected' : ''}>Codex</option><option value="opencode" ${s.tool === 'opencode' ? 'selected' : ''}>OpenCode</option></select>${requiredStep(kind, s.name) ? '<div class="node-lock">Etapa obligatoria</div>' : `<label class="node-toggle" onclick="event.stopPropagation()"><input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleNode(${i},this.checked)"> etapa activa</label>`}<div class="node-meta"><span class="pill">${s.enabled ? 'activa' : 'apagada'}</span></div></div></div>`,
       )
       .join('');
     drawConnections();

@@ -1,5 +1,14 @@
-<!-- factoria-memory: type=active | reviewed_commit=59ac469a2145faddac857b669c4aa0bfa5fef149 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=ca9c7f10802c565080a8edb996f404505926ae71 | date=2026-11-07 | factoria=0.3.0 -->
 # Verificación y pruebas
+
+## Interfaz y navegación
+
+07/11/2026: 406 unittest y 31/31 Chromium reales locales correctos. Seis pruebas
+nuevas de resumen, navegación/teclado móvil, viewport, selección inicial, puente
+clásico y conexiones a puertos del diagrama. Inspección de capturas escritorio/móvil
+y sin errores JS de página. Wheel, formato y controladores comprobados. No se
+certifica WCAG completo, Windows o CI remoto; Actions deshabilitado.
+[Capturas y límites](../interface-refresh.md).
 
 ## Refactor transversal
 

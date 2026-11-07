@@ -73,7 +73,7 @@
       state.skills
         .map(
           (s) =>
-            `<div class="agent-editor"><h3>${esc(s.name)}</h3><p>${esc(s.description)}</p><div class="muted">${esc(s.path)}</div><button class="secondary" onclick="editSkill('${s.id}')">Modificar</button></div>`,
+            `<div class="agent-editor" data-resource-id="${esc(s.id)}"><h3>${esc(s.name)}</h3><p>${esc(s.description)}</p><div class="muted">${esc(s.path)}</div><button class="secondary" onclick="editSkill('${s.id}')">Modificar</button></div>`,
         )
         .join('') ||
       '<p class="muted">Todavía no hay skills. Crea la primera para este proyecto.</p>';
@@ -86,6 +86,9 @@
         '. No se sobrescriben desde este editor.';
       list.appendChild(note);
     }
+    if (!skillDraft)
+      document.getElementById('skillEditor').innerHTML =
+        '<div class="editor-placeholder"><h3>Selecciona una skill</h3><p>Abre una de la lista para revisar su contenido, o crea una con las reglas que quieras reutilizar.</p></div>';
     if (skillDraft) {
       const current = state.skills.find((s) => s.id === skillDraft.id);
       if (current) {
@@ -125,6 +128,9 @@
   };
   function renderEditor() {
     const s = skillDraft;
+    document
+      .querySelectorAll('#skillList [data-resource-id]')
+      .forEach((item) => item.classList.toggle('selected', item.dataset.resourceId === s?.id));
     document.getElementById('skillEditor').innerHTML =
       `<div class="agent-editor" style="margin-top:16px"><fieldset id="skillFields" style="border:0;padding:0;margin:0"><h3>${skillCreating ? 'Crear skill' : 'Modificar skill'}</h3><label>Identificador<input id="skillId" maxlength="64" value="${esc(s.id)}" ${skillCreating ? '' : 'disabled'} placeholder="revision-api"></label><label>Nombre<input id="skillName" maxlength="120" value="${esc(s.name)}"></label><label>Descripción<textarea id="skillDescription" rows="2" maxlength="1000">${esc(s.description)}</textarea></label><label>Contenido Markdown<textarea id="skillContent" rows="16" maxlength="100000" spellcheck="false">${esc(s.content)}</textarea></label><div class="actions"><button class="primary" onclick="saveSkill()">Guardar skill</button><button class="secondary" onclick="discardSkill()">Descartar / recargar</button></div><p class="muted">Archivo: .factoria/skills/&lt;identificador&gt;.md. Tras guardar, asigna la skill a un agente y prepara la integración.</p></fieldset></div>`;
   }

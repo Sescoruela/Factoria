@@ -1,7 +1,7 @@
 # Estado verificable de Factoria
 
 Revisión: **07/11/2026**, sobre el código integrado hasta
-`59ac469a2145faddac857b669c4aa0bfa5fef149` y el refactor transversal posterior.
+`ca9c7f10802c565080a8edb996f404505926ae71` y la actualización de interfaz posterior.
 Esta página reúne el estado vigente; los registros fechados conservan su alcance original.
 
 **0.3.0 preparada, sin tag ni release publicada. MVP todavía no aceptado.**
@@ -21,6 +21,7 @@ hasta nuevo aviso. Las modificaciones de workflows no reactivan ese ajuste.
 | Inicio externo | UI/TUI con detección pasiva; el usuario inicia y autentica las herramientas | [Decisión y límites](memoria/decisiones.md) |
 | Distribución | Wheel/sdist, checksums y actualización Python comprobados localmente; binario dirige al instalador | [H06 y límites](release-h06-status.md) |
 | Plantillas H08 | Exportación JSON y preview/import conservador desde ambos shells y CLI; sin memoria/política/preferencias de máquina | [Uso y evidencia](project-templates.md) |
+| Interfaz | Resumen, navegación por tareas, edición legible y menú móvil, con capturas revisadas | [Capturas y comprobaciones](interface-refresh.md) |
 | Refactor transversal | Contratos neutros de rutas/bytes, límites de capas, recursos/CLI/API compartidos y estilo consistente | [Detalle y evidencia](code-refactor.md) |
 | Recuperación H13 | Migración explícita, checkpoints y recuperación de interrupciones con snapshots conservadas | [Guía y evidencia](configuration-recovery.md) |
 | Relaciones H10 | Mapa de configuración guardada, diagnóstico parcial y navegación que conserva borradores | [Uso y evidencia](project-relations.md) |
@@ -37,7 +38,7 @@ agentes de una sesión externa siguen dependiendo de Codex/OpenCode.
 | Tipo | Última evidencia disponible | Qué queda fuera |
 | --- | --- | --- |
 | Pruebas deterministas | Refactor: **406 tests**, Linux/Python 3.12.14, correctos | Autenticación, selección natural y uso por un LLM |
-| Navegador real | H13: **25/25** en Chromium headless local, dos shells, dos pestañas y persistencia real; fallo de control con traza/captura | CI, Windows, otros navegadores y revisión visual/accesibilidad; [H11 #17](https://github.com/Sescoruela/Factoria/issues/17) abierto hasta CI |
+| Navegador real | Interfaz: **31/31** en Chromium headless local, dos shells, dos pestañas y persistencia real; fallo de control con traza/captura | CI, Windows, otros navegadores y auditoría de accesibilidad completa; [H11 #17](https://github.com/Sescoruela/Factoria/issues/17) abierto hasta CI |
 | Host con checkout | Fix y feature de laboratorio completados con agente/skill/workflow propios, aprobaciones y commits locales | Sesión externa independiente, descubrimiento natural y aislamiento de modelos; [evidencia H05](acceptance/h05-status.md) |
 | Codex CLI/OpenCode autenticados | Pendiente de ejecución y registro | No se certifica por los tests, por un CLI presente ni por un manifiesto |
 | Instalación Python | H06: actualización local 0.2.0→0.3.0, dos reaperturas y 37 archivos conservados | Upgrade Windows, todas las versiones históricas y UI visual; [informe](release-h06-smoke.json) |
@@ -47,7 +48,7 @@ agentes de una sesión externa siguen dependiendo de Codex/OpenCode.
 Las cifras tienen fecha y alcance: no son contadores en tiempo real. Para comprobar
 el código actual, ejecutar `python -m unittest discover -s tests` en un entorno instalado.
 H07 reconcilió la documentación; su validación histórica está en [registro H07](h07-documentation-review.md).
-H08/H09/H10 mantienen su evidencia histórica de DOM/API simulados. H11 añade navegador real local, no una auditoría visual; el bloqueo del navegador de H08 no describe la ejecución H11. Versiones, alternativa de Chromium y límites en [guía H11](browser-smoke.md).
+H08/H09/H10 mantienen su evidencia histórica de DOM/API simulados. H11 añadió navegador real local; la entrega visual posterior incluye inspección de capturas, sin auditoría de accesibilidad completa; el bloqueo del navegador de H08 no describe la ejecución H11. Versiones, alternativa de Chromium y límites en [guía H11](browser-smoke.md).
 
 ## Pendientes y decisiones
 

@@ -1,0 +1,953 @@
+/* Shared visual language: quiet surfaces, readable forms and task-based navigation. */
+:root {
+  font-family:
+    'Segoe UI',
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color-scheme: light;
+  color: #28332c;
+  background: #f7f7f2;
+  --surface: #ffffff;
+  --canvas: #f7f7f2;
+  --ink: #28332c;
+  --muted: #667168;
+  --line: #dce1d9;
+  --accent: #285942;
+  --soft: #eef2eb;
+}
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.app {
+  grid-template-columns: 224px minmax(0, 1fr);
+}
+.sidebar {
+  background: #f0f2eb;
+  border-right: 1px solid var(--line);
+  padding: 28px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow: auto;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 8px 14px;
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.5px;
+}
+.brand-mark {
+  width: 31px;
+  height: 33px;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: white;
+  border-radius: 5px;
+  font-size: 21px;
+  font-weight: 600;
+}
+.brand small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-top: 0;
+}
+.nav {
+  display: block;
+  flex: 1;
+}
+.nav-group {
+  margin-bottom: 20px;
+}
+.nav-group-label {
+  display: block;
+  padding: 0 11px;
+  margin-bottom: 7px;
+  color: #687366;
+  font-size: 11px;
+  font-weight: 600;
+}
+.nav button {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: #5b675d;
+  padding: 8px 11px;
+  margin: 2px 0;
+  min-height: 36px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 450;
+}
+.nav button svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  stroke: currentColor;
+}
+.nav button:hover {
+  background: #e6ebe1;
+  color: var(--ink);
+}
+.nav button.active {
+  background: #dfe9dd;
+  color: #234f39;
+  font-weight: 650;
+}
+.sidebar-note {
+  margin: 0 10px;
+  font-size: 11px;
+  color: var(--muted);
+  max-width: 165px;
+}
+.nav-toggle {
+  display: none;
+}
+.main {
+  padding: 34px clamp(24px, 4vw, 64px) 56px;
+  max-width: 1420px;
+  width: 100%;
+  margin: 0 auto;
+}
+.top {
+  align-items: flex-start;
+  margin-bottom: 30px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+}
+.top h1 {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.65px;
+}
+#subtitle {
+  margin-top: 7px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+h2 {
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0 0 10px;
+  letter-spacing: -0.4px;
+}
+h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+p {
+  margin: 0 0 14px;
+}
+.muted,
+.agent-editor .role-note {
+  color: var(--muted);
+}
+.label {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+.value {
+  font-size: 19px;
+  font-weight: 600;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 24px;
+  box-shadow: none;
+}
+.card p {
+  color: var(--muted);
+  max-width: 78ch;
+}
+.grid {
+  gap: 20px;
+}
+button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  background: white;
+  color: var(--ink);
+  border: 1px solid #ccd5ca;
+  border-radius: 5px;
+  padding: 9px 14px;
+  cursor: pointer;
+}
+button.primary {
+  color: #fff;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 550;
+  padding: 9px 15px;
+}
+button.secondary {
+  background: white;
+  color: #405344;
+  border: 1px solid #ccd5ca;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 9px 14px;
+}
+button:not(:disabled):hover {
+  border-color: #789480;
+  background: #f0f4ec;
+}
+button.primary:not(:disabled):hover {
+  background: #1c4833;
+  color: white;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+:focus-visible {
+  outline: 2px solid #32794c;
+  outline-offset: 3px;
+}
+input,
+select,
+textarea {
+  font: inherit;
+  font-size: 14px;
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid #cdd6ca;
+  border-radius: 5px;
+  padding: 10px 11px;
+  margin-top: 7px;
+  min-width: 0;
+}
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: #f1f3ee;
+  color: #626f62;
+}
+textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+label,
+.agent-editor label {
+  display: block;
+  color: #526151;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 14px;
+}
+#skillContent,
+#agent-instructions,
+#templateText,
+pre {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 13px;
+}
+.actions {
+  gap: 10px;
+  margin-top: 16px;
+}
+.row {
+  gap: 12px;
+}
+.pill {
+  background: #eef1eb;
+  color: #5c6b5e;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 7px;
+}
+.ok,
+.pill.ok {
+  background: #e7f0e4;
+  color: #38613b;
+}
+.warn,
+.pill.warn {
+  background: #f6eedb;
+  color: #826027;
+}
+.bad,
+.pill.bad {
+  background: #f8e8e1;
+  color: #913d2c;
+}
+.list {
+  gap: 0;
+}
+.item {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 10px;
+}
+.item strong {
+  font-weight: 600;
+}
+.item .muted {
+  margin: 4px 0 10px;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.concept-note {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0 18px;
+  margin-bottom: 18px;
+}
+.concept-note strong {
+  display: block;
+  font-size: 21px;
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  margin-bottom: 6px;
+}
+.concept-note p,
+.concept-note .muted {
+  max-width: 75ch;
+  font-size: 13px;
+  line-height: 1.6;
+}
+#skills.active,
+#agentRoles.active {
+  display: grid;
+  grid-template-columns: minmax(225px, 0.8fr) minmax(0, 1.7fr);
+  gap: 18px 24px;
+  align-items: start;
+}
+#skills > .concept-note,
+#agentRoles > .concept-note,
+#agentRoles > .actions,
+#newSkillButton,
+#skillStatus,
+#agentEditorStatus {
+  grid-column: 1 / -1;
+}
+#agentRoles > .actions {
+  margin: 0;
+}
+#newSkillButton {
+  justify-self: start;
+}
+#skillList,
+#agentRoleList {
+  grid-column: 1;
+  grid-row: 4;
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  overflow: hidden;
+}
+#skillEditor,
+#agentRoleEditor {
+  grid-column: 2;
+  grid-row: 4;
+  min-width: 0;
+}
+.agent-editor {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 20px;
+}
+#skillList > .agent-editor,
+#agentRoleList > .agent-editor {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 16px;
+}
+#skillList > .agent-editor:last-child,
+#agentRoleList > .agent-editor:last-child {
+  border-bottom: 0;
+}
+#skillList h3,
+#agentRoleList h3 {
+  font-size: 14px;
+}
+#skillList p,
+#agentRoleList p {
+  font-size: 12px;
+  color: var(--muted);
+}
+#skillList button,
+#agentRoleList button {
+  margin-top: 8px;
+  font-size: 12px;
+  padding: 5px 10px;
+}
+#skillEditor .agent-editor,
+#agentRoleEditor .agent-editor {
+  margin-top: 0 !important;
+}
+#skillStatus,
+#agentEditorStatus {
+  font-size: 12px;
+  color: #4d6550;
+  margin: 0;
+}
+#dashboardGrid {
+  display: block;
+}
+.project-overview {
+  padding: 2px 0 26px;
+  margin-bottom: 26px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.project-overview h2 {
+  font-size: 34px;
+  font-weight: 550;
+  letter-spacing: -1.1px;
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+.project-context {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+.branch-name {
+  color: #536452;
+  font-family: ui-monospace, Consolas, monospace;
+  padding-right: 12px;
+  border-right: 1px solid #d0d9ce;
+}
+.overview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(240px, 1fr);
+  gap: 32px;
+}
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  gap: 10px;
+}
+.section-heading h3 {
+  margin: 0;
+}
+.section-heading span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.workflow-list {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  overflow: hidden;
+  background: white;
+}
+.workflow-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  padding: 20px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  font-weight: 400;
+}
+.workflow-row:last-child {
+  border-bottom: 0;
+}
+.workflow-row strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+.workflow-row small {
+  display: block;
+  color: var(--muted);
+  margin-top: 3px;
+  font-size: 12px;
+}
+.workflow-number {
+  display: grid;
+  place-items: center;
+  width: 33px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid #dae2d6;
+  border-radius: 5px;
+  font:
+    12px ui-monospace,
+    Consolas,
+    monospace;
+  color: #547056;
+  background: #f4f7f0;
+}
+.workflow-arrow {
+  margin-left: auto;
+  color: #71816f;
+  font-size: 18px;
+}
+.project-resources {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.project-resources button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.readiness {
+  border-left: 1px solid var(--line);
+  padding-left: 28px;
+}
+.readiness h3 {
+  margin-bottom: 7px;
+}
+.readiness > p {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+.readiness-item {
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.readiness-item strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 550;
+  margin-bottom: 3px;
+}
+.readiness-item p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.readiness-item button {
+  margin-top: 10px;
+}
+.empty-workspace {
+  padding: 42px;
+  max-width: 680px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 7px;
+}
+.empty-workspace p {
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+.canvas-toolbar {
+  align-items: center;
+}
+.canvas-toolbar .actions {
+  margin: 0;
+}
+.canvas-toolbar select {
+  margin-top: 0;
+}
+.canvas-shell {
+  background: #f1f4ec;
+  border-color: #d7dfd2;
+  border-radius: 7px;
+  height: 500px;
+}
+.canvas-grid {
+  background-image: radial-gradient(#cdd7c7 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.node {
+  background: #fff;
+  border-color: #cbd7c6;
+  border-radius: 6px;
+  box-shadow: 0 3px 9px #26331c09;
+}
+.node-header {
+  border-bottom-color: #e0e6dc;
+  gap: 10px;
+  padding: 14px;
+}
+.node-icon {
+  background: #eef3e9;
+  color: #4e6a4d;
+  font-family: ui-monospace, Consolas, monospace;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.node-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+.node-body {
+  padding: 12px;
+}
+.node-body select {
+  font-size: 12px;
+  padding: 7px;
+}
+.node-body .label {
+  font-size: 11px;
+}
+.connections path {
+  stroke: #91a58a;
+  stroke-width: 1.5;
+}
+.port {
+  background: #8fa287;
+  border-color: #f1f4ec;
+}
+.node-lock,
+.lock,
+.unsaved {
+  color: #806232;
+  font-size: 11px;
+}
+.node-toggle {
+  color: var(--muted);
+}
+.workflow-note,
+.flow-note {
+  background: transparent;
+  border: 0;
+  padding: 0 0 18px;
+  color: #52624f;
+  font-size: 12px;
+}
+.workflow-note strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.snapshot-note {
+  color: var(--muted);
+  font-size: 11px;
+}
+.legend {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.dot {
+  background: #64805a;
+  width: 6px;
+  height: 6px;
+}
+.dot.optional {
+  background: #aab8a3;
+}
+.workflow-metadata .grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.workflow-metadata .grid > label {
+  grid-column: auto;
+}
+.workflow-metadata p {
+  font-size: 11px;
+  margin-top: 14px;
+  margin-bottom: 0;
+}
+.flow-card,
+.flow-step {
+  background: white;
+  color: var(--ink);
+  border-color: var(--line);
+}
+pre {
+  background: #f1f4ed;
+  border-color: var(--line);
+  border-radius: 5px;
+  color: #44543e;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+pre:empty {
+  display: none;
+}
+summary {
+  cursor: pointer;
+  color: #54644e;
+  font-size: 12px;
+  margin: 12px 0;
+}
+table {
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+}
+th {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+}
+td {
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+td button.secondary {
+  font-size: 11px;
+  padding: 5px 7px;
+}
+.toast {
+  background: #fff;
+  border-color: #b7c8b0;
+  color: var(--ink);
+  box-shadow: 0 4px 16px #26331c0a;
+  border-radius: 6px;
+  max-width: min(440px, calc(100vw - 32px));
+  font-size: 13px;
+}
+@media (max-width: 1100px) {
+  .main {
+    padding: 28px;
+  }
+  .project-overview {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .overview-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .readiness {
+    border-left: 0;
+    padding-left: 0;
+    margin-top: 8px;
+  }
+}
+@media (max-width: 800px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sidebar {
+    position: relative;
+    height: auto;
+    padding: 15px 20px;
+    gap: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand {
+    margin: 0;
+    padding-right: 80px;
+  }
+  .brand small {
+    display: none;
+  }
+  .brand-mark {
+    width: 27px;
+    height: 29px;
+  }
+  .nav-toggle {
+    display: block;
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    padding: 6px 12px;
+    background: transparent;
+  }
+  .sidebar .nav {
+    display: none;
+    overflow: visible;
+    margin-top: 24px;
+  }
+  .sidebar.menu-open .nav {
+    display: block;
+  }
+  .nav button {
+    width: 100%;
+    white-space: normal;
+  }
+  .sidebar-note {
+    display: none;
+  }
+  .main {
+    padding: 24px 20px 40px;
+  }
+  .top {
+    margin-bottom: 24px;
+    gap: 14px;
+  }
+  .top h1 {
+    font-size: 23px;
+  }
+  .top > div {
+    min-width: 0;
+  }
+  .top > button {
+    flex-shrink: 0;
+  }
+  #subtitle {
+    font-size: 11px;
+  }
+  .project-overview h2 {
+    font-size: 28px;
+  }
+  .project-overview .actions {
+    margin: 0;
+  }
+  .overview-layout {
+    gap: 28px;
+  }
+  .card,
+  .card.wide {
+    grid-column: 1 / -1;
+    padding: 20px;
+  }
+  #skills.active,
+  #agentRoles.active {
+    display: block;
+  }
+  #newSkillButton,
+  #skillStatus,
+  #agentEditorStatus,
+  #agentRoles > .actions {
+    margin-bottom: 16px;
+  }
+  #skillEditor,
+  #agentRoleEditor {
+    margin-top: 18px;
+  }
+  .workflow-metadata .grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .canvas-toolbar {
+    display: block;
+  }
+  .canvas-toolbar .actions {
+    justify-content: flex-start;
+    margin-top: 16px;
+  }
+  .canvas-toolbar select {
+    width: 100% !important;
+  }
+  .empty-workspace {
+    padding: 26px;
+  }
+  .row {
+    align-items: stretch;
+  }
+  .row > * {
+    flex-basis: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
+
+#agent-fields,
+#skillFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+#agent-fields > h3,
+#agent-fields > label:nth-of-type(3),
+#agent-fields > label:nth-of-type(n + 6),
+#agent-fields > .actions,
+#agent-fields > p,
+#skillFields > h3,
+#skillFields > label:nth-of-type(n + 3),
+#skillFields > .actions,
+#skillFields > p {
+  grid-column: 1 / -1;
+}
+.skip-link {
+  position: fixed;
+  top: -60px;
+  left: 20px;
+  padding: 10px 16px;
+  background: white;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  z-index: 100;
+}
+.skip-link:focus {
+  top: 12px;
+}
+@media (max-width: 800px) {
+  #agent-fields,
+  #skillFields {
+    display: block;
+  }
+}
+
+.editor-placeholder {
+  padding: 32px;
+  min-height: 240px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+}
+.editor-placeholder p {
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 46ch;
+}
+#skillList > .selected,
+#agentRoleList > .selected {
+  background: #f0f5ec;
+  border-left: 3px solid var(--accent);
+  padding-left: 13px;
+}
+
+.workflow-metadata details {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 4px;
+}
+.workflow-metadata details > summary {
+  font-size: 12px;
+  color: #52624f;
+  margin-bottom: 0;
+}
+.workflow-metadata details[open] > summary {
+  margin-bottom: 8px;
+}

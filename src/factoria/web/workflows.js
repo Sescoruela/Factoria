@@ -8,7 +8,10 @@
     const chosen = preferred || select.value || 'feature';
     const templateId = template.value || 'feature';
     const options = Object.entries(catalog)
-      .map(([id, p]) => `<option value="${esc(id)}">${esc(p.name || id)} · ${esc(id)}</option>`)
+      .map(
+        ([id, p]) =>
+          `<option value="${esc(id)}">${esc(p.name && p.name !== id ? p.name : id === 'feature' ? 'Nueva funcionalidad' : id === 'fix' ? 'Corregir un problema' : id)} · ${esc(id)}</option>`,
+      )
       .join('');
     select.innerHTML =
       options +
@@ -29,6 +32,8 @@
       !!catalog[template.value]?.error;
   };
   window.loadWorkflowMetadata = function (source) {
+    const details = document.getElementById('workflowDetails');
+    if (details) details.open = !!source.id;
     document.getElementById('workflowId').value = source.id || source.kind;
     document.getElementById('workflowId').disabled = true;
     document.getElementById('workflowName').value = source.name || source.kind;
@@ -49,6 +54,8 @@
     if (!source?.revision || source.error)
       return toast('Recarga el catálogo antes de crear un workflow');
     workflowCreating = true;
+    const details = document.getElementById('workflowDetails');
+    if (details) details.open = true;
     workflowOriginId = identifier;
     workflowProject = state.selected_project.path;
     workflowRevision = source.revision;

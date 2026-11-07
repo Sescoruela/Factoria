@@ -300,3 +300,76 @@ for(const shell of ['main','classic']) {
     await expect(page.locator('#agent-instructions')).toHaveValue('Instrucciones iniciales');
   });
 }
+
+// Presentation checks use real navigation and saved state, including the classic bridge.
+test('overview lists actual resources and opens the selected workflow', async ({page,lab})=>{
+  await open(page,lab,'main');
+  await create(page,'skill');await create(page,'agent');await create(page,'workflow');
+  await nav(page,'dashboard');
+  await expect(page.locator('#title')).toHaveText('Resumen');
+  await expect(page.locator('#dashboardGrid .workflow-row')).toHaveCount(3);
+  await expect(page.locator('#dashboardGrid')).toContainText('1 skill');
+  await page.locator('.workflow-row').filter({hasText:'Workflow inicial'}).click();
+  await expect(page.locator('#designer')).toHaveClass(/active/);
+  await expect(page.locator('#workflowKind')).toHaveValue('browser-feature');
+  await expect(page.locator('.nav [data-page="designer"]')).toHaveAttribute('aria-current','page');
+});
+
+test('mobile menu supports keyboard navigation and projects fit the viewport', async ({page,lab})=>{
+  await page.setViewportSize({width:390,height:844});
+  await open(page,lab,'main');
+  const menu=page.locator('#navToggle');
+  await expect(menu).toHaveAttribute('aria-expanded','false');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link',{name:'Ir al contenido'})).toBeFocused();
+  await menu.focus();await page.keyboard.press('Enter');
+  await expect(menu).toHaveAttribute('aria-expanded','true');
+  await page.getByRole('navigation',{name:'Navegación principal'}).getByRole('button',{name:'Proyectos',exact:true}).click();
+  await expect(page.locator('#projects')).toHaveClass(/active/);
+  await expect(menu).toHaveAttribute('aria-expanded','false');
+  await expect(page.locator('main')).toBeFocused();
+  await expect(page.getByRole('textbox',{name:'Nombre del nuevo proyecto'})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+});
+
+test('mobile workflow editing keeps horizontal scrolling inside its canvas', async ({page,lab})=>{
+  await page.setViewportSize({width:390,height:844});await open(page,lab,'main');
+  await page.locator('#navToggle').click();await create(page,'workflow');
+  await expect(page.locator('#workflowName')).toHaveValue('Workflow inicial');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+  expect(await page.locator('#workflowCanvas').evaluate(el=>el.scrollWidth>el.clientWidth)).toBeTruthy();
+});
+
+test('empty workspace offers project selection without claiming resources', async ({page,request,lab})=>{
+  const response=await request.post(lab.url+'/__test__/reset',{headers:{'X-Factoria-Token':token},data:{selected:false}});
+  const empty=await response.json();
+  await page.goto(empty.url+'/?token='+token);
+  await expect(page.getByRole('heading',{name:'¿En qué vas a trabajar?'})).toBeVisible();
+  await expect(page.locator('#dashboardGrid .workflow-row')).toHaveCount(0);
+  await page.getByRole('button',{name:'Elegir proyecto',exact:true}).click();
+  await page.locator('#projectList .item').filter({hasText:empty.project}).getByRole('button',{name:'Abrir',exact:true}).click();
+  await nav(page,'dashboard');await expect(page.locator('#dashboardGrid .workflow-row')).toHaveCount(2);
+});
+
+test('classic overview opens the full skill editor in the same authenticated server', async ({page,lab})=>{
+  await open(page,lab,'classic',true);
+  await page.locator('#dashboardGrid [data-open-page="skills"]').click();
+  await page.waitForURL('**/editors*');
+  await expect(page.locator('#skills')).toHaveClass(/active/);
+  await expect(page.locator('#subtitle')).toContainText(lab.project);
+  await expect(page.locator('#newSkillButton')).toBeEnabled();
+});
+
+test('workflow connections meet the visible node ports after resizing the layout', async ({page,lab})=>{
+  await open(page,lab,'main');await nav(page,'designer');
+  await expect(page.locator('#workflowDetails')).not.toHaveAttribute('open','');
+  const path=page.locator('#connections path').first();await expect(path).toBeAttached();
+  const geometry=await page.locator('#canvasInner').evaluate(inner=>{
+    const origin=inner.getBoundingClientRect();const source=inner.querySelector('.node .port.out').getBoundingClientRect();
+    const target=inner.querySelectorAll('.node .port.in')[1].getBoundingClientRect();
+    const numbers=inner.querySelector('#connections path').getAttribute('d').match(/-?\d+(?:\.\d+)?/g).map(Number);
+    return {sourceY:source.y+source.height/2-origin.y,targetY:target.y+target.height/2-origin.y,lineSourceY:numbers[1],lineTargetY:numbers.at(-1)};
+  });
+  expect(Math.abs(geometry.sourceY-geometry.lineSourceY)).toBeLessThan(2);
+  expect(Math.abs(geometry.targetY-geometry.lineTargetY)).toBeLessThan(2);
+});

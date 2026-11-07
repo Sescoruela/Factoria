@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=59ac469a2145faddac857b669c4aa0bfa5fef149 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=ca9c7f10802c565080a8edb996f404505926ae71 | date=2026-11-07 | factoria=0.3.0 -->
 # Arquitectura
 
 ## Objetivo
@@ -65,3 +65,7 @@ esquemas vive en config; el gate de escrituras/recuperación, en application.
 de plantillas. CLI separa parser/acciones; `web_project_api.py` separa recursos del
 transporte del servidor y ambos shells comparten el arranque. El frontend consulta
 borradores en `editor-state.js`. [Estructura completa](../code-refactor.md).
+
+La presentación común `web/interface.css/js` organiza navegación/estados del resumen
+sin escribir configuración. Los mismos paneles y servicios gobiernan la edición.
+El hash de navegación se conserva al retirar el token de URL. [Interfaz](../interface-refresh.md).

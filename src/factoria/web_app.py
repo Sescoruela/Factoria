@@ -342,6 +342,8 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             "/assets/shell-main.js",
             "/assets/resources.js",
             "/assets/shell-common.js",
+            "/assets/interface.js",
+            "/assets/interface.css",
             "/assets/editor-state.js",
             "/assets/relations.js",
             "/assets/shell-main.css",

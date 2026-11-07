@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=59ac469a2145faddac857b669c4aa0bfa5fef149 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=ca9c7f10802c565080a8edb996f404505926ae71 | date=2026-11-07 | factoria=0.3.0 -->
 # Decisiones
 
 - La memoria y configuración compartida viven junto al código del proyecto.
@@ -47,3 +47,7 @@ Se conserva la compatibilidad de imports de rutas, esquema y MemoryChange; sus
 implementaciones neutrales no dependen de application. Un único staging limpia
 temporales ante fallos sin asumir política, revisión o transacción. Formato y
 reorganización se revisan en commits separados; no se modifica el esquema guardado.
+
+La interfaz usa una capa visual común para ambas vistas. La revisión visual de
+capturas no se presenta como auditoría de accesibilidad; se comprueban además
+menú/teclado, viewport móvil y el puente de editores con navegación real.

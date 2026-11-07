@@ -1,0 +1,107 @@
+{
+  "date": "2026-11-07",
+  "base_remote_commit": "ca9c7f10802c565080a8edb996f404505926ae71",
+  "scope": "visual and navigation update; real fixture project, no provider startup",
+  "environment": {
+    "os": "Linux",
+    "python": "3.12.14",
+    "node": "24.22.1",
+    "playwright": "1.62.1",
+    "chromium": "153.0.8010.0 temporary @sparticuz/chromium"
+  },
+  "unittest": {
+    "passed": 406,
+    "duration_seconds": 31.054
+  },
+  "browser_stats": {
+    "startTime": "2026-11-07T18:47:32.283Z",
+    "duration": 32029.340999999997,
+    "expected": 31,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "visual_inspection": {
+    "desktop_viewport": [
+      1440,
+      1000
+    ],
+    "mobile_viewport": [
+      390,
+      844
+    ],
+    "views": [
+      "overview",
+      "agents",
+      "workflow",
+      "classic overview",
+      "mobile overview"
+    ],
+    "mobile_document_width": 390,
+    "mobile_viewport_width": 390,
+    "page_errors": [],
+    "captures": "full-page PNG, disposable demonstration project"
+  },
+  "controller_smokes": [
+    "relations",
+    "templates",
+    "resources"
+  ],
+  "checks": [
+    "Prettier",
+    "Ruff syntax/names",
+    "wheel assets byte-identical",
+    "local Markdown links"
+  ],
+  "limits": [
+    "Actions disabled; no remote CI run",
+    "No new Windows or external provider acceptance",
+    "No full WCAG/assistive-technology or cross-browser audit"
+  ],
+  "source_sha256": {
+    "src/factoria/web/agents.js": "8a07ab7fac791ae03bbd6ad0266ce461df41267743dd0cf7eeda80516430fb17",
+    "src/factoria/web/index.html": "ae42156ebde7f08d77ab73fa8e6ebf23d9172653f5de03ddded078efda558fc1",
+    "src/factoria/web/index_n8n.html": "fcc1d67ced3e035731de3feb8644134f0da389a85f8c0ee0a4c57d60c5f1583d",
+    "src/factoria/web/interface.css": "04381ba89c90ebdaad9600adea743ac1850c40ed9c8eda0be827f926e26e7bec",
+    "src/factoria/web/interface.js": "d5d57fcd4d7df7e832f292712dd1042e71406bc38813b6840ecb4139d1dc9601",
+    "src/factoria/web/shell-classic.js": "0c11b79277f19c5a97f85fd078c0328a377f4102d27b415d4b620c378c5670c4",
+    "src/factoria/web/shell-common.js": "389a42565f825aa5111cb6e63343d047001a033b2afdf346e1444230fcdaf166",
+    "src/factoria/web/shell-main.js": "2a4c343387b8e7fc294b4b493f28fb45fe6bdab10e95c0a47c272cdca0f711cd",
+    "src/factoria/web/skills.js": "e93e3ba585c7e185d6e778fe4816c04a6011cdbd38c7889bbcf342eb333a3160",
+    "src/factoria/web/workflows.js": "e27199be098de0c6821dce390283fcb55bb459f08412fd50417e085cda5607fb",
+    "src/factoria/web_app.py": "d6c90dc8198d3d2d7358193569396e6eaf1a403ea110ac0d39599a2bdbd4ff26",
+    "tests/test_web_app.py": "6ef149fa36ae64140e88df7afea2e85365e1166e2638d89acdc799a8233aee1c",
+    "tests/ui/browser/editors.spec.cjs": "fa215bd0ad695bfaccd3be73b38c96f972220bf893dd7065ef1e74a1f43c0ac7",
+    "tests/ui/browser/fixture_server.py": "3a831ee0e48740d1eb93f8427545501f2cdc6c3a9ee9cb0d2d1d3c5be775aae4"
+  },
+  "screenshots": {
+    "docs/images/interface/mobile.png": {
+      "sha256": "3779d5ac642673a4b9050d00f00df3fedc6d86e8e06932b6433ad364e473fdbb",
+      "dimensions": [
+        390,
+        1313
+      ]
+    },
+    "docs/images/interface/workflows.png": {
+      "sha256": "8af2a3a81e1b1df67152120812e091160b47aadcca6aaf6d93b0c31eee715fa2",
+      "dimensions": [
+        1440,
+        1078
+      ]
+    },
+    "docs/images/interface/agents.png": {
+      "sha256": "0dbbb1255fe8cc658619397ecdef3cf2260844a420ee0dbf628f2edba88ef55e",
+      "dimensions": [
+        1440,
+        1416
+      ]
+    },
+    "docs/images/interface/overview.png": {
+      "sha256": "37856ddce53440f6c8108a99abbb96ce93dbdc0367d1ffdf8918db33f277af4b",
+      "dimensions": [
+        1440,
+        1000
+      ]
+    }
+  }
+}
