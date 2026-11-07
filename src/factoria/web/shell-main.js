@@ -65,13 +65,7 @@ function renderAll() {
     state.projects_root || 'Sin configurar';
   if (state.projects_root) document.getElementById('projectsRootInput').value = state.projects_root;
   const g = document.getElementById('dashboardGrid');
-  if (!p)
-    g.innerHTML =
-      '<div class="card full"><div class="value">No hay proyecto seleccionado</div></div>';
-  else if (p.error)
-    g.innerHTML = `<div class="card full"><span class="pill bad">${esc(p.error)}</span></div>`;
-  else
-    g.innerHTML = `<div class="card"><div class="label">Proyecto</div><div class="value">${esc(p.name)}</div></div><div class="card"><div class="label">Git</div><div class="value">${esc(p.branch)}</div><span class="pill ${p.dirty ? 'warn' : 'ok'}">${p.dirty ? 'Cambios pendientes' : 'Limpio'}</span></div><div class="card"><div class="label">Memoria</div><div class="value">${p.memory_initialized ? 'Inicializada' : 'Pendiente'}</div>${!p.memory_initialized ? '<button class="primary" onclick="initMemory()">Inicializar</button>' : ''}</div><div class="card"><div class="label">Agente</div><div class="value">${esc(p.tool || state.default_tool || 'Sin configurar')}</div></div><div class="card"><div class="label">Perfil</div><div class="value">${esc(p.profile)}</div></div><div class="card"><div class="label">Seguridad</div><div class="value">${p.security?.finding_count || 0}</div></div>`;
+  window.renderProjectOverview(g, p);
   renderProjects();
   renderAgents();
   renderFlows();
@@ -182,10 +176,10 @@ function canonicalX(i) {
   return 90 + i * 270;
 }
 function nodeY(i) {
-  return 155 + (i % 2) * 18;
+  return 64 + (i % 2) * 12;
 }
 function iconFor(n) {
-  return { explore: '🔎', plan: '🧠', implement: '🛠', review: '✅', document: '📚' }[n] || '⚙';
+  return { explore: '01', plan: '02', implement: '03', review: '04', document: '05' }[n] || '·';
 }
 function requiredStep(kind, name) {
   return workflowBaseKind(kind) === 'feature' || ['explore', 'implement', 'review'].includes(name);
@@ -223,7 +217,7 @@ function renderWorkflowBoard() {
   document.getElementById('workflowBoard').innerHTML = workflowDraft
     .map(
       (s, i) =>
-        `<div class="node ${s.enabled ? '' : 'off'}" data-i="${i}" style="left:${s.x}px;top:${s.y}px" onpointerdown="startNodeDrag(event,${i})"><span class="port in"></span><span class="port out"></span><div class="node-header"><div class="node-icon">${iconFor(s.name)}</div><div><div class="node-title">${esc(s.name)}</div><div class="muted" style="font-size:12px">${esc(s.role)}</div></div></div><div class="node-body"><select onclick="event.stopPropagation()" onchange="setNodeTool(${i},this.value)"><option value="" ${!s.tool ? 'selected' : ''}>Agente predeterminado</option><option value="codex" ${s.tool === 'codex' ? 'selected' : ''}>Codex</option><option value="opencode" ${s.tool === 'opencode' ? 'selected' : ''}>OpenCode</option></select>${requiredStep(kind, s.name) ? '<div class="node-lock">🔒 etapa obligatoria</div>' : `<label class="node-toggle" onclick="event.stopPropagation()"><input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleNode(${i},this.checked)"> etapa activa</label>`}<div class="node-meta"><span class="pill">${s.enabled ? 'activa' : 'apagada'}</span></div></div></div>`,
+        `<div class="node ${s.enabled ? '' : 'off'}" data-i="${i}" style="left:${s.x}px;top:${s.y}px" onpointerdown="startNodeDrag(event,${i})"><span class="port in"></span><span class="port out"></span><div class="node-header"><div class="node-icon">${iconFor(s.name)}</div><div><div class="node-title">${esc(s.name)}</div><div class="muted" style="font-size:12px">${esc(s.role)}</div></div></div><div class="node-body"><select onclick="event.stopPropagation()" onchange="setNodeTool(${i},this.value)"><option value="" ${!s.tool ? 'selected' : ''}>Agente predeterminado</option><option value="codex" ${s.tool === 'codex' ? 'selected' : ''}>Codex</option><option value="opencode" ${s.tool === 'opencode' ? 'selected' : ''}>OpenCode</option></select>${requiredStep(kind, s.name) ? '<div class="node-lock">Etapa obligatoria</div>' : `<label class="node-toggle" onclick="event.stopPropagation()"><input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleNode(${i},this.checked)"> etapa activa</label>`}<div class="node-meta"><span class="pill">${s.enabled ? 'activa' : 'apagada'}</span></div></div></div>`,
     )
     .join('');
   drawConnections();
@@ -235,10 +229,12 @@ function drawConnections() {
   for (let i = 0; i < enabled.length - 1; i++) {
     const a = enabled[i],
       b = enabled[i + 1],
-      x1 = a.x + 220,
-      y1 = a.y + 95,
+      source = document.querySelector(`#workflowBoard .node[data-i="${workflowDraft.indexOf(a)}"]`),
+      target = document.querySelector(`#workflowBoard .node[data-i="${workflowDraft.indexOf(b)}"]`),
+      x1 = a.x + (source?.offsetWidth || 220),
+      y1 = a.y + (source?.offsetHeight || 190) / 2,
       x2 = b.x,
-      y2 = b.y + 95,
+      y2 = b.y + (target?.offsetHeight || 190) / 2,
       m = (x1 + x2) / 2;
     svg.insertAdjacentHTML(
       'beforeend',

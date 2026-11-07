@@ -6,14 +6,16 @@
       content="width=device-width,initial-scale=1" /><title>Factoria</title>
     <link rel="stylesheet" href="/assets/shell-main.css" /><link
       rel="stylesheet"
-      href="/assets/agents.css"
+      href="/assets/agents.css" /><link rel="stylesheet" href="/assets/interface.css"
   /></head>
   <body
     ><div class="app"
       ><aside class="sidebar"
-        ><div class="brand">FACTORIA<small>DEVELOPMENT FACTORY</small></div
+        ><div class="brand"
+          ><span class="brand-mark" aria-hidden="true">f</span
+          ><div>Factoria<small>Tu espacio de trabajo</small></div></div
         ><div class="nav">
-          <button data-page="dashboard" class="active">Dashboard</button
+          <button data-page="dashboard" class="active">Resumen</button
           ><button data-page="projects">Proyectos</button><button data-page="agents">Agentes</button
           ><button data-page="designer">Diseñador de flujo</button
           ><button data-page="flows">Flujos</button><button data-page="history">Historial</button
@@ -22,7 +24,7 @@
         </div></aside
       ><main class="main"
         ><div class="top"
-          ><div><h1 id="title">Dashboard</h1><div id="subtitle" class="muted">Cargando…</div></div
+          ><div><h1 id="title">Resumen</h1><div id="subtitle" class="muted">Cargando…</div></div
           ><button class="secondary" onclick="refresh()">Actualizar</button></div
         >
         <section id="dashboard" class="section active"
@@ -31,7 +33,8 @@
         <section id="projects" class="section"
           ><div class="grid"
             ><div class="card full"
-              ><div class="label">Carpeta raíz</div><div id="projectsRootLabel" class="muted"></div
+              ><div class="label">Carpeta de proyectos</div
+              ><div id="projectsRootLabel" class="muted"></div
               ><div class="row"
                 ><input id="projectsRootInput" /><button
                   class="secondary"
@@ -41,10 +44,10 @@
               ></div
             ><div class="card wide"
               ><div class="label">Proyectos</div
-              ><input id="projectSearch" placeholder="Buscar…" oninput="renderProjects()" /><div
-                id="projectList"
-                class="list"
-              ></div></div
+              ><input
+                id="projectSearch"
+                placeholder="Buscar por nombre o carpeta"
+                oninput="renderProjects()" /><div id="projectList" class="list"></div></div
             ><div class="card"
               ><div class="label">Crear proyecto</div
               ><input id="newName" placeholder="Nombre" /><textarea
@@ -72,7 +75,7 @@
           ><div class="canvas-toolbar"
             ><div
               ><div class="label">Workflow <span id="workflowDirty" class="unsaved"></span></div
-              ><div class="value" style="font-size:19px">Editor visual estilo n8n</div></div
+              ><div class="value" style="font-size:19px">Workflow del proyecto</div></div
             ><div class="actions"
               ><select id="workflowKind" style="width:150px" onchange="changeWorkflowKind()"
                 ><option value="feature">Feature</option
@@ -91,38 +94,41 @@
               ><button id="newWorkflowButton" class="secondary" onclick="newWorkflow()" disabled
                 >Crear workflow</button
               ></div
-            ><div class="grid"
+            ><details id="workflowDetails"
+              ><summary>Nombre y descripción del workflow</summary
+              ><div class="grid"
+                ><label
+                  >Identificador<input
+                    id="workflowId"
+                    maxlength="48"
+                    disabled
+                    placeholder="fix-api"
+                    oninput="workflowMetadataChanged()" /></label
+                ><label
+                  >Nombre<input
+                    id="workflowName"
+                    maxlength="120"
+                    disabled
+                    oninput="workflowMetadataChanged()" /></label
+                ><label>Tipo base<input id="workflowBase" disabled /></label></div
               ><label
-                >Identificador<input
-                  id="workflowId"
-                  maxlength="48"
+                >Descripción<textarea
+                  id="workflowDescription"
+                  maxlength="1000"
+                  rows="2"
                   disabled
-                  placeholder="fix-api"
-                  oninput="workflowMetadataChanged()" /></label
-              ><label
-                >Nombre<input
-                  id="workflowName"
-                  maxlength="120"
-                  disabled
-                  oninput="workflowMetadataChanged()" /></label
-              ><label>Tipo base<input id="workflowBase" disabled /></label></div
-            ><label
-              >Descripción<textarea
-                id="workflowDescription"
-                maxlength="1000"
-                rows="2"
-                disabled
-                oninput="workflowMetadataChanged()"
-              ></textarea></label
-            ><p class="muted"
-              >El identificador y el tipo base se conservan tras guardar. Los controles obligatorios
-              dependen del tipo base.</p
+                  oninput="workflowMetadataChanged()"
+                ></textarea></label
+              ><p class="muted"
+                >El identificador y el tipo base se conservan tras guardar. Los controles
+                obligatorios dependen del tipo base.</p
+              ></details
             ></div
           ><div class="workflow-note"
             ><strong>Mueve los nodos horizontalmente para reordenar el flujo.</strong
             ><div class="muted"
               >Las conexiones se recalculan automáticamente. Factoria seguirá rechazando cualquier
-              orden que rompa gates o seguridad.</div
+              orden que cambie las etapas obligatorias.</div
             ><div class="legend"
               ><span><i class="dot"></i> obligatorio</span
               ><span><i class="dot optional"></i> opcional</span></div
@@ -164,6 +170,7 @@
       </main></div
     ><div id="toast" class="toast"></div>
     <script src="/assets/shell-common.js"></script
+    ><script src="/assets/interface.js"></script
     ><script src="/assets/editor-state.js"></script
     ><script src="/assets/shell-main.js"></script
     ><script src="/assets/workflows.js"></script

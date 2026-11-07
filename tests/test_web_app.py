@@ -12,8 +12,8 @@ from factoria.web_app import FactoriaHTTPServer, FactoriaWebHandler, _run_factor
 class WebAssetTests(unittest.TestCase):
     def test_packaged_index_exists(self) -> None:
         html = files("factoria.web").joinpath("index.html").read_text(encoding="utf-8")
-        self.assertIn("FACTORIA", html)
-        self.assertIn("Dashboard", html)
+        self.assertIn("Factoria", html)
+        self.assertIn("Resumen", html)
         self.assertIn("/assets/shell-classic.js", html)
         self.assertIn("/api/state", files("factoria.web").joinpath("shell-classic.js").read_text(encoding="utf-8"))
 
@@ -38,7 +38,7 @@ class WebServerTests(unittest.TestCase):
     def test_index_is_public_but_api_requires_session_token(self) -> None:
         with urllib.request.urlopen(self.base + "/", timeout=3) as response:
             self.assertEqual(response.status, 200)
-            self.assertIn(b"FACTORIA", response.read())
+            self.assertIn(b"Factoria", response.read())
 
         with self.assertRaises(urllib.error.HTTPError) as caught:
             urllib.request.urlopen(self.base + "/api/state", timeout=3)

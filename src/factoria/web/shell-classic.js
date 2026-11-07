@@ -66,13 +66,7 @@ function renderAll() {
     state.projects_root || 'Sin configurar';
   if (state.projects_root) document.getElementById('projectsRootInput').value = state.projects_root;
   const g = document.getElementById('dashboardGrid');
-  if (!p)
-    g.innerHTML =
-      '<div class="card full"><div class="value">No hay proyecto seleccionado</div></div>';
-  else if (p.error)
-    g.innerHTML = `<div class="card full"><span class="pill bad">${esc(p.error)}</span></div>`;
-  else
-    g.innerHTML = `<div class="card"><div class="label">Proyecto</div><div class="value">${esc(p.name)}</div></div><div class="card"><div class="label">Git</div><div class="value">${esc(p.branch)}</div><span class="pill ${p.dirty ? 'warn' : 'ok'}">${p.dirty ? 'Cambios pendientes' : 'Limpio'}</span></div><div class="card"><div class="label">Memoria</div><div class="value">${p.memory_initialized ? 'Inicializada' : 'Pendiente'}</div>${!p.memory_initialized ? '<button class="primary" onclick="initMemory()">Inicializar</button>' : ''}</div><div class="card"><div class="label">Agente</div><div class="value">${esc(p.tool || state.default_tool || 'Sin configurar')}</div></div><div class="card"><div class="label">Perfil</div><div class="value">${esc(p.profile)}</div></div><div class="card"><div class="label">Seguridad</div><div class="value">${p.security?.finding_count || 0}</div></div>`;
+  window.renderProjectOverview(g, p);
   renderProjects();
   renderAgents();
   renderFlows();
@@ -239,7 +233,7 @@ function renderWorkflowBoard() {
           )
           .join(
             '',
-          )}${s.agent_id && !(state.workflows?.[kind]?.agents || state.workflows?.[workflowOriginId]?.agents || []).some((a) => a.role === s.agent_id && (a.base_role || a.role) === s.role) ? `<option selected value="${esc(s.agent_id)}">${esc(s.agent_id)} · no disponible</option>` : ''}</select></label><select onchange="setStepTool(${i},this.value)"><option value="" ${!s.tool ? 'selected' : ''}>Agente predeterminado</option><option value="codex" ${s.tool === 'codex' ? 'selected' : ''}>Codex</option><option value="opencode" ${s.tool === 'opencode' ? 'selected' : ''}>OpenCode</option></select>${isOptionalStep(kind, s.name) ? `<label class="toggle"><input type="checkbox" ${s.enabled !== false ? 'checked' : ''} onchange="setStepEnabled(${i},this.checked)"> Etapa activa</label>` : '<div class="lock">🔒 Etapa requerida</div>'}</div></div>${i < workflowDraft.length - 1 ? '<div class="flow-arrow">↓</div>' : ''}`,
+          )}${s.agent_id && !(state.workflows?.[kind]?.agents || state.workflows?.[workflowOriginId]?.agents || []).some((a) => a.role === s.agent_id && (a.base_role || a.role) === s.role) ? `<option selected value="${esc(s.agent_id)}">${esc(s.agent_id)} · no disponible</option>` : ''}</select></label><select onchange="setStepTool(${i},this.value)"><option value="" ${!s.tool ? 'selected' : ''}>Agente predeterminado</option><option value="codex" ${s.tool === 'codex' ? 'selected' : ''}>Codex</option><option value="opencode" ${s.tool === 'opencode' ? 'selected' : ''}>OpenCode</option></select>${isOptionalStep(kind, s.name) ? `<label class="toggle"><input type="checkbox" ${s.enabled !== false ? 'checked' : ''} onchange="setStepEnabled(${i},this.checked)"> Etapa activa</label>` : '<div class="lock">Etapa obligatoria</div>'}</div></div>${i < workflowDraft.length - 1 ? '<div class="flow-arrow">↓</div>' : ''}`,
     )
     .join('');
 }

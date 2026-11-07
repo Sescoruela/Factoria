@@ -4,7 +4,7 @@ try {
   token = token || sessionStorage.getItem('factoria-token') || '';
   if (token) sessionStorage.setItem('factoria-token', token);
 } catch (e) {}
-history.replaceState({}, document.title, location.pathname);
+history.replaceState({}, document.title, location.pathname + location.hash);
 const headers = { 'Content-Type': 'application/json', 'X-Factoria-Token': token };
 let state = {};
 async function api(path, method = 'GET', body) {

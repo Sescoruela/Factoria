@@ -28,3 +28,6 @@ Actions permanece deshabilitado. Esta refactorización no cierra H05/H06.
 Tras el refactor transversal, `editor-state.js` centraliza la consulta de borradores
 para los paneles. `web_project_api.py` agrupa recursos/plantillas/relaciones/recuperación
 y ambos shells comparten el arranque en `serve_web_ui`. [Detalle](code-refactor.md).
+
+La capa `interface.css/js` comparte el tema, la navegación por tareas y el resumen
+real del proyecto. [Capturas, uso y comprobaciones de la interfaz](interface-refresh.md).

@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=59ac469a2145faddac857b669c4aa0bfa5fef149 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=ca9c7f10802c565080a8edb996f404505926ae71 | date=2026-11-07 | factoria=0.3.0 -->
 # Factoria
 
 ## Propósito
@@ -51,6 +51,7 @@ Las reglas obligatorias no se ignoran automáticamente aunque el código actual 
 - Mapa de configuración guardada: `docs/project-relations.md`; diagnóstico de solo lectura y navegación a editores sin descartar borradores.
 - Esquema/migración/copias: `docs/configuration-recovery.md`; preview y confirmación explícitos, sin auto-migración. Operaciones pendientes bloquean escrituras de configuración.
 - Estructura, límites de capas y desarrollo: `docs/code-refactor.md`. Comprobar Ruff y Prettier además de las pruebas; conservar los contratos compartidos de rutas, bloqueos y staging.
+- Capa visual y navegación: `docs/interface-refresh.md`; `interface.css/js` compartidos por ambas vistas. Conservar teclado, menú móvil, contexto real y borradores.
 - Frontend: `docs/frontend.md`; lógica en assets, servicios de edición compartidos y vista principal n8n.
 - Smoke real y evidencia local/CI pendiente: `docs/browser-smoke.md`. Node/Playwright solo son dependencias de desarrollo; no reactivar Actions para ejecutar la suite.
 - No confundir las pruebas deterministas con aceptación en una sesión real de Codex/OpenCode.
