@@ -185,7 +185,7 @@ class SkillCatalogTests(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as caught:
                 request('/api/skill/create', payload, False)
             self.assertEqual(caught.exception.code, 403)
-            with patch('factoria.web_app_n8n._state', return_value={'selected_project': {'path': str(self.root)}}):
+            with patch('factoria.web_app._state', return_value={'selected_project': {'path': str(self.root)}}):
                 result = request('/api/skill/create', payload)
                 self.assertEqual(result['state']['skills'][0]['content'], self.skill.content)
                 with self.assertRaises(urllib.error.HTTPError) as caught:

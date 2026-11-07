@@ -13,7 +13,7 @@ function request(){const value=JSON.parse(el('resourceSource').value||'null');if
  return result;
 }
 async function action(work){if(busy)return;if(!project())return el('resourceResult').textContent='Selecciona un proyecto';
- if(window.hasUnsavedSkills?.()||(typeof agentEdits!=='undefined'&&agentEdits)||(typeof workflowDirty!=='undefined'&&workflowDirty))return el('resourceResult').textContent='Guarda o descarta los borradores antes de continuar';
+ if((window.hasUnsavedSkills?.()||window.hasUnsavedAgents?.())||(typeof agentEdits!=='undefined'&&agentEdits)||(typeof workflowDirty!=='undefined'&&workflowDirty))return el('resourceResult').textContent='Guarda o descarta los borradores antes de continuar';
  busy=true;el('resourceApply').disabled=true;try{await work();}catch(error){invalidate();el('resourceResult').textContent=error.message;}finally{busy=false;}}
 async function reload(){invalidate();const selected=project(),data=await api('/api/resource/list','POST',{project_path:selected});if(project()!==selected)throw new Error('El proyecto cambió; recarga los recursos');
  const restoring=el('resourceAction').value==='restore';const entries=restoring?data.history.filter(x=>x.status==='archived'):data.active;

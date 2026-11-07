@@ -1,7 +1,7 @@
 # Estado verificable de Factoria
 
 Revisión: **07/11/2026**, sobre el código integrado hasta
-`999bb373751a8cc7445dfe5ad5381809d2517028` y la preparación H11 de navegador.
+`999bb373751a8cc7445dfe5ad5381809d2517028` y las entregas H11/H12 de navegador y frontend.
 Esta página reúne el estado vigente; los registros fechados conservan su alcance original.
 
 **0.3.0 preparada, sin tag ni release publicada. MVP todavía no aceptado.**
@@ -34,8 +34,8 @@ agentes de una sesión externa siguen dependiendo de Codex/OpenCode.
 
 | Tipo | Última evidencia disponible | Qué queda fuera |
 | --- | --- | --- |
-| Pruebas deterministas | H11: **382 tests**, Linux/Python 3.12.14, correctos | Autenticación, selección natural y uso por un LLM |
-| Navegador real | H11: **22/22** en Chromium headless local, dos shells, dos pestañas y persistencia real; fallo de control con traza/captura | CI, Windows, otros navegadores y revisión visual/accesibilidad; [H11 #17](https://github.com/Sescoruela/Factoria/issues/17) abierto hasta CI |
+| Pruebas deterministas | H12: **382 tests**, Linux/Python 3.12.14, correctos | Autenticación, selección natural y uso por un LLM |
+| Navegador real | H12: **23/23** en Chromium headless local, dos shells, dos pestañas y persistencia real; fallo de control con traza/captura | CI, Windows, otros navegadores y revisión visual/accesibilidad; [H11 #17](https://github.com/Sescoruela/Factoria/issues/17) abierto hasta CI |
 | Host con checkout | Fix y feature de laboratorio completados con agente/skill/workflow propios, aprobaciones y commits locales | Sesión externa independiente, descubrimiento natural y aislamiento de modelos; [evidencia H05](acceptance/h05-status.md) |
 | Codex CLI/OpenCode autenticados | Pendiente de ejecución y registro | No se certifica por los tests, por un CLI presente ni por un manifiesto |
 | Instalación Python | H06: actualización local 0.2.0→0.3.0, dos reaperturas y 37 archivos conservados | Upgrade Windows, todas las versiones históricas y UI visual; [informe](release-h06-smoke.json) |
@@ -61,7 +61,8 @@ H08/H09/H10 mantienen su evidencia histórica de DOM/API simulados. H11 añade n
 | H09 | Duplicación, archivo reversible y restauración implementados; [guía y límites](resource-lifecycle.md) |
 | H10 | Relaciones, diagnóstico y navegación a editores implementados; [guía y límites](project-relations.md) |
 | [H11 #17](https://github.com/Sescoruela/Factoria/issues/17) | Implementado y validado localmente; pendiente ejecutar y revisar informes/artefactos en CI. Actions deshabilitado |
-| H12–H13 | Evolución posterior en [roadmap](roadmap.md); no sustituye las pruebas de cierre del MVP |
+| H12 | Assets JS/CSS y servicios compartidos; [estructura y evidencia](frontend.md) |
+| H13 | Evolución posterior en [roadmap](roadmap.md); no sustituye las pruebas de cierre del MVP |
 
 La aceptación pendiente bloquea la declaración de MVP terminado. La documentación
 de un procedimiento no significa que se haya ejecutado ni que su resultado sea correcto.

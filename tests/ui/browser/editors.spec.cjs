@@ -247,3 +247,17 @@ if (process.env.FACTORIA_BROWSER_PROBE_FAILURE === '1') {
     expect('intentional failure for artifact inspection').toBe('PASS');
   });
 }
+
+// H12 shared dirty-state contract: feature panels cannot replace an agent draft.
+test('agent draft blocks relationship navigation in the canonical shell', async ({page, lab}) => {
+  await open(page, lab, 'main');
+  await create(page, 'agent');
+  await page.locator('#agent-instructions').fill('Borrador que debe conservarse');
+  await nav(page, 'relations');
+  const target=page.locator('#relationsMap button').filter({hasText: 'feature'}).first();
+  await expect(target).toBeEnabled();
+  await target.click();
+  await expect(page.locator('#relationsStatus')).toContainText('Se conservan los borradores');
+  await nav(page, 'agentRoles');
+  await expect(page.locator('#agent-instructions')).toHaveValue('Borrador que debe conservarse');
+});

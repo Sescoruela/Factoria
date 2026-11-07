@@ -20,7 +20,7 @@ principalmente con Codex/OpenCode, que consumen la configuración generada.
 - `application/agent_profiles.py`, `workflow_presets.py`: configuración versionable con lectura de formatos locales anteriores. El catálogo de agentes admite identificadores propios y un rol base. Los catálogos de agentes y workflows usan escritura atómica y revisión optimista para la edición web. Los workflows propios tienen identificador estable y un tipo base fix/feature; el seguimiento nativo congela ambos junto con la definición.
 - `adapters/`, `orchestration/`: ejecución opcional de agentes externos detrás de contratos neutrales.
 - `plugins/`: descubrimiento, compatibilidad, validación y ejecución de extensiones.
-- `entrypoint.py`, `project_cli.py`, `web_app_n8n.py`, `web_n8n_patch.py`: CLI, API y web local.
+- `entrypoint.py`, `project_cli.py`, `web_app_n8n.py`, `web_editor_api.py`, `web_editor_state.py`: CLI, API y web local.
 - `tools/release_artifacts.py`, `distribution_smoke.py`: herramientas de desarrollo para integridad y pruebas aisladas de paquetes; fuera del runtime del producto.
 
 ## Persistencia
@@ -46,3 +46,7 @@ metadatos de release se incluyen como recurso del paquete. Estado actual y prueb
 desechables. Se distribuye fuera del runtime. La API compartida devuelve el estado
 completo de editores tras sus operaciones, conservando los campos base. Informes,
 trazas y CI pendiente: [guía](../browser-smoke.md).
+
+H12: no se inyectan parches Python en HTML. Assets JS/CSS y servicios compartidos
+de estado/API descritos en [frontend](../frontend.md). La vista n8n es principal;
+la clásica es compatibilidad.

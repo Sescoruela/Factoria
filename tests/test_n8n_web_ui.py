@@ -15,11 +15,12 @@ class N8NWebUiTests(unittest.TestCase):
         html = files("factoria.web").joinpath("index_n8n.html").read_text(encoding="utf-8")
         self.assertIn('id="workflowCanvas"', html)
         self.assertIn('id="connections"', html)
-        self.assertIn('class="port in"', html)
-        self.assertIn('class="port out"', html)
-        self.assertIn("startNodeDrag", html)
-        self.assertIn("drawConnections", html)
-        self.assertIn("/api/workflow/save", html)
+        assets = files("factoria.web").joinpath("agents.js").read_text(encoding="utf-8") + files("factoria.web").joinpath("shell-main.js").read_text(encoding="utf-8")
+        self.assertIn('class="port in"', assets)
+        self.assertIn('class="port out"', assets)
+        self.assertIn("startNodeDrag", assets)
+        self.assertIn("drawConnections", assets)
+        self.assertIn("/api/workflow/save", assets)
 
     def test_visual_shell_keeps_existing_product_sections(self) -> None:
         html = files("factoria.web").joinpath("index_n8n.html").read_text(encoding="utf-8")
