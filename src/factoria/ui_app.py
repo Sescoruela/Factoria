@@ -7,7 +7,12 @@ from pathlib import Path
 from factoria.application.status import OperationalStatusService
 from factoria.security import SecretIncidentStore, SecretScanner
 from factoria.ui_cli import TerminalUI, _slug, build_parser
-from factoria.ui_workspace import UiWorkspaceSettings, choose_folder, discover_projects, project_root
+from factoria.ui_workspace import (
+    UiWorkspaceSettings,
+    choose_folder,
+    discover_projects,
+    project_root,
+)
 
 
 class ManagedTerminalUI(TerminalUI):
@@ -79,13 +84,17 @@ class ManagedTerminalUI(TerminalUI):
         )
 
         self.output("\n1/5 · Organiza tus proyectos")
-        self.output("  Factoria puede recordar una carpeta raíz para mantener todos tus repositorios juntos.")
+        self.output(
+            "  Factoria puede recordar una carpeta raíz para mantener todos tus repositorios juntos."
+        )
         self._configure_projects_root(force=self.workspace_settings.projects_root is None)
         self._select_project(interactive=True)
         self._continue()
 
         self.output("\n2/5 · Cómo pensar en Factoria")
-        self.output("  feature: plan explícito → aprobación → implementación → review → aprobación final")
+        self.output(
+            "  feature: plan explícito → aprobación → implementación → review → aprobación final"
+        )
         self.output("  fix pequeño: explorar → implementar → verificar → review")
         self.output("  commit: siempre se previsualiza y requiere confirmación explícita")
         self.output("  push/PR: siguen siendo manuales por diseño")
@@ -93,15 +102,22 @@ class ManagedTerminalUI(TerminalUI):
 
         self.output("\n3/5 · Memoria del proyecto")
         if not self._is_git_project():
-            self.output("  No hay un repositorio Git seleccionado todavía; este paso se puede hacer después.")
+            self.output(
+                "  No hay un repositorio Git seleccionado todavía; este paso se puede hacer después."
+            )
         elif (self.root / "AGENTS.md").exists():
             self.output("  ✓ Este repositorio ya tiene memoria Factoria.")
         elif self.read_only:
             self.output("  La memoria no está inicializada y --read-only impide crearla.")
         else:
-            self.output("  La memoria permite a los agentes conocer estructura, reglas y verificaciones confirmadas.")
+            self.output(
+                "  La memoria permite a los agentes conocer estructura, reglas y verificaciones confirmadas."
+            )
             if self._confirm("¿Quieres preparar ahora la memoria inicial?", default=True):
-                name = self.input(f"Nombre del proyecto [{self.root.name}]: ").strip() or self.root.name
+                name = (
+                    self.input(f"Nombre del proyecto [{self.root.name}]: ").strip()
+                    or self.root.name
+                )
                 purpose = self.input("Propósito breve del proyecto (opcional): ").strip()
                 if self._confirm("¿Confirmas ejecutar memoria-init --yes?", default=False):
                     args = ["memoria-init", "--name", name, "--yes"]
@@ -109,12 +125,16 @@ class ManagedTerminalUI(TerminalUI):
                         args.extend(["--purpose", purpose])
                     code = self._run_command(args)
                     if code == 0:
-                        self.output("Memoria creada. Revísala y haz commit antes de iniciar un flujo.")
+                        self.output(
+                            "Memoria creada. Revísala y haz commit antes de iniciar un flujo."
+                        )
         self._continue()
 
         self.output("\n4/5 · Herramientas y entorno")
         if shutil.which("git") is None:
-            self.output("  ⚠ Git no está disponible en PATH. Instálalo antes de ejecutar features/fixes.")
+            self.output(
+                "  ⚠ Git no está disponible en PATH. Instálalo antes de ejecutar features/fixes."
+            )
         else:
             self.output("  ✓ Git está disponible.")
         self.output("  Inicia y autentica Codex/OpenCode fuera de Factoría.")
@@ -138,9 +158,13 @@ class ManagedTerminalUI(TerminalUI):
         self.output(f"Carpeta proyectos: {projects_root or 'sin configurar'}")
 
         if shutil.which("git") is None:
-            self.output(f"Proyecto : {self.root if self._is_git_project() else 'ninguno seleccionado'}")
+            self.output(
+                f"Proyecto : {self.root if self._is_git_project() else 'ninguno seleccionado'}"
+            )
             self.output("Git      : NO DISPONIBLE")
-            self.output("\nAviso: Git no está instalado o no está en PATH. El dashboard sigue disponible, ")
+            self.output(
+                "\nAviso: Git no está instalado o no está en PATH. El dashboard sigue disponible, "
+            )
             self.output("pero features, fixes, historial y commits requieren Git.")
             return
 
@@ -156,7 +180,9 @@ class ManagedTerminalUI(TerminalUI):
             self.output(f"Proyecto : {self.root.name}")
             self.output("Estado   : diagnóstico parcial")
             self.output(f"Aviso    : {type(exc).__name__}: {exc}")
-            self.output("\nEl dashboard permanece operativo. Usa la opción 9 para cambiar de proyecto o revisa Git.")
+            self.output(
+                "\nEl dashboard permanece operativo. Usa la opción 9 para cambiar de proyecto o revisa Git."
+            )
             return
 
         open_incidents = ()
@@ -236,7 +262,9 @@ class ManagedTerminalUI(TerminalUI):
     def _manage_projects(self) -> None:
         while True:
             self.output("\nGestión de proyectos")
-            self.output(f"Carpeta raíz actual: {self.workspace_settings.projects_root or 'sin configurar'}")
+            self.output(
+                f"Carpeta raíz actual: {self.workspace_settings.projects_root or 'sin configurar'}"
+            )
             self.output("  1. Seleccionar proyecto")
             if not self.read_only:
                 self.output("  2. Crear proyecto nuevo")
@@ -267,7 +295,11 @@ class ManagedTerminalUI(TerminalUI):
             raw = self.input(
                 f"Ruta de la carpeta de proyectos [{current or Path.home() / 'Projects'}]: "
             ).strip()
-            selected = Path(raw).expanduser().resolve() if raw else (current or Path.home() / "Projects").resolve()
+            selected = (
+                Path(raw).expanduser().resolve()
+                if raw
+                else (current or Path.home() / "Projects").resolve()
+            )
         try:
             selected.mkdir(parents=True, exist_ok=True)
         except OSError as exc:
@@ -337,7 +369,9 @@ class ManagedTerminalUI(TerminalUI):
             return
 
         if self._confirm("¿Crear también el commit inicial con README.md?", default=True):
-            subprocess.run(["git", "-C", str(target), "add", "README.md"], check=False, capture_output=True)
+            subprocess.run(
+                ["git", "-C", str(target), "add", "README.md"], check=False, capture_output=True
+            )
             committed = subprocess.run(
                 ["git", "-C", str(target), "commit", "-m", "Initial commit"],
                 check=False,
@@ -350,10 +384,14 @@ class ManagedTerminalUI(TerminalUI):
                 self.output("  Revisa que Git tenga configurados user.name y user.email.")
 
         self.root = target
-        self.workspace_settings = UiWorkspaceSettings(projects_root=projects_root, last_project=target)
+        self.workspace_settings = UiWorkspaceSettings(
+            projects_root=projects_root, last_project=target
+        )
         self.workspace_settings.save()
         self.output(f"✓ Proyecto creado y seleccionado: {name} · {target}")
-        self.output("Siguiente paso recomendado: inicializar/revisar la memoria Factoria antes del primer flujo.")
+        self.output(
+            "Siguiente paso recomendado: inicializar/revisar la memoria Factoria antes del primer flujo."
+        )
 
     def _select_project(self, *, interactive: bool) -> None:
         projects_root = self.workspace_settings.projects_root
@@ -364,7 +402,9 @@ class ManagedTerminalUI(TerminalUI):
         if not projects:
             self.root = projects_root
             if interactive:
-                self.output("No hay repositorios Git dentro de esa carpeta todavía. Puedes crear uno desde Gestión de proyectos.")
+                self.output(
+                    "No hay repositorios Git dentro de esa carpeta todavía. Puedes crear uno desde Gestión de proyectos."
+                )
             return
         if not interactive and len(projects) == 1:
             self._remember_project(projects[0])
@@ -380,11 +420,19 @@ class ManagedTerminalUI(TerminalUI):
             page = min(page, total_pages - 1)
             start = page * page_size
             visible = filtered[start : start + page_size]
-            self.output(f"\nProyectos encontrados: {len(projects)} · mostrando {len(filtered)} · página {page + 1}/{total_pages}")
+            self.output(
+                f"\nProyectos encontrados: {len(projects)} · mostrando {len(filtered)} · página {page + 1}/{total_pages}"
+            )
             for offset, project in enumerate(visible, start=1):
-                relative = project.relative_to(projects_root) if project.is_relative_to(projects_root) else project
+                relative = (
+                    project.relative_to(projects_root)
+                    if project.is_relative_to(projects_root)
+                    else project
+                )
                 self.output(f"  {offset}. {project.name} · {relative}")
-            self.output("\n  n = siguiente · p = anterior · /texto = buscar · / = quitar filtro · 0 = cancelar")
+            self.output(
+                "\n  n = siguiente · p = anterior · /texto = buscar · / = quitar filtro · 0 = cancelar"
+            )
             raw = self.input("Selecciona proyecto: ").strip()
             if not raw or raw == "0":
                 return
@@ -406,7 +454,13 @@ class ManagedTerminalUI(TerminalUI):
                     tuple(
                         project
                         for project in projects
-                        if query in project.name.lower() or query in str(project.relative_to(projects_root) if project.is_relative_to(projects_root) else project).lower()
+                        if query in project.name.lower()
+                        or query
+                        in str(
+                            project.relative_to(projects_root)
+                            if project.is_relative_to(projects_root)
+                            else project
+                        ).lower()
                     )
                     if query
                     else projects

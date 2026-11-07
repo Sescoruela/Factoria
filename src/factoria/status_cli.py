@@ -17,7 +17,9 @@ def build_status_parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile", help=argparse.SUPPRESS)
     sub = parser.add_subparsers(dest="command", required=True)
     status = sub.add_parser("status", help="Show operational Factoria status")
-    status.add_argument("--all", action="store_true", help="Show up to 10 recent results instead of 5")
+    status.add_argument(
+        "--all", action="store_true", help="Show up to 10 recent results instead of 5"
+    )
     return parser
 
 
@@ -35,7 +37,13 @@ def run_status_cli(argv: list[str]) -> int:
         current_findings = scanner.scan_files(root, scanner.changed_paths(root))
         incident_store.record(current_findings)
         open_incidents = incident_store.open()
-    except (ConfigError, FileNotFoundError, RuntimeError, ValueError, subprocess.CalledProcessError) as exc:
+    except (
+        ConfigError,
+        FileNotFoundError,
+        RuntimeError,
+        ValueError,
+        subprocess.CalledProcessError,
+    ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
@@ -64,14 +72,15 @@ def run_status_cli(argv: list[str]) -> int:
         if report.memory_commits_since_review is not None:
             print(f"- Commits desde revisión: {report.memory_commits_since_review}")
         print(
-            "- Documentos potencialmente stale: "
-            + (", ".join(report.stale_documents) or "ninguno")
+            "- Documentos potencialmente stale: " + (", ".join(report.stale_documents) or "ninguno")
         )
 
     print("\nHerramientas")
     for tool in report.tools:
         capabilities = ", ".join(tool.capabilities) or "sin capacidades declaradas"
-        print(f"- {tool.name}: {'disponible' if tool.available else 'no disponible'} | {capabilities}")
+        print(
+            f"- {tool.name}: {'disponible' if tool.available else 'no disponible'} | {capabilities}"
+        )
 
     print("\nFlujos activos")
     if not report.active_flows:
@@ -97,7 +106,9 @@ def run_status_cli(argv: list[str]) -> int:
                 f"  - {item.incident_id[:8]} {item.secret_type}@{item.location} "
                 f"fingerprint={item.fingerprint}"
             )
-        print("- Resolver solo después de rotar/revocar: factoria security resolve <id> --confirm-rotation")
+        print(
+            "- Resolver solo después de rotar/revocar: factoria security resolve <id> --confirm-rotation"
+        )
 
     print("\nResultados recientes")
     if not report.recent_results:

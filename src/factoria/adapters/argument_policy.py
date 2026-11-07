@@ -18,9 +18,7 @@ class AdapterArgumentPolicy:
     Anything not declared here is denied.
     """
 
-    allowed: Mapping[str, tuple[str, ...]] = field(
-        default_factory=lambda: MappingProxyType({})
-    )
+    allowed: Mapping[str, tuple[str, ...]] = field(default_factory=lambda: MappingProxyType({}))
     reserved: frozenset[str] = frozenset()
 
     def validate(self, args: tuple[str, ...]) -> tuple[str, ...]:
@@ -38,9 +36,7 @@ class AdapterArgumentPolicy:
                 )
             values = self.allowed.get(flag)
             if values is None:
-                raise ArgumentPolicyError(
-                    f"Adapter flag {flag!r} is not explicitly allowed"
-                )
+                raise ArgumentPolicyError(f"Adapter flag {flag!r} is not explicitly allowed")
             validated.append(flag)
             if values:
                 index += 1

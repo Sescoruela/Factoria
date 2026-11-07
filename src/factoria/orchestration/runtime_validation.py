@@ -13,7 +13,9 @@ class AdapterRuntimeValidator:
         default_factory=dict
     )
 
-    def inspect(self, adapter: ToolAdapter) -> tuple[bool, frozenset[ToolCapability], tuple[str, ...]]:
+    def inspect(
+        self, adapter: ToolAdapter
+    ) -> tuple[bool, frozenset[ToolCapability], tuple[str, ...]]:
         cached = self._cache.get(adapter.name)
         if cached is not None:
             return cached
@@ -24,11 +26,7 @@ class AdapterRuntimeValidator:
             return result
 
         checks = tuple(adapter.self_test())
-        failed = tuple(
-            check.name
-            for check in checks
-            if check.required and not check.passed
-        )
+        failed = tuple(check.name for check in checks if check.required and not check.passed)
         ready = not failed
         capabilities = adapter.capabilities() if ready else frozenset()
         result = (ready, capabilities, failed)

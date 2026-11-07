@@ -1,4 +1,5 @@
 """The main shell is canonical; the classic shell remains a compatibility view."""
+
 from importlib.resources import files
 
 

@@ -2,9 +2,12 @@
   "name": "factoria-browser-smoke",
   "private": true,
   "scripts": {
-    "test": "playwright test --config playwright.config.cjs"
+    "test": "playwright test --config playwright.config.cjs",
+    "format": "prettier --write \"../../../src/factoria/web/**/*.{js,css,html}\"",
+    "format:check": "prettier --check \"../../../src/factoria/web/**/*.{js,css,html}\""
   },
   "devDependencies": {
-    "playwright": "1.62.1"
+    "playwright": "1.62.1",
+    "prettier": "3.6.2"
   }
 }

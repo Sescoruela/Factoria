@@ -99,6 +99,7 @@ class LiveAgentFlowRunner:
         )
         resolved_workflow = preset_to_workflow(preset, project_root=project_root)
         from factoria.application.project_integration import project_definition
+
         session = LiveFlowSession(
             flow_id=flow_id,
             kind=kind,
@@ -112,7 +113,7 @@ class LiveAgentFlowRunner:
             permission_profile=effective_profile.value,
             permission_escalated=escalated,
             workflow_steps=workflow_snapshot(resolved_workflow),
-            agent_profiles=tuple(project_definition(project_root)['agents']),
+            agent_profiles=tuple(project_definition(project_root)["agents"]),
         )
         self._save_session(session, execution=execution)
         self.artifacts.write_text(
@@ -504,7 +505,10 @@ class LiveAgentFlowRunner:
         )
 
     def _prompt(self, step: AgentStep, session: LiveFlowSession, memory: ProjectMemory) -> str:
-        rules = "\n".join(f"- {rule}" for rule in memory.mandatory_rules) or "- No mandatory rules recorded"
+        rules = (
+            "\n".join(f"- {rule}" for rule in memory.mandatory_rules)
+            or "- No mandatory rules recorded"
+        )
         base = (
             f"You are the {step.role.value} for a Factoria {session.kind} flow.\n"
             f"Task: {session.title}\n"
@@ -527,17 +531,27 @@ class LiveAgentFlowRunner:
             ),
             "document": "Propose memory/documentation updates caused by the change. Do not write files; Factoria will handle approved memory updates separately.",
         }
-        if step.name == "implement" and self.artifacts.workspace(session.flow_id).plan_file.exists():
+        if (
+            step.name == "implement"
+            and self.artifacts.workspace(session.flow_id).plan_file.exists()
+        ):
             base += f"Read .factoria/work/{session.flow_id}/plan.md before implementing.\n"
         if step.name == "review":
-            base += f"Read .factoria/work/{session.flow_id}/verification.md and plan.md if it exists.\n"
+            base += (
+                f"Read .factoria/work/{session.flow_id}/verification.md and plan.md if it exists.\n"
+            )
         from factoria.application.project_integration import project_definition
+
         project_root = self.artifacts.project_root
-        roles = session.agent_profiles or project_definition(project_root)['agents']
-        role = next(item for item in roles if item['role'] == (step.agent_id or step.role.value))
-        custom = '\n\nProject agent instructions:\n' + role['instructions'] if role['instructions'] else ''
-        for path, content in role['skill_contents'].items():
-            custom += f'\n\nSkill {path}:\n{content}'
+        roles = session.agent_profiles or project_definition(project_root)["agents"]
+        role = next(item for item in roles if item["role"] == (step.agent_id or step.role.value))
+        custom = (
+            "\n\nProject agent instructions:\n" + role["instructions"]
+            if role["instructions"]
+            else ""
+        )
+        for path, content in role["skill_contents"].items():
+            custom += f"\n\nSkill {path}:\n{content}"
         return base + instructions[step.name] + custom
 
     def _prepare_branch(self, project_root: Path, *, requested: str | None) -> str:
@@ -697,12 +711,8 @@ def _model_router_from_environment() -> ModelRouter:
     for adapter in ("codex", "opencode"):
         profiles: dict[ModelProfile, str] = {}
         for profile, alias in aliases.items():
-            canonical = os.environ.get(
-                f"FACTORIA_{adapter.upper()}_{profile.value.upper()}"
-            )
-            compatibility = os.environ.get(
-                f"FACTORIA_{adapter.upper()}_MODEL_{alias}"
-            )
+            canonical = os.environ.get(f"FACTORIA_{adapter.upper()}_{profile.value.upper()}")
+            compatibility = os.environ.get(f"FACTORIA_{adapter.upper()}_MODEL_{alias}")
             value = canonical or compatibility
             if value:
                 profiles[profile] = value

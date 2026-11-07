@@ -52,7 +52,15 @@ class GitBranchLifecycle:
 
     def branch_exists(self, branch: str) -> bool:
         result = subprocess.run(
-            ["git", "-C", str(self.project_root), "show-ref", "--verify", "--quiet", f"refs/heads/{branch}"],
+            [
+                "git",
+                "-C",
+                str(self.project_root),
+                "show-ref",
+                "--verify",
+                "--quiet",
+                f"refs/heads/{branch}",
+            ],
             check=False,
             capture_output=True,
         )
@@ -76,7 +84,9 @@ class GitBranchLifecycle:
 
     def switch_to_flow_branch(self, branch: str) -> None:
         if self._git("status", "--porcelain").strip():
-            raise BranchLifecycleError("Cannot switch branches while the working tree has pending changes")
+            raise BranchLifecycleError(
+                "Cannot switch branches while the working tree has pending changes"
+            )
         if not self.branch_exists(branch):
             raise BranchLifecycleError(f"Flow branch no longer exists: {branch}")
         self._git("switch", branch)

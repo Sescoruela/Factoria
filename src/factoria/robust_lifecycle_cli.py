@@ -41,8 +41,12 @@ def build_parser() -> argparse.ArgumentParser:
     cancel = sub.add_parser("cancel", help="Cancel a flow and optionally delete its branch")
     cancel.add_argument("flow_id", nargs="?")
     cancel.add_argument("--reason")
-    cancel.add_argument("--yes", action="store_true", help="Confirm flow cancellation/workspace cleanup")
-    cancel.add_argument("--delete-branch", action="store_true", help="Request branch deletion after cancellation")
+    cancel.add_argument(
+        "--yes", action="store_true", help="Confirm flow cancellation/workspace cleanup"
+    )
+    cancel.add_argument(
+        "--delete-branch", action="store_true", help="Request branch deletion after cancellation"
+    )
     cancel.add_argument(
         "--confirm-delete-branch",
         action="store_true",
@@ -103,11 +107,7 @@ def _workspace_files(execution) -> tuple[str, ...]:
     root = execution.workspace.root
     if not root.exists():
         return ()
-    return tuple(
-        str(path.relative_to(root))
-        for path in sorted(root.rglob("*"))
-        if path.is_file()
-    )
+    return tuple(str(path.relative_to(root)) for path in sorted(root.rglob("*")) if path.is_file())
 
 
 def _cmd_resume(args: argparse.Namespace, root: Path) -> int:
@@ -234,7 +234,9 @@ def _cmd_cancel(args: argparse.Namespace, root: Path) -> int:
     if not decision.allowed:
         raise PermissionError(decision.reason or "Cancellation blocked by permission policy")
     if not args.yes:
-        print("Cancelación no ejecutada. Repite con --yes después de revisar exactamente lo que se eliminará.")
+        print(
+            "Cancelación no ejecutada. Repite con --yes después de revisar exactamente lo que se eliminará."
+        )
         return 2
 
     history = LocalExecutionHistoryStore(root)

@@ -36,8 +36,7 @@ class GitMemoryStalenessInspector:
         reviewed_commit = memory.metadata.reviewed_commit
         self._ensure_commit_exists(root, reviewed_commit)
         commits = int(
-            self._git(root, "rev-list", "--count", f"{reviewed_commit}..HEAD").strip()
-            or "0"
+            self._git(root, "rev-list", "--count", f"{reviewed_commit}..HEAD").strip() or "0"
         )
         thresholds = dict(DEFAULT_THRESHOLDS)
         if threshold_overrides:

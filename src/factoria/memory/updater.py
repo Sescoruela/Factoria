@@ -75,7 +75,9 @@ def describe_memory_changes(
                     f"{staleness.commits_since_review} commits desde la última revisión "
                     f"(umbral {staleness.thresholds[document]})."
                 ),
-                evidence=(f"reviewed_commit={current.metadata.reviewed_commit if current.metadata else 'unknown'}",),
+                evidence=(
+                    f"reviewed_commit={current.metadata.reviewed_commit if current.metadata else 'unknown'}",
+                ),
             )
         )
 

@@ -69,7 +69,7 @@ def _has_git_marker(path: Path) -> bool:
             line = handle.readline(4096).strip()
         if not line.startswith("gitdir:"):
             return False
-        target = line[len("gitdir:"):].strip()
+        target = line[len("gitdir:") :].strip()
         if not target:
             return False
         metadata = Path(target)

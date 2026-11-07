@@ -67,14 +67,16 @@ class SetupService:
 
     def save_tool_preference(self, target_path: Path, tool: str) -> Path:
         """Persist a preference without installation probes, login or CLI startup."""
-        if tool not in {'codex', 'opencode'}:
-            raise SetupError('Unknown tool preference')
+        if tool not in {"codex", "opencode"}:
+            raise SetupError("Unknown tool preference")
         target = target_path.expanduser().resolve()
         if target.exists() and not _is_managed(target):
-            raise SetupError('Existing global config is not managed by Factoria')
+            raise SetupError("Existing global config is not managed by Factoria")
         current = load_global_config(target)
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(render_global_config(replace(current, default_tool=tool)), encoding='utf-8', newline='')
+        target.write_text(
+            render_global_config(replace(current, default_tool=tool)), encoding="utf-8", newline=""
+        )
         return target
 
     def inspect_tools(self) -> tuple[ToolSetupStatus, ...]:
@@ -112,7 +114,9 @@ class SetupService:
                 warnings.append(
                     f"{item.name}: adapter capabilities do not satisfy matrix v{self.matrix.version}"
                 )
-            failed = tuple(check.name for check in item.checks if check.required and not check.passed)
+            failed = tuple(
+                check.name for check in item.checks if check.required and not check.passed
+            )
             if item.available and failed:
                 warnings.append(f"{item.name}: self-test failed ({', '.join(failed)})")
 
@@ -170,11 +174,15 @@ class SetupService:
 
     def apply(self, plan: SetupPlan, *, confirmed: bool) -> Path:
         if not confirmed:
-            raise SetupError("Explicit confirmation is required before writing global configuration")
+            raise SetupError(
+                "Explicit confirmation is required before writing global configuration"
+            )
         if not plan.can_apply:
             raise SetupError("Setup plan is not safe to apply automatically")
         plan.target_path.parent.mkdir(parents=True, exist_ok=True)
-        plan.target_path.write_text(render_global_config(plan.proposed), encoding="utf-8", newline="")
+        plan.target_path.write_text(
+            render_global_config(plan.proposed), encoding="utf-8", newline=""
+        )
         return plan.target_path
 
 

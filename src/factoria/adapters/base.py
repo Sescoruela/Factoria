@@ -34,9 +34,7 @@ class AgentRequest:
     # Compatibility field: these are never free-form. Every adapter must validate
     # them through an explicit AdapterArgumentPolicy before command construction.
     extra_args: tuple[str, ...] = field(default_factory=tuple)
-    environment: Mapping[str, str] = field(
-        default_factory=lambda: MappingProxyType({})
-    )
+    environment: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if not self.prompt.strip():
@@ -114,7 +112,9 @@ class SubprocessToolAdapter:
     def _validated_extra_args(self, request: AgentRequest) -> tuple[str, ...]:
         return self.argument_policy().validate(request.extra_args)
 
-    def _execute(self, request: AgentRequest, command: tuple[str, ...], *, adapter_name: str) -> AgentResult:
+    def _execute(
+        self, request: AgentRequest, command: tuple[str, ...], *, adapter_name: str
+    ) -> AgentResult:
         root = request.project_root.expanduser().resolve()
         if not root.is_dir():
             return AgentResult(
@@ -159,8 +159,12 @@ class SubprocessToolAdapter:
                 error=f"Agent could not start: {exc}",
             )
 
-        stdout, stdout_findings = self.secret_scanner.redact(completed.stdout[-self.max_output_chars :])
-        stderr, stderr_findings = self.secret_scanner.redact(completed.stderr[-self.max_output_chars :])
+        stdout, stdout_findings = self.secret_scanner.redact(
+            completed.stdout[-self.max_output_chars :]
+        )
+        stderr, stderr_findings = self.secret_scanner.redact(
+            completed.stderr[-self.max_output_chars :]
+        )
         return AgentResult(
             adapter=adapter_name,
             command=command,
@@ -253,10 +257,14 @@ class SubprocessToolAdapter:
             )
         missing = tuple(token for token in required_tokens if token not in sanitized)
         passed = completed.returncode == 0 and not missing
-        details = "supported" if passed else (
-            "missing expected CLI flags: " + ", ".join(missing)
-            if missing
-            else f"help command exited with code {completed.returncode}"
+        details = (
+            "supported"
+            if passed
+            else (
+                "missing expected CLI flags: " + ", ".join(missing)
+                if missing
+                else f"help command exited with code {completed.returncode}"
+            )
         )
         return CheckResult(
             name=f"{adapter_name}:capabilities",

@@ -96,7 +96,9 @@ class SecretIncidentStore:
             self._write(records)
         return tuple(created)
 
-    def confirm_rotation_and_resolve(self, incident_id: str, scanner: SecretScanner) -> SecretIncidentRecord:
+    def confirm_rotation_and_resolve(
+        self, incident_id: str, scanner: SecretScanner
+    ) -> SecretIncidentRecord:
         records = list(self.list())
         index = next((i for i, item in enumerate(records) if item.incident_id == incident_id), None)
         if index is None:
@@ -149,4 +151,6 @@ class SecretIncidentStore:
             data = asdict(item)
             data["status"] = item.status.value
             payload.append(data)
-        self.path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        self.path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )

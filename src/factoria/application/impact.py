@@ -57,9 +57,7 @@ class ImpactAnalyzer:
         external_by_name = {item.name: item for item in memory.external_dependencies}
         touched_contracts: list[ContractMemory] = []
         for contract in memory.contracts:
-            matched = tuple(
-                path for path in normalized if self._matches_any(path, contract.paths)
-            )
+            matched = tuple(path for path in normalized if self._matches_any(path, contract.paths))
             if not matched:
                 continue
             touched_contracts.append(contract)
@@ -104,11 +102,13 @@ class ImpactAnalyzer:
                 lines.append(
                     f"- {item.kind}: {item.name} | confidence={item.confidence} | {item.evidence}"
                 )
-        lines.extend([
-            "",
-            f"blocking_external_review: {str(report.blocking).lower()}",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                f"blocking_external_review: {str(report.blocking).lower()}",
+                "",
+            ]
+        )
         return "\n".join(lines)
 
     @staticmethod
@@ -124,9 +124,7 @@ class ImpactAnalyzer:
         return False
 
     @staticmethod
-    def _transitive_modules(
-        modules: tuple[ModuleMemory, ...], direct: set[str]
-    ) -> set[str]:
+    def _transitive_modules(modules: tuple[ModuleMemory, ...], direct: set[str]) -> set[str]:
         by_name = {item.name: item for item in modules}
         result = set(direct)
         pending = list(direct)

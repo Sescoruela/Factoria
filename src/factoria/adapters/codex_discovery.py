@@ -82,7 +82,10 @@ def _desktop_details() -> tuple[bool, str | None]:
     packages = root / "Packages"
     if packages.is_dir():
         try:
-            if any(path.name.lower().startswith(("openai.chatgpt", "openai.codex")) for path in packages.iterdir()):
+            if any(
+                path.name.lower().startswith(("openai.chatgpt", "openai.codex"))
+                for path in packages.iterdir()
+            ):
                 return True, str(packages)
         except OSError:
             pass

@@ -6,7 +6,12 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from factoria.adapters import CodexAdapter, OpenCodeAdapter, ToolAdapter
-from factoria.config.loader import load_global_config, load_organization_config, load_project_config, resolve_config
+from factoria.config.loader import (
+    load_global_config,
+    load_organization_config,
+    load_project_config,
+    resolve_config,
+)
 from factoria.memory.git_staleness import GitMemoryStalenessInspector
 from factoria.memory.loader import load_project_memory
 from factoria.security import SecretScanner
@@ -127,8 +132,12 @@ class OperationalStatusService:
                     memory_commits = staleness.commits_since_review
                     stale_documents = tuple(item.value for item in staleness.stale_documents)
                     if stale_documents:
-                        warnings.append("Project memory may be stale: " + ", ".join(stale_documents))
-                        recommendations.append("Run `factoria memoria-update` and review the proposal.")
+                        warnings.append(
+                            "Project memory may be stale: " + ", ".join(stale_documents)
+                        )
+                        recommendations.append(
+                            "Run `factoria memoria-update` and review the proposal."
+                        )
                     memory_version_warning = _memory_version_warning(memory_version)
                     if memory_version_warning:
                         warnings.append(memory_version_warning)
@@ -150,10 +159,14 @@ class OperationalStatusService:
         available_names = {item.name for item in tools if item.available}
         if resolved.tool is None:
             warnings.append("No default coding-agent tool is configured.")
-            recommendations.append("Select a platform preference; start and authenticate Codex/OpenCode outside the application.")
+            recommendations.append(
+                "Select a platform preference; start and authenticate Codex/OpenCode outside the application."
+            )
         elif resolved.tool not in available_names:
             warnings.append(f"Configured tool {resolved.tool!r} is not currently available.")
-            recommendations.append("Start the configured tool outside the application and check its installation there.")
+            recommendations.append(
+                "Start the configured tool outside the application and check its installation there."
+            )
 
         artifacts = FlowArtifactStore(root)
         state_store = LocalFlowStateStore(artifacts)
@@ -212,7 +225,8 @@ class OperationalStatusService:
             project_name=root.name,
             branch=branch,
             dirty=dirty,
-            project_kind=project_kind or (
+            project_kind=project_kind
+            or (
                 project_config.memory.project_kind.value
                 if project_config.memory.project_kind is not None
                 else None

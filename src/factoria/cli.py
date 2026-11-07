@@ -16,10 +16,19 @@ from factoria.application.memory_flows import MemoryInitFlow, MemoryUpdateFlow
 from factoria.application.policy_runtime import build_execution_context
 from factoria.application.setup import SetupError, SetupService
 from factoria.application.state_store import LocalFlowStateStore
-from factoria.cli_lifecycle import archive_terminal, register_lifecycle_commands, run_commit, run_history
+from factoria.cli_lifecycle import (
+    archive_terminal,
+    register_lifecycle_commands,
+    run_commit,
+    run_history,
+)
 from factoria.config.loader import ConfigError, load_project_config
 from factoria.domain.permissions import PermissionProfile
-from factoria.memory.detectors import BasicTechnologyDetector, DirectoryModuleDetector, GitActivityAnalyzer
+from factoria.memory.detectors import (
+    BasicTechnologyDetector,
+    DirectoryModuleDetector,
+    GitActivityAnalyzer,
+)
 from factoria.memory.git_staleness import GitMemoryStalenessInspector
 from factoria.memory.initializer import MemoryInitializer
 from factoria.memory.loader import MemoryFormatError, load_project_memory
@@ -33,7 +42,9 @@ FACTORIA_VERSION = installed_version_text()
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="factoria", description="Factoria development-flow CLI")
     parser.add_argument("--project", default=".", help="Project root (default: current directory)")
-    parser.add_argument("--read-only", action="store_true", help="Forbid writes and project command execution")
+    parser.add_argument(
+        "--read-only", action="store_true", help="Forbid writes and project command execution"
+    )
     parser.add_argument(
         "--profile",
         choices=tuple(profile.value for profile in PermissionProfile),
@@ -48,26 +59,46 @@ def build_parser() -> argparse.ArgumentParser:
         choices=tuple(profile.value for profile in PermissionProfile),
         help="Default permission profile to store globally",
     )
-    install.add_argument("--check-only", action="store_true", help="Run setup diagnostics without writing configuration")
-    install.add_argument("--yes", action="store_true", help="Confirm writing the proposed global configuration")
+    install.add_argument(
+        "--check-only",
+        action="store_true",
+        help="Run setup diagnostics without writing configuration",
+    )
+    install.add_argument(
+        "--yes", action="store_true", help="Confirm writing the proposed global configuration"
+    )
 
     memory_init = sub.add_parser("memoria-init", help="Propose and initialize project memory")
     memory_init.add_argument("--name")
     memory_init.add_argument("--purpose", default="")
-    memory_init.add_argument("--yes", action="store_true", help="Confirm writing the proposed memory")
+    memory_init.add_argument(
+        "--yes", action="store_true", help="Confirm writing the proposed memory"
+    )
 
-    memory_update = sub.add_parser("memoria-update", help="Review and update persisted project memory")
-    memory_update.add_argument("--yes", action="store_true", help="Confirm writing the reviewed memory")
+    memory_update = sub.add_parser(
+        "memoria-update", help="Review and update persisted project memory"
+    )
+    memory_update.add_argument(
+        "--yes", action="store_true", help="Confirm writing the reviewed memory"
+    )
 
     fix = sub.add_parser("fix", help="Start and execute a fix flow with coding agents")
     fix.add_argument("title")
     fix.add_argument("--label")
     fix.add_argument("--branch", help="Branch to create when starting from main")
     fix.add_argument("--tool", choices=("codex", "opencode"), help="Preferred agent tool")
-    fix.add_argument("--large", action="store_true", help="Treat the fix as feature-like and require plan/final approval")
-    fix.add_argument("--update-memory", action="store_true", help="Request a documentation/memory proposal")
+    fix.add_argument(
+        "--large",
+        action="store_true",
+        help="Treat the fix as feature-like and require plan/final approval",
+    )
+    fix.add_argument(
+        "--update-memory", action="store_true", help="Request a documentation/memory proposal"
+    )
 
-    feature = sub.add_parser("feature", help="Start and execute a governed feature flow with coding agents")
+    feature = sub.add_parser(
+        "feature", help="Start and execute a governed feature flow with coding agents"
+    )
     feature.add_argument("title")
     feature.add_argument("--label")
     feature.add_argument("--branch", help="Branch to create when starting from main")
@@ -78,8 +109,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     resume = sub.add_parser("resume", help="Resume an interrupted flow")
     resume.add_argument("flow_id", nargs="?")
-    resume.add_argument("--approve-plan", action="store_true", help="Approve a persisted plan and continue implementation")
-    resume.add_argument("--approve-final", action="store_true", help="Approve the reviewed final result")
+    resume.add_argument(
+        "--approve-plan",
+        action="store_true",
+        help="Approve a persisted plan and continue implementation",
+    )
+    resume.add_argument(
+        "--approve-final", action="store_true", help="Approve the reviewed final result"
+    )
 
     pause = sub.add_parser("pause", help="Pause an active flow")
     pause.add_argument("flow_id")
@@ -171,7 +208,9 @@ def _cmd_install(args: argparse.Namespace) -> int:
         requested_tool=args.default_tool,
         requested_profile=profile,
     )
-    print(f"Python: {plan.python_version} ({'compatible' if plan.python_supported else 'unsupported'})")
+    print(
+        f"Python: {plan.python_version} ({'compatible' if plan.python_supported else 'unsupported'})"
+    )
     print(f"Capability matrix: v{service.matrix.version}")
     print("Herramientas:")
     for tool in plan.tools:
@@ -258,7 +297,10 @@ def _cmd_memory_update(args: argparse.Namespace, root: Path) -> int:
     print(f"Proyecto: {current.project_name}")
     print(f"Commits desde revisión: {staleness.commits_since_review}")
     if staleness.stale_documents:
-        print("Memoria potencialmente desactualizada: " + ", ".join(item.value for item in staleness.stale_documents))
+        print(
+            "Memoria potencialmente desactualizada: "
+            + ", ".join(item.value for item in staleness.stale_documents)
+        )
     else:
         print("Memoria: dentro de los umbrales de revisión")
     print("Propuesta:")
@@ -407,7 +449,9 @@ def _cmd_cancel(args: argparse.Namespace, root: Path) -> int:
     if not decision.allowed:
         raise PermissionError(decision.reason or "Cancellation blocked by permission policy")
     if not args.yes:
-        print("Cancelación no ejecutada. Usa --yes para confirmar la eliminación del workspace temporal.")
+        print(
+            "Cancelación no ejecutada. Usa --yes para confirmar la eliminación del workspace temporal."
+        )
         return 2
     service, store, _ = _services(root)
     execution = store.load(args.flow_id)

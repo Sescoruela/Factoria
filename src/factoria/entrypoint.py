@@ -22,7 +22,9 @@ def build_update_parser() -> argparse.ArgumentParser:
 
     update = sub.add_parser("update", help="Check for and apply a newer tagged Factoria release")
     update.add_argument("--source", type=Path, help="Factoria Git clone used to inspect releases")
-    update.add_argument("--remote", default="origin", help="Git remote to inspect (default: origin)")
+    update.add_argument(
+        "--remote", default="origin", help="Git remote to inspect (default: origin)"
+    )
     update.add_argument(
         "--branch",
         default="main",
@@ -32,10 +34,14 @@ def build_update_parser() -> argparse.ArgumentParser:
         "--tag",
         help="Specific SemVer release tag to inspect (for example v0.3.0); defaults to newest newer tag",
     )
-    update.add_argument("--yes", action="store_true", help="Confirm installation of the reviewed tagged release")
+    update.add_argument(
+        "--yes", action="store_true", help="Confirm installation of the reviewed tagged release"
+    )
 
     rollback = sub.add_parser("rollback", help="Restore the previous Factoria version")
-    rollback.add_argument("--yes", action="store_true", help="Confirm rollback and managed-config restoration")
+    rollback.add_argument(
+        "--yes", action="store_true", help="Confirm rollback and managed-config restoration"
+    )
     return parser
 
 
@@ -63,38 +69,49 @@ def main(argv: list[str] | None = None) -> int:
 
     if not argv:
         from factoria.web_app_n8n import run_web_ui
+
         return run_web_ui()
 
     command = _primary_command(argv)
-    if command in {'project', 'native'}:
+    if command in {"project", "native"}:
         from factoria.project_cli import run_project_cli
+
         return run_project_cli(argv)
     if command in {"ui", "web"}:
         from factoria.web_app_n8n import run_web_ui
+
         return run_web_ui()
     if command == "tui":
         from factoria.ui_agent_tools import run_agent_aware_ui_cli
+
         return run_agent_aware_ui_cli(["ui"])
     if command == "onboarding":
         from factoria.ui_agent_tools import run_agent_aware_ui_cli
+
         return run_agent_aware_ui_cli(argv)
     if command == "memoria-init":
         from factoria.memory_bootstrap_cli import run_memory_init_cli
+
         return run_memory_init_cli(argv)
     if command == "status":
         from factoria.status_cli import run_status_cli
+
         return run_status_cli(argv)
     if command == "plugins":
         from factoria.plugins_cli import run_plugins_cli
+
         return run_plugins_cli(argv)
     if command == "security":
         from factoria.security_cli import run_security_cli
+
         return run_security_cli(argv)
     if command in {"resume", "cancel"}:
         from factoria.robust_lifecycle_cli import run_robust_lifecycle_cli
+
         return run_robust_lifecycle_cli(argv)
     if argv[0] not in {"update", "rollback"}:
         from factoria.cli import main as cli_main
+
         return cli_main(argv)
 
     parser = build_update_parser()
@@ -161,10 +178,14 @@ def main(argv: list[str] | None = None) -> int:
                         print(f"- {note}")
                 print("Factoria no migra automáticamente la memoria del proyecto en esta versión.")
             if not plan.provenance_verified:
-                print("Actualización bloqueada: no existe evidencia del commit exacto instalado para un rollback seguro.")
+                print(
+                    "Actualización bloqueada: no existe evidencia del commit exacto instalado para un rollback seguro."
+                )
                 return 1
             if not args.yes:
-                print("Actualización no aplicada. Repite con --yes después de revisar la release y su integridad.")
+                print(
+                    "Actualización no aplicada. Repite con --yes después de revisar la release y su integridad."
+                )
                 return 0
 
             result = service.apply(

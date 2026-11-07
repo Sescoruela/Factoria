@@ -31,7 +31,9 @@ class SemVer:
         match = _SEMVER_RE.fullmatch(value.strip())
         if match is None:
             raise VersionError(f"Invalid semantic version: {value!r}")
-        prerelease = tuple(match.group("prerelease").split(".")) if match.group("prerelease") else ()
+        prerelease = (
+            tuple(match.group("prerelease").split(".")) if match.group("prerelease") else ()
+        )
         for item in prerelease:
             if item.isdigit() and len(item) > 1 and item.startswith("0"):
                 raise VersionError(f"Invalid numeric prerelease identifier: {item!r}")

@@ -57,7 +57,9 @@ class ChangeScope:
     lines_changed: int
 
     def is_large(self, limits: FixLimits) -> bool:
-        return self.files_changed > limits.max_files or self.lines_changed > limits.max_changed_lines
+        return (
+            self.files_changed > limits.max_files or self.lines_changed > limits.max_changed_lines
+        )
 
 
 @dataclass(frozen=True, slots=True)

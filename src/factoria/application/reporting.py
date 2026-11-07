@@ -96,8 +96,12 @@ class FixReportRenderer:
                 lines.append(
                     f"- {finding.secret_type.value} at {finding.location}; fingerprint={finding.fingerprint}; value=[REDACTED]"
                 )
-            lines.append("- Required action: rotate/revoke the affected credential outside Factoria and remove it from the repository/workspace")
-            lines.append("- Prevention: use environment variables or an approved secret manager; never commit credentials")
+            lines.append(
+                "- Required action: rotate/revoke the affected credential outside Factoria and remove it from the repository/workspace"
+            )
+            lines.append(
+                "- Prevention: use environment variables or an approved secret manager; never commit credentials"
+            )
 
         lines.extend(
             [

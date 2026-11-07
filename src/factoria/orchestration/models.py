@@ -36,11 +36,21 @@ class RoleSpec:
 
 ROLE_SPECS: Mapping[AgentRole, RoleSpec] = MappingProxyType(
     {
-        AgentRole.EXPLORER: RoleSpec(AgentRole.EXPLORER, ModelProfile.EQUILIBRADO, RoleAccess.READ_ONLY),
-        AgentRole.PLANNER: RoleSpec(AgentRole.PLANNER, ModelProfile.POTENTE, RoleAccess.READ_ONLY, structured_output=True),
-        AgentRole.IMPLEMENTER: RoleSpec(AgentRole.IMPLEMENTER, ModelProfile.POTENTE, RoleAccess.PROJECT_WRITE),
-        AgentRole.REVIEWER: RoleSpec(AgentRole.REVIEWER, ModelProfile.POTENTE, RoleAccess.READ_ONLY, structured_output=True),
-        AgentRole.DOCUMENTER: RoleSpec(AgentRole.DOCUMENTER, ModelProfile.EQUILIBRADO, RoleAccess.READ_ONLY),
+        AgentRole.EXPLORER: RoleSpec(
+            AgentRole.EXPLORER, ModelProfile.EQUILIBRADO, RoleAccess.READ_ONLY
+        ),
+        AgentRole.PLANNER: RoleSpec(
+            AgentRole.PLANNER, ModelProfile.POTENTE, RoleAccess.READ_ONLY, structured_output=True
+        ),
+        AgentRole.IMPLEMENTER: RoleSpec(
+            AgentRole.IMPLEMENTER, ModelProfile.POTENTE, RoleAccess.PROJECT_WRITE
+        ),
+        AgentRole.REVIEWER: RoleSpec(
+            AgentRole.REVIEWER, ModelProfile.POTENTE, RoleAccess.READ_ONLY, structured_output=True
+        ),
+        AgentRole.DOCUMENTER: RoleSpec(
+            AgentRole.DOCUMENTER, ModelProfile.EQUILIBRADO, RoleAccess.READ_ONLY
+        ),
     }
 )
 
@@ -87,10 +97,18 @@ class ModelRouter:
 
 @dataclass(frozen=True, slots=True)
 class AdapterSafetyPolicy:
-    restricted_access: Mapping[str, frozenset[RoleAccess]] = field(default_factory=lambda: MappingProxyType({}))
-    denied_access: Mapping[str, frozenset[RoleAccess]] = field(default_factory=lambda: MappingProxyType({}))
-    role_args: Mapping[str, Mapping[AgentRole, tuple[str, ...]]] = field(default_factory=lambda: MappingProxyType({}))
-    role_environment: Mapping[str, Mapping[AgentRole, Mapping[str, str]]] = field(default_factory=lambda: MappingProxyType({}))
+    restricted_access: Mapping[str, frozenset[RoleAccess]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    denied_access: Mapping[str, frozenset[RoleAccess]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    role_args: Mapping[str, Mapping[AgentRole, tuple[str, ...]]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    role_environment: Mapping[str, Mapping[AgentRole, Mapping[str, str]]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
 
     def supports(self, adapter: str, access: RoleAccess) -> bool:
         if access in self.denied_access.get(adapter, frozenset()):
