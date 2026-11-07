@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=a73de1abbf011a9a16b99a1e7859cd1908d7e3d7 | date=2026-11-06 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=0fe34442e94bf5eb620b36a8682a87213ddff671 | date=2026-11-07 | factoria=0.3.0 -->
 # Flujos
 
 ## memoria-init y memoria-update
@@ -7,6 +7,12 @@ escribe tras confirmación. La actualización conserva datos confirmados y el bl
 de integración de AGENTS.md; requiere regenerar los assets si cambia la memoria.
 
 ## Preparación del proyecto
+
+**Archivo de recursos** o `project resources` permite duplicar, previsualizar
+impacto, archivar y restaurar con confirmación y token vigente. Las referencias
+activas bloquean archivo; restauración exige dependencias compatibles. Los básicos
+solo se duplican; los IDs archivados se reservan. Después revisar diff y regenerar
+integración. Snapshots e historial anteriores no se modifican.
 
 Para reutilizar recursos entre proyectos, exportar una plantilla, elegir destino,
 previsualizar y confirmar con el token revisado. Los conflictos bloquean toda la

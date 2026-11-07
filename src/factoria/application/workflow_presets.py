@@ -207,6 +207,8 @@ def _raw_catalog(project_root: Path) -> dict:
 def load_catalog(project_root: Path, *, validate_agents: bool = True) -> dict[str, VisualWorkflowPreset]:
     presets = {kind: default_preset(kind) for kind in ('feature', 'fix')}
     for identifier, entry in _raw_catalog(project_root).items():
+        from factoria.application.resource_archive import assert_not_archived
+        assert_not_archived(project_root, 'workflow', identifier)
         if not isinstance(entry, dict):
             raise ValueError('La configuración del flujo debe ser un objeto')
         raw_steps = entry.get('steps')
@@ -224,6 +226,10 @@ def load_catalog(project_root: Path, *, validate_agents: bool = True) -> dict[st
         presets[identifier] = validate_preset(preset)
     if validate_agents:
         profiles = load_agent_profiles(project_root)
+        for preset in presets.values():
+            for step in preset.steps:
+                from factoria.application.resource_archive import assert_not_archived
+                assert_not_archived(project_root, 'agent', step.agent_id or step.role)
         return {identifier: validate_assignments(preset, profiles) for identifier, preset in presets.items()}
     return presets
 
@@ -247,6 +253,8 @@ def workflow_allowed(config, identifier: str, kind: str) -> bool:
 def workflow_catalog_revision(project_root: Path) -> str:
     from factoria.application.project_integration import project_path
     digest = hashlib.sha256()
+    from factoria.application.resource_archive import archive_revision
+    digest.update(archive_revision(project_root).encode())
     # A draft's agent references must refer to the catalog version it displayed.
     digest.update(agent_catalog_revision(project_root).encode())
     for relative in (_PRESET_FILE, _LEGACY_PRESET_FILE):
@@ -280,6 +288,10 @@ def _save_preset(project_root: Path, preset: VisualWorkflowPreset, *, expected_r
     if expected_revision is not None and revision != expected_revision:
         raise WorkflowCatalogConflict('Los flujos cambiaron fuera de este editor; recarga antes de guardar')
     checked = validate_assignments(preset, load_agent_profiles(project_root))
+    from factoria.application.resource_archive import assert_not_archived
+    assert_not_archived(project_root, 'workflow', checked.identifier)
+    for step in checked.steps:
+        assert_not_archived(project_root, 'agent', step.agent_id or step.role)
     catalog = load_catalog(project_root)
     identifier = checked.identifier
     if create and (checked.id is None or identifier in catalog):

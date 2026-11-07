@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=a73de1abbf011a9a16b99a1e7859cd1908d7e3d7 | date=2026-11-06 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=0fe34442e94bf5eb620b36a8682a87213ddff671 | date=2026-11-07 | factoria=0.3.0 -->
 # Factoria
 
 ## Propósito
@@ -47,6 +47,7 @@ Las reglas obligatorias no se ignoran automáticamente aunque el código actual 
 - Objetivo y contrato: `docs/direct-project-integration.md`.
 - Criterios de cierre: `docs/mvp-checklist.md`.
 - Plantillas portables web/CLI: `docs/project-templates.md`; preview y confirmación sin sobrescribir recursos en conflicto.
+- Ciclo de vida de recursos: `docs/resource-lifecycle.md`; referencias bloqueantes, archivo reversible y snapshots conservadas. No reutilizar IDs archivados sin restaurar.
 - No confundir las pruebas deterministas con aceptación en una sesión real de Codex/OpenCode.
 - Estado vigente y límites: `docs/project-status.md`. Código 0.3.0 preparado; no hay release publicada ni aceptación externa completa.
 - GitHub Actions está deshabilitado por petición del usuario hasta nuevo aviso; no reactivarlo como parte de una tarea.

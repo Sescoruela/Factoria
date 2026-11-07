@@ -128,6 +128,11 @@ def load_agent_profiles(project_root: Path | None) -> tuple[AgentRoleProfile, ..
         if not isinstance(value, dict):
             raise ValueError(f'Configuración no válida para {role}')
         item = validate_agent_profile(AgentRoleProfile.from_mapping({**value, 'role': role}))
+        from factoria.application.resource_archive import assert_not_archived
+        assert_not_archived(project_root, 'agent', item.role)
+        for skill in item.skills:
+            if Path(skill).parts[:2] == ('.factoria','skills'):
+                assert_not_archived(project_root, 'skill', Path(skill).stem)
         defaults[item.role] = item
     return tuple(defaults.values())
 
@@ -137,6 +142,8 @@ def agent_catalog_revision(project_root: Path | None) -> str:
     from factoria.application.project_integration import project_path
     digest = hashlib.sha256()
     if project_root is not None:
+        from factoria.application.resource_archive import archive_revision
+        digest.update(archive_revision(project_root).encode())
         for relative in (_AGENT_FILE, _LEGACY_AGENT_FILE):
             path = project_path(project_root, relative.as_posix())
             digest.update(relative.as_posix().encode())
@@ -165,6 +172,8 @@ def _save_agent_profile(project_root: Path, profile: AgentRoleProfile, *, expect
     from factoria.security import SecretScanner
     ExecutionGovernor().assert_allowed(GovernedAction.WRITE, build_execution_context(project_root))
     checked = validate_agent_profile(profile)
+    from factoria.application.resource_archive import assert_not_archived
+    assert_not_archived(project_root, 'agent', checked.role)
     if SecretScanner().scan_text('\n'.join((checked.name, checked.description, checked.instructions)), location=checked.role):
         raise ValueError('Posible secreto en las instrucciones; no se guarda')
     path = project_path(project_root, _AGENT_FILE.as_posix())
@@ -179,6 +188,8 @@ def _save_agent_profile(project_root: Path, profile: AgentRoleProfile, *, expect
     if mode == 'update' and checked.role not in payload:
         raise ValueError('El agente que quieres modificar no existe')
     for skill in checked.skills:
+        if Path(skill).parts[:2] == ('.factoria','skills'):
+            assert_not_archived(project_root, 'skill', Path(skill).stem)
         if not project_path(project_root, skill).is_file():
             raise ValueError(f'La skill no existe en el proyecto: {skill}')
     payload[checked.role] = checked.to_mapping()

@@ -1,5 +1,17 @@
-<!-- factoria-memory: type=active | reviewed_commit=a73de1abbf011a9a16b99a1e7859cd1908d7e3d7 | date=2026-11-06 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=0fe34442e94bf5eb620b36a8682a87213ddff671 | date=2026-11-07 | factoria=0.3.0 -->
 # Verificación y pruebas
+
+## H09 · Ciclo de vida de recursos
+
+Suite local del 07/11/2026: 368 tests correctos, Linux/Python 3.12.14, incluidos
+17 de `test_resource_lifecycle.py`. Cubren duplicación/archivo/restauración,
+referencias normalizadas y roles, básicos, reservas en editores/H08, contenido
+exacto, snapshots e historial real cancelado, tokens, concurrencia, fallos,
+ediciones externas, CLI/read-only/política y APIs autenticadas de ambos shells.
+`node tests/ui/resources_controller_smoke.cjs` usa DOM/API simulados para selección,
+confirmación/cancelación, bloqueos, restauración y preview asíncrono. No es navegador
+real. JS y asset empaquetado comprobados. Actions permanece deshabilitado; no hay
+CI remoto/Windows nuevos. Ver [guía y límites](../resource-lifecycle.md).
 
 ## H08 · Plantillas reutilizables
 

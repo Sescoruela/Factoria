@@ -1,7 +1,7 @@
 # Estado verificable de Factoria
 
-Revisión: **06/11/2026**, sobre el código integrado hasta
-`a73de1abbf011a9a16b99a1e7859cd1908d7e3d7` y la entrega H08 de plantillas.
+Revisión: **07/11/2026**, sobre el código integrado hasta
+`0fe34442e94bf5eb620b36a8682a87213ddff671` y la entrega H09 de ciclo de vida.
 Esta página reúne el estado vigente; los registros fechados conservan su alcance original.
 
 **0.3.0 preparada, sin tag ni release publicada. MVP todavía no aceptado.**
@@ -21,6 +21,7 @@ hasta nuevo aviso. Las modificaciones de workflows no reactivan ese ajuste.
 | Inicio externo | UI/TUI con detección pasiva; el usuario inicia y autentica las herramientas | [Decisión y límites](memoria/decisiones.md) |
 | Distribución | Wheel/sdist, checksums y actualización Python comprobados localmente; binario dirige al instalador | [H06 y límites](release-h06-status.md) |
 | Plantillas H08 | Exportación JSON y preview/import conservador desde ambos shells y CLI; sin memoria/política/preferencias de máquina | [Uso y evidencia](project-templates.md) |
+| Ciclo de vida H09 | Duplicar, revisar impacto, archivar y restaurar recursos con reservas y dependencias compatibles | [Uso y evidencia](resource-lifecycle.md) |
 
 «Implementado» indica código y evidencia técnica. No afirma que una sesión nueva de
 un LLM descubra la configuración o respete las instrucciones automáticamente.
@@ -31,7 +32,7 @@ agentes de una sesión externa siguen dependiendo de Codex/OpenCode.
 
 | Tipo | Última evidencia disponible | Qué queda fuera |
 | --- | --- | --- |
-| Pruebas deterministas | H08: **351 tests**, Linux/Python 3.12.14, correctos | Autenticación, selección natural y uso por un LLM |
+| Pruebas deterministas | H09: **368 tests**, Linux/Python 3.12.14, correctos | Autenticación, selección natural y uso por un LLM |
 | DOM/API | H04: tres smokes de los shells con Node/jsdom y API | Navegador real, inspección visual y experiencia completa del usuario; [H11 #17](https://github.com/Sescoruela/Factoria/issues/17) pendiente |
 | Host con checkout | Fix y feature de laboratorio completados con agente/skill/workflow propios, aprobaciones y commits locales | Sesión externa independiente, descubrimiento natural y aislamiento de modelos; [evidencia H05](acceptance/h05-status.md) |
 | Codex CLI/OpenCode autenticados | Pendiente de ejecución y registro | No se certifica por los tests, por un CLI presente ni por un manifiesto |
@@ -42,7 +43,7 @@ agentes de una sesión externa siguen dependiendo de Codex/OpenCode.
 Las cifras tienen fecha y alcance: no son contadores en tiempo real. Para comprobar
 el código actual, ejecutar `python -m unittest discover -s tests` en un entorno instalado.
 H07 reconcilió la documentación; su validación histórica está en [registro H07](h07-documentation-review.md).
-H08 añade pruebas HTTP de ambos shells y sintaxis JS; el navegador disponible no pudo acceder al laboratorio local.
+H08/H09 añaden pruebas HTTP de ambos shells y controladores con DOM/API simulados. No hay validación visual nueva; el navegador disponible no pudo acceder al laboratorio local en H08.
 
 ## Pendientes y decisiones
 
@@ -55,7 +56,8 @@ H08 añade pruebas HTTP de ambos shells y sintaxis JS; el navegador disponible n
 | Reactivar Actions | Solo cuando el usuario lo pida; no se propone una fecha automática |
 | Firma Authenticode | No disponible; checksums no equivalen a firma digital |
 | H08 | Plantillas web/CLI implementadas; [guía, evidencia y límites](project-templates.md). H06 sigue pendiente |
-| H09–H13 | Evolución posterior en [roadmap](roadmap.md); no sustituye las pruebas de cierre del MVP |
+| H09 | Duplicación, archivo reversible y restauración implementados; [guía y límites](resource-lifecycle.md) |
+| H10–H13 | Evolución posterior en [roadmap](roadmap.md); no sustituye las pruebas de cierre del MVP |
 
 La aceptación pendiente bloquea la declaración de MVP terminado. La documentación
 de un procedimiento no significa que se haya ejecutado ni que su resultado sea correcto.

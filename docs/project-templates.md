@@ -88,3 +88,7 @@ El navegador disponible devolvió conexión rechazada al laboratorio local; no s
 afirma validación visual. Tampoco aceptación de proveedores, CI remoto o Windows
 nuevos. Actions sigue deshabilitado. H06 permanece abierto: H08 entrega código de
 reutilización sin publicar una release ni cerrar H05.
+
+Los recursos archivados mediante H09 no se exportan ni se recrean por importación.
+Sus identificadores se reservan hasta restaurar el recurso desde su registro. Ver
+[ciclo de vida](resource-lifecycle.md).

@@ -89,3 +89,12 @@ verificada. [Guía de distribución](release-process.md) para checksums, copia d
 configuración y reinstalación del binario. 0.3.0 está preparada; no se ha publicado
 una release ni reactivado Actions. No ejecutar comandos de actualización de ejemplo
 sin un artefacto/tag disponible y verificado.
+
+## Ciclo de vida de recursos
+
+`factoria project resources list` muestra recursos activos y registros.
+`factoria project resources duplicate agent reviewer --new-id reviewer-api` propone
+una copia; `archive workflow fix-api` propone archivar; `restore workflow ID_DE_ARCHIVO`
+propone restaurar un registro. Prefijar estos últimos con `factoria project resources`.
+Aplicar repitiendo con `--yes --token TOKEN_DEL_PREVIEW` después de revisar el impacto.
+Consultar [reglas, referencias y recuperación](resource-lifecycle.md).
