@@ -50,7 +50,9 @@ class CommandExecution:
 
 
 class CommandRunner(Protocol):
-    def run(self, command: ConfirmedCommand, *, cwd: Path, timeout_seconds: int) -> CommandExecution: ...
+    def run(
+        self, command: ConfirmedCommand, *, cwd: Path, timeout_seconds: int
+    ) -> CommandExecution: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,7 +60,9 @@ class SubprocessCommandRunner:
     max_output_chars: int = 8000
     secret_scanner: SecretScanner = SecretScanner()
 
-    def run(self, command: ConfirmedCommand, *, cwd: Path, timeout_seconds: int) -> CommandExecution:
+    def run(
+        self, command: ConfirmedCommand, *, cwd: Path, timeout_seconds: int
+    ) -> CommandExecution:
         name = _command_name(command)
         try:
             result = subprocess.run(
@@ -90,8 +94,12 @@ class SubprocessCommandRunner:
                 error=f"Command could not start: {exc}",
             )
 
-        stdout, stdout_findings = self.secret_scanner.redact(result.stdout[-self.max_output_chars :])
-        stderr, stderr_findings = self.secret_scanner.redact(result.stderr[-self.max_output_chars :])
+        stdout, stdout_findings = self.secret_scanner.redact(
+            result.stdout[-self.max_output_chars :]
+        )
+        stderr, stderr_findings = self.secret_scanner.redact(
+            result.stderr[-self.max_output_chars :]
+        )
         return CommandExecution(
             name=name,
             category=command.category,
@@ -122,7 +130,9 @@ class SafeCheckSummary:
 
     @property
     def secret_findings(self) -> tuple[SecretFinding, ...]:
-        return tuple(finding for execution in self.executions for finding in execution.secret_findings)
+        return tuple(
+            finding for execution in self.executions for finding in execution.secret_findings
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -154,7 +164,9 @@ class SafeCheckExecutor:
         )
         check_plan = CheckPlanner(memory).plan(changed_files, specs)
         selected_names = {check.name for check in check_plan.checks}
-        selected = tuple(command for command in commands if _command_name(command) in selected_names)
+        selected = tuple(
+            command for command in commands if _command_name(command) in selected_names
+        )
         return SafeCheckPlan(affected_modules=check_plan.affected_modules, commands=selected)
 
     def execute(

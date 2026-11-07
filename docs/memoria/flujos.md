@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=e06933195e3231bebacbe25aacaf19f529dc2164 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=59ac469a2145faddac857b669c4aa0bfa5fef149 | date=2026-11-07 | factoria=0.3.0 -->
 # Flujos
 
 ## memoria-init y memoria-update
@@ -61,3 +61,7 @@ vigente → actualizar editores. Un fallo deja journal pendiente y bloquea nueva
 escrituras; revisar/restaurar explícitamente. Resolver cambios externos antes de
 reintentar. La restauración conserva snapshots y no regenera integración ni inicia
 proveedores. [Detalle](../configuration-recovery.md).
+
+El refactor separa parser/acciones de CLI y endpoints web manteniendo los comandos
+y gates existentes. Los paneles usan `hasUnsavedProjectChanges()` antes de operar;
+los consumidores de staging vuelven a comprobar sus revisiones antes de publicar.

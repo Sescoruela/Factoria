@@ -27,16 +27,13 @@ def run_plugins_cli(argv: list[str]) -> int:
     runtime = PluginRuntime(factoria_version=installed_version_text())
     extras: list[tuple[PluginSource, Path]] = []
     extras.extend(
-        (PluginSource.PERSONAL, Path(item).expanduser().resolve())
-        for item in args.personal
+        (PluginSource.PERSONAL, Path(item).expanduser().resolve()) for item in args.personal
     )
     extras.extend(
-        (PluginSource.ORGANIZATION, Path(item).expanduser().resolve())
-        for item in args.organization
+        (PluginSource.ORGANIZATION, Path(item).expanduser().resolve()) for item in args.organization
     )
     extras.extend(
-        (PluginSource.BUILTIN, Path(item).expanduser().resolve())
-        for item in args.builtin
+        (PluginSource.BUILTIN, Path(item).expanduser().resolve()) for item in args.builtin
     )
     report = runtime.discover_and_load(extra_roots=extras)
 

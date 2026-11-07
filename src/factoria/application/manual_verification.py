@@ -30,8 +30,7 @@ def inspect_manual_verification(
 
     text = verification.read_text(encoding="utf-8", errors="replace")
     automated = any(
-        line.startswith("- PASS ") or line.startswith("- FAIL ")
-        for line in text.splitlines()
+        line.startswith("- PASS ") or line.startswith("- FAIL ") for line in text.splitlines()
     )
     if automated:
         return ManualVerificationRequirement(required=False, available=True)

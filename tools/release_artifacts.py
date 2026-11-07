@@ -1,4 +1,5 @@
 """Offline release metadata and SHA-256 checks; never downloads or executes assets."""
+
 from __future__ import annotations
 
 import argparse

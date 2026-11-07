@@ -37,7 +37,7 @@ Implementación no equivale a aceptación autenticada. Detalle: [editores](edito
 
 | Comprobación | Resultado y alcance | Registro |
 | --- | --- | --- |
-| Suite determinista | H13: 398 tests correctos en Linux/Python 3.12.14 | [Evidencia y límites](configuration-recovery.md) |
+| Suite determinista | Refactor: 406 tests correctos en Linux/Python 3.12.14 | [Evidencia y límites](code-refactor.md) |
 | Interfaz | H13: 25 casos Chromium reales locales correctos y fallo de control con evidencia; CI pendiente, sin auditoría visual | [Guía H11](browser-smoke.md) |
 | Host con checkout / fix | Completado tras autorización; 3 pruebas, review y commit local | [H05](acceptance/h05-status.md) |
 | Host con checkout / feature | Plan y resultado aprobados; 7 pruebas, aceptación, review y commit local; completado | [Cierre de feature](acceptance/evidence/host-feature/completion.json) |

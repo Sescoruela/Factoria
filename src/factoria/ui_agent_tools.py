@@ -74,7 +74,11 @@ class AgentAwareTerminalUI(ProjectFlowTerminalUI):
             self.output("  7. Onboarding / guía")
             self.output("  8. Actualizar dashboard")
             self.output("  9. Gestionar proyectos")
-            if self._is_git_project() and not (self.root / "AGENTS.md").exists() and not self.read_only:
+            if (
+                self._is_git_project()
+                and not (self.root / "AGENTS.md").exists()
+                and not self.read_only
+            ):
                 self.output("  M. Inicializar memoria del proyecto")
             if not self.read_only:
                 self.output("  A. Guardar preferencia / ruta")
@@ -107,7 +111,12 @@ class AgentAwareTerminalUI(ProjectFlowTerminalUI):
                 continue
             elif choice == "9":
                 self._manage_projects()
-            elif choice == "m" and self._is_git_project() and not (self.root / "AGENTS.md").exists() and not self.read_only:
+            elif (
+                choice == "m"
+                and self._is_git_project()
+                and not (self.root / "AGENTS.md").exists()
+                and not self.read_only
+            ):
                 self._initialize_memory_from_dashboard()
             elif choice == "a" and not self.read_only:
                 self._configure_agents()
@@ -125,7 +134,7 @@ class AgentAwareTerminalUI(ProjectFlowTerminalUI):
         super()._render_dashboard()
         self.output("\nPlataformas externas · detección pasiva")
         for item in tool_presence():
-            state = "DETECTADO · inicio externo" if item['available'] else "NO DETECTADO"
+            state = "DETECTADO · inicio externo" if item["available"] else "NO DETECTADO"
             self.output(f"  {item['name']:<8}: {state}")
         self.output("  Autenticación e inicio: abre Codex/OpenCode fuera de Factoría.")
 
@@ -133,14 +142,14 @@ class AgentAwareTerminalUI(ProjectFlowTerminalUI):
         self.output("\nPreferencia de plataforma (sin iniciar ni diagnosticar ejecutables)")
         self.output("  1. Codex · 2. OpenCode · P. Guardar ruta · 0. Volver")
         raw = self.input("Selección: ").strip().lower()
-        if raw == 'p':
+        if raw == "p":
             self._configure_agent_path()
             return
-        tool = {'1': 'codex', '2': 'opencode'}.get(raw)
+        tool = {"1": "codex", "2": "opencode"}.get(raw)
         if tool is None:
             return
         if self._confirm(f"¿Guardar {tool} como preferencia?", default=True):
-            SetupService().save_tool_preference(Path.home() / '.factoria/config.toml', tool)
+            SetupService().save_tool_preference(Path.home() / ".factoria/config.toml", tool)
             self.output(f"Preferencia guardada: {tool}. Inícialo por tu cuenta fuera de Factoría.")
 
     def _configure_agent_path(self) -> None:

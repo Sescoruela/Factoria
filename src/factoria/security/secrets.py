@@ -56,7 +56,10 @@ class SecretScanner:
     max_file_bytes: int = 1_000_000
 
     _patterns = (
-        (SecretType.PRIVATE_KEY, re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----")),
+        (
+            SecretType.PRIVATE_KEY,
+            re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----"),
+        ),
         (SecretType.BEARER_TOKEN, re.compile(r"(?i)\bbearer\s+([A-Za-z0-9._~+/-]{20,})")),
         (SecretType.PROVIDER_TOKEN, re.compile(r"\b(?:ghp|github_pat|sk)-[A-Za-z0-9_-]{20,}\b")),
         (
@@ -67,7 +70,9 @@ class SecretScanner:
         ),
     )
 
-    def scan_text(self, text: str, *, location: str, source: SecretSource = SecretSource.OUTPUT) -> tuple[SecretFinding, ...]:
+    def scan_text(
+        self, text: str, *, location: str, source: SecretSource = SecretSource.OUTPUT
+    ) -> tuple[SecretFinding, ...]:
         findings: list[SecretFinding] = []
         for secret_type, pattern in self._patterns:
             for match in pattern.finditer(text):
@@ -125,7 +130,15 @@ class SecretScanner:
     @staticmethod
     def changed_paths(project_root: Path) -> tuple[str, ...]:
         completed = subprocess.run(
-            ["git", "-C", str(project_root), "status", "--porcelain=v1", "-z", "--untracked-files=all"],
+            [
+                "git",
+                "-C",
+                str(project_root),
+                "status",
+                "--porcelain=v1",
+                "-z",
+                "--untracked-files=all",
+            ],
             check=True,
             capture_output=True,
         )
@@ -137,7 +150,7 @@ class SecretScanner:
             entry = parts[index]
             path = entry[3:] if len(entry) >= 4 else ""
             status = entry[:2]
-            if any(flag in status for flag in ('R', 'C')) and index + 1 < len(parts):
+            if any(flag in status for flag in ("R", "C")) and index + 1 < len(parts):
                 index += 1
             if path:
                 paths.append(path)
@@ -145,7 +158,9 @@ class SecretScanner:
         return tuple(paths)
 
     @staticmethod
-    def _finding(secret_type: SecretType, source: SecretSource, location: str, raw: str) -> SecretFinding:
+    def _finding(
+        secret_type: SecretType, source: SecretSource, location: str, raw: str
+    ) -> SecretFinding:
         fingerprint = hashlib.sha256(raw.encode("utf-8", errors="ignore")).hexdigest()[:12]
         return SecretFinding(
             secret_type=secret_type,

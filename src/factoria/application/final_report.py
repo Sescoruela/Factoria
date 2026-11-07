@@ -20,8 +20,7 @@ class AgentMetrics:
     @property
     def has_usage(self) -> bool:
         return any(
-            value is not None
-            for value in (self.input_tokens, self.output_tokens, self.cost_usd)
+            value is not None for value in (self.input_tokens, self.output_tokens, self.cost_usd)
         )
 
 
@@ -173,11 +172,15 @@ def render_final_report(record) -> str:
             [
                 f"- input_tokens: {metrics.input_tokens if metrics.input_tokens is not None else '-'}",
                 f"- output_tokens: {metrics.output_tokens if metrics.output_tokens is not None else '-'}",
-                f"- cost_usd: {metrics.cost_usd:.6f}" if metrics.cost_usd is not None else "- cost_usd: -",
+                f"- cost_usd: {metrics.cost_usd:.6f}"
+                if metrics.cost_usd is not None
+                else "- cost_usd: -",
             ]
         )
     else:
-        lines.append("- token/cost metrics: not exposed by the persisted adapter evidence; not estimated.")
+        lines.append(
+            "- token/cost metrics: not exposed by the persisted adapter evidence; not estimated."
+        )
 
     recommendation = _profile_recommendation(metrics)
     lines.extend(["", "Recommendation", f"- {recommendation}"])
@@ -226,12 +229,10 @@ def _commit_changes(raw: str | None) -> tuple[str, ...]:
 
 def _latest_review_name(artifacts: Mapping[str, str]) -> str | None:
     cycle_names = sorted(
-        (
-            name
-            for name in artifacts
-            if name.startswith("review-cycle-") and name.endswith(".md")
-        ),
-        key=lambda name: int(re.search(r"(\d+)", name).group(1)) if re.search(r"(\d+)", name) else 0,
+        (name for name in artifacts if name.startswith("review-cycle-") and name.endswith(".md")),
+        key=lambda name: int(re.search(r"(\d+)", name).group(1))
+        if re.search(r"(\d+)", name)
+        else 0,
     )
     if cycle_names:
         return cycle_names[-1]
@@ -254,9 +255,7 @@ def _summary_lines(text: str, *, limit: int) -> tuple[str, ...]:
 
 def _security_summary(artifacts: Mapping[str, str]) -> tuple[str, ...]:
     candidates = [
-        name
-        for name in artifacts
-        if "security" in name.lower() or "secret" in name.lower()
+        name for name in artifacts if "security" in name.lower() or "secret" in name.lower()
     ]
     if not candidates:
         return ("No persisted security incident evidence for this execution.",)

@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=e06933195e3231bebacbe25aacaf19f529dc2164 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=59ac469a2145faddac857b669c4aa0bfa5fef149 | date=2026-11-07 | factoria=0.3.0 -->
 # Arquitectura
 
 ## Objetivo
@@ -55,3 +55,13 @@ H13: `application/config_schema.py` aplica gates de versión; `config_recovery.p
 previsualiza/migra/checkpoint/restaura con copias locales en metadatos Git y journal
 recuperable. El panel `configuration.js` y CLI comparten el servicio autenticado y
 con políticas. Snapshots/memoria/historial quedan fuera del inventario. [Guía](../configuration-recovery.md).
+
+## Refactor transversal
+
+Rutas/bytes son contratos neutros (`project_paths.py`, `storage.py`). El parseo de
+esquemas vive en config; el gate de escrituras/recuperación, en application.
+`MemoryChange` es un contrato de domain y memoria ya no importa application.
+`resource_support.py` y `resource_locks.py` reemplazan imports de utilidades privadas
+de plantillas. CLI separa parser/acciones; `web_project_api.py` separa recursos del
+transporte del servidor y ambos shells comparten el arranque. El frontend consulta
+borradores en `editor-state.js`. [Estructura completa](../code-refactor.md).

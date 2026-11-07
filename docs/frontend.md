@@ -24,3 +24,7 @@ Evidencia local 07/11/2026: suite Python y recorridos Chromium completos, inclui
 un caso nuevo que conserva un borrador de agente al intentar navegar desde Relaciones.
 Consultar [estado vigente](project-status.md) para cifras. H11 sigue abierto por CI:
 Actions permanece deshabilitado. Esta refactorización no cierra H05/H06.
+
+Tras el refactor transversal, `editor-state.js` centraliza la consulta de borradores
+para los paneles. `web_project_api.py` agrupa recursos/plantillas/relaciones/recuperación
+y ambos shells comparten el arranque en `serve_web_ui`. [Detalle](code-refactor.md).

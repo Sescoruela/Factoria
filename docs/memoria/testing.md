@@ -1,5 +1,13 @@
-<!-- factoria-memory: type=active | reviewed_commit=e06933195e3231bebacbe25aacaf19f529dc2164 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=59ac469a2145faddac857b669c4aa0bfa5fef149 | date=2026-11-07 | factoria=0.3.0 -->
 # Verificación y pruebas
+
+## Refactor transversal
+
+07/11/2026: 406 unittest correctos (cinco contratos de persistencia y tres de capas/
+imports nuevos), 25/25 Chromium reales y tres controladores DOM/API correctos.
+La primera pasada de formato conserva AST Python/JS. Ruff/Prettier, instalación
+del wheel y evidencia con hashes comprobados; Actions deshabilitado. Sin CI remoto,
+Windows ni proveedores nuevos. [Detalle](../code-refactor.md).
 
 ## H13 · Configuración y recuperación
 

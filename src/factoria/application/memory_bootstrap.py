@@ -54,7 +54,9 @@ class MemoryBootstrapProposal:
 class RepositoryBootstrapAnalyzer:
     """Conservative proposal engine for first-time project memory."""
 
-    def enrich(self, project_root: Path, memory: ProjectMemory) -> tuple[ProjectMemory, tuple[BootstrapEvidence, ...]]:
+    def enrich(
+        self, project_root: Path, memory: ProjectMemory
+    ) -> tuple[ProjectMemory, tuple[BootstrapEvidence, ...]]:
         root = project_root.resolve()
         commands, command_evidence = self._commands(root, memory.modules)
         dependencies, dependency_evidence = self._dependencies(root, memory.modules)
@@ -147,7 +149,9 @@ class RepositoryBootstrapAnalyzer:
             if pytest_declared:
                 add("test", ("python", "-m", "pytest"), pyproject)
             elif any(tests_dir.glob("test*.py")):
-                add("test", ("python", "-m", "unittest", "discover", "-s", "tests", "-v"), pyproject)
+                add(
+                    "test", ("python", "-m", "unittest", "discover", "-s", "tests", "-v"), pyproject
+                )
 
         return tuple(commands), tuple(evidence)
 
@@ -223,9 +227,14 @@ class RepositoryBootstrapAnalyzer:
                             )
                         )
 
-            python_names = {candidate.name.replace("-", "_"): candidate.name for candidate in modules}
+            python_names = {
+                candidate.name.replace("-", "_"): candidate.name for candidate in modules
+            }
             for source in module_root.rglob("*.py"):
-                if any(part.startswith(".") or part in {"venv", ".venv", "__pycache__"} for part in source.parts):
+                if any(
+                    part.startswith(".") or part in {"venv", ".venv", "__pycache__"}
+                    for part in source.parts
+                ):
                     continue
                 try:
                     text = source.read_text(encoding="utf-8", errors="replace")
@@ -243,11 +252,7 @@ class RepositoryBootstrapAnalyzer:
                             )
                         )
 
-        compact = {
-            name: tuple(sorted(targets))
-            for name, targets in values.items()
-            if targets
-        }
+        compact = {name: tuple(sorted(targets)) for name, targets in values.items() if targets}
         unique_evidence = tuple(dict.fromkeys(evidence))
         return compact, unique_evidence
 
@@ -323,9 +328,7 @@ class MemoryBootstrapService:
 
 def project_config_for(memory: ProjectMemory) -> ProjectConfig:
     kind = memory.metadata.project_kind if memory.metadata else ProjectKind.MAINTENANCE
-    thresholds = MappingProxyType(
-        {document: _STALENESS_DEFAULT for document in MemoryDocumentKind}
-    )
+    thresholds = MappingProxyType({document: _STALENESS_DEFAULT for document in MemoryDocumentKind})
     return ProjectConfig(
         profile=None,
         max_agents=None,

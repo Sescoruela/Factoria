@@ -100,7 +100,11 @@ class UpdateService:
 
         start = Path(__file__).resolve()
         for candidate in (start, *start.parents):
-            if candidate.is_dir() and (candidate / ".git").exists() and (candidate / "pyproject.toml").exists():
+            if (
+                candidate.is_dir()
+                and (candidate / ".git").exists()
+                and (candidate / "pyproject.toml").exists()
+            ):
                 return candidate
         raise UpdateError(
             "No Factoria Git checkout found. Re-run with `factoria update --source <clone>`"
@@ -162,20 +166,25 @@ class UpdateService:
             raise UpdateError(
                 f"Release tag {selected_tag} changed while being fetched; update aborted"
             )
-        if self._run_git(
-            root,
-            "merge-base",
-            "--is-ancestor",
-            target_sha,
-            channel_sha,
-            check=False,
-        ).returncode != 0:
+        if (
+            self._run_git(
+                root,
+                "merge-base",
+                "--is-ancestor",
+                target_sha,
+                channel_sha,
+                check=False,
+            ).returncode
+            != 0
+        ):
             raise UpdateError(
                 f"Release tag {selected_tag} is not reachable from configured channel {remote}/{branch}"
             )
         target_tree_sha = self._run_git(root, "rev-parse", f"{target_sha}^{{tree}}").stdout.strip()
 
-        provenance = self.installed_provenance(provenance_path) if provenance_path is not None else None
+        provenance = (
+            self.installed_provenance(provenance_path) if provenance_path is not None else None
+        )
         current_sha: str | None = None
         provenance_verified = False
         if provenance is not None:
@@ -183,9 +192,13 @@ class UpdateService:
                 raise UpdateError("Installed Factoria provenance points to a different Git remote")
             if SemVer.parse(provenance.version) != current_version:
                 raise UpdateError("Installed Factoria version does not match recorded provenance")
-            exists = self._run_git(root, "cat-file", "-e", f"{provenance.commit_sha}^{{commit}}", check=False)
+            exists = self._run_git(
+                root, "cat-file", "-e", f"{provenance.commit_sha}^{{commit}}", check=False
+            )
             if exists.returncode != 0:
-                raise UpdateError("Installed Factoria commit is not present in the configured source checkout")
+                raise UpdateError(
+                    "Installed Factoria commit is not present in the configured source checkout"
+                )
             if provenance.tree_sha is not None:
                 installed_tree = self._run_git(
                     root, "rev-parse", f"{provenance.commit_sha}^{{tree}}"
@@ -201,7 +214,9 @@ class UpdateService:
                 check=False,
             )
             if ancestor.returncode != 0:
-                raise UpdateError("Installed Factoria commit is not an ancestor of the selected release")
+                raise UpdateError(
+                    "Installed Factoria commit is not an ancestor of the selected release"
+                )
             current_sha = provenance.commit_sha
             provenance_verified = True
 
@@ -272,7 +287,9 @@ class UpdateService:
             plan.source_root, "rev-parse", f"{plan.target_sha}^{{tree}}"
         ).stdout.strip()
         if current_tree != plan.target_tree_sha:
-            raise UpdateError("Release source tree no longer matches the reviewed integrity evidence")
+            raise UpdateError(
+                "Release source tree no longer matches the reviewed integrity evidence"
+            )
 
         previous = self.installed_provenance(provenance_path)
         state = RollbackState(
@@ -317,9 +334,13 @@ class UpdateService:
         state = _read_state(state_path)
         current = self.installed_provenance(provenance_path)
         if current is None or current.commit_sha != state.target_sha:
-            raise UpdateError("Rollback refused because the currently installed commit does not match the recorded update target")
+            raise UpdateError(
+                "Rollback refused because the currently installed commit does not match the recorded update target"
+            )
         if state.target_tree_sha is not None and current.tree_sha != state.target_tree_sha:
-            raise UpdateError("Rollback refused because installed tree integrity does not match the recorded update target")
+            raise UpdateError(
+                "Rollback refused because installed tree integrity does not match the recorded update target"
+            )
         self._install(state.remote_url, state.previous_sha)
         if state.config_backup is not None:
             config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -396,7 +417,7 @@ class UpdateService:
             prefix = "refs/tags/"
             if not ref.startswith(prefix):
                 continue
-            name = ref[len(prefix):]
+            name = ref[len(prefix) :]
             if name.endswith("^{}"):
                 peeled[name[:-3]] = sha
             else:
@@ -415,19 +436,25 @@ class UpdateService:
             if not name.startswith(_RELEASE_TAG_PREFIX):
                 continue
             try:
-                parsed = SemVer.parse(name[len(_RELEASE_TAG_PREFIX):])
+                parsed = SemVer.parse(name[len(_RELEASE_TAG_PREFIX) :])
             except VersionError:
                 continue
             candidates.append((parsed, name, sha))
         if requested is not None:
-            requested_name = requested if requested.startswith(_RELEASE_TAG_PREFIX) else f"{_RELEASE_TAG_PREFIX}{requested}"
+            requested_name = (
+                requested
+                if requested.startswith(_RELEASE_TAG_PREFIX)
+                else f"{_RELEASE_TAG_PREFIX}{requested}"
+            )
             match = next((item for item in candidates if item[1] == requested_name), None)
             if match is None:
                 raise UpdateError(f"Requested release tag not found on remote: {requested_name}")
             return match[1], match[2], match[0]
         newer = [item for item in candidates if item[0] > current_version]
         if not newer:
-            raise UpdateError("No newer tagged Factoria release is available on the configured remote")
+            raise UpdateError(
+                "No newer tagged Factoria release is available on the configured remote"
+            )
         version, name, sha = max(newer, key=lambda item: item[0])
         return name, sha, version
 
@@ -440,7 +467,9 @@ class UpdateService:
         )
         return None if completed.returncode != 0 else _release_metadata(completed.stdout)
 
-    def _run_git(self, root: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+    def _run_git(
+        self, root: Path, *args: str, check: bool = True
+    ) -> subprocess.CompletedProcess[str]:
         completed = self.runner(
             ["git", "-C", str(root), *args],
             capture_output=True,
@@ -496,7 +525,9 @@ def _managed_config_backup(path: Path) -> str | None:
 
 def _write_state(path: Path, state: RollbackState) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(asdict(state), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(asdict(state), ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
 
 def _read_state(path: Path) -> RollbackState:
@@ -510,7 +541,9 @@ def _read_state(path: Path) -> RollbackState:
 
 def _write_provenance(path: Path, provenance: InstallationProvenance) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(asdict(provenance), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(asdict(provenance), ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
 
 def _read_provenance(path: Path) -> InstallationProvenance:

@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=e06933195e3231bebacbe25aacaf19f529dc2164 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=59ac469a2145faddac857b669c4aa0bfa5fef149 | date=2026-11-07 | factoria=0.3.0 -->
 # Decisiones
 
 - La memoria y configuración compartida viven junto al código del proyecto.
@@ -40,3 +40,10 @@ confirmación. Esquemas desconocidos bloquean lectores y escritores. Los journal
 H13 guardan bytes/hashes antes de escribir y bloquean nuevas ediciones si quedan
 pendientes. Recuperar no pisa cambios externos ajenos. Los journals antiguos H08/H09
 no se adoptan automáticamente; checkpoints H13 son operaciones explícitas.
+
+## Refactor transversal
+
+Se conserva la compatibilidad de imports de rutas, esquema y MemoryChange; sus
+implementaciones neutrales no dependen de application. Un único staging limpia
+temporales ante fallos sin asumir política, revisión o transacción. Formato y
+reorganización se revisan en commits separados; no se modifica el esquema guardado.

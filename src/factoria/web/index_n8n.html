@@ -1,16 +1,176 @@
 <!doctype html>
 <html lang="es">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Factoria</title>
-<link rel="stylesheet" href="/assets/shell-main.css"><link rel="stylesheet" href="/assets/agents.css"></head>
-<body><div class="app"><aside class="sidebar"><div class="brand">FACTORIA<small>DEVELOPMENT FACTORY</small></div><div class="nav">
-<button data-page="dashboard" class="active">Dashboard</button><button data-page="projects">Proyectos</button><button data-page="agents">Agentes</button><button data-page="designer">Diseñador de flujo</button><button data-page="flows">Flujos</button><button data-page="history">Historial</button><button data-page="security">Seguridad</button><button data-page="commands">Comandos</button>
-</div></aside><main class="main"><div class="top"><div><h1 id="title">Dashboard</h1><div id="subtitle" class="muted">Cargando…</div></div><button class="secondary" onclick="refresh()">Actualizar</button></div>
-<section id="dashboard" class="section active"><div class="grid" id="dashboardGrid"></div></section>
-<section id="projects" class="section"><div class="grid"><div class="card full"><div class="label">Carpeta raíz</div><div id="projectsRootLabel" class="muted"></div><div class="row"><input id="projectsRootInput"><button class="secondary" onclick="saveProjectsRoot()">Guardar</button></div></div><div class="card wide"><div class="label">Proyectos</div><input id="projectSearch" placeholder="Buscar…" oninput="renderProjects()"><div id="projectList" class="list"></div></div><div class="card"><div class="label">Crear proyecto</div><input id="newName" placeholder="Nombre"><textarea id="newPurpose" placeholder="Descripción"></textarea><button class="primary" onclick="createProject()">Crear</button></div></div></section>
-<section id="agents" class="section"><div class="grid"><div class="card full"><div class="label">Codex / OpenCode</div><div id="agentList" class="list"></div><div class="actions"><p class="muted">Inicia y autentica Codex/OpenCode fuera de Factoría. Este panel solo muestra detección pasiva.</p></div></div></div></section>
-<section id="designer" class="section"><div class="canvas-toolbar"><div><div class="label">Workflow <span id="workflowDirty" class="unsaved"></span></div><div class="value" style="font-size:19px">Editor visual estilo n8n</div></div><div class="actions"><select id="workflowKind" style="width:150px" onchange="changeWorkflowKind()"><option value="feature">Feature</option><option value="fix">Fix</option></select><button class="secondary" onclick="fitCanvas()">Ajustar vista</button><button class="secondary" onclick="resetWorkflowLocal()">Descartar</button><button class="primary" onclick="saveWorkflow()">Guardar</button></div></div><div class="card workflow-metadata" style="margin:12px 0"><div class="row"><label>Crear a partir de<select id="workflowTemplate"><option value="feature">Feature</option><option value="fix">Fix</option></select></label><button id="newWorkflowButton" class="secondary" onclick="newWorkflow()" disabled>Crear workflow</button></div><div class="grid"><label>Identificador<input id="workflowId" maxlength="48" disabled placeholder="fix-api" oninput="workflowMetadataChanged()"></label><label>Nombre<input id="workflowName" maxlength="120" disabled oninput="workflowMetadataChanged()"></label><label>Tipo base<input id="workflowBase" disabled></label></div><label>Descripción<textarea id="workflowDescription" maxlength="1000" rows="2" disabled oninput="workflowMetadataChanged()"></textarea></label><p class="muted">El identificador y el tipo base se conservan tras guardar. Los controles obligatorios dependen del tipo base.</p></div><div class="workflow-note"><strong>Mueve los nodos horizontalmente para reordenar el flujo.</strong><div class="muted">Las conexiones se recalculan automáticamente. Factoria seguirá rechazando cualquier orden que rompa gates o seguridad.</div><div class="legend"><span><i class="dot"></i> obligatorio</span><span><i class="dot optional"></i> opcional</span></div></div><div class="canvas-shell"><div class="canvas-grid"></div><div id="workflowCanvas" class="canvas"><div id="canvasInner" class="canvas-inner"><svg id="connections" class="connections"></svg><div id="workflowBoard"></div></div></div></div></section>
-<section id="flows" class="section"><div class="grid"><div class="card full"><h2>Ejecutar desde tu herramienta</h2><p>Prepara la integración del proyecto y abre Codex u OpenCode por tu cuenta. Pide allí la corrección o funcionalidad para usar su flujo configurado.</p><p>La aplicación no inicia sesiones ni diagnósticos de los proveedores.</p></div><div class="card full"><div class="label">Ejecuciones externas registradas</div><div id="jobList" class="list"></div><div id="flowList" class="list"></div></div></div></section>
-<section id="history" class="section"><div class="card full"><div id="historyList" class="list"></div></div></section><section id="security" class="section"><div class="card full"><div id="securityBody"></div></div></section><section id="commands" class="section"><div class="card full"><div class="label">Consola Factoria</div><input id="commandInput" placeholder="status"><button class="primary" onclick="executeTypedCommand()">Ejecutar</button><pre id="commandOutput">Sin salida todavía.</pre></div></section>
-</main></div><div id="toast" class="toast"></div>
-<script src="/assets/shell-common.js"></script><script src="/assets/shell-main.js"></script><script src="/assets/workflows.js"></script><script src="/assets/agents.js"></script><script src="/assets/skills.js"></script><script src="/assets/templates.js"></script><script src="/assets/resources.js"></script><script src="/assets/relations.js"></script><script src="/assets/configuration.js"></script></body></html>
+  <head>
+    <meta charset="utf-8" /><meta
+      name="viewport"
+      content="width=device-width,initial-scale=1" /><title>Factoria</title>
+    <link rel="stylesheet" href="/assets/shell-main.css" /><link
+      rel="stylesheet"
+      href="/assets/agents.css"
+  /></head>
+  <body
+    ><div class="app"
+      ><aside class="sidebar"
+        ><div class="brand">FACTORIA<small>DEVELOPMENT FACTORY</small></div
+        ><div class="nav">
+          <button data-page="dashboard" class="active">Dashboard</button
+          ><button data-page="projects">Proyectos</button><button data-page="agents">Agentes</button
+          ><button data-page="designer">Diseñador de flujo</button
+          ><button data-page="flows">Flujos</button><button data-page="history">Historial</button
+          ><button data-page="security">Seguridad</button
+          ><button data-page="commands">Comandos</button>
+        </div></aside
+      ><main class="main"
+        ><div class="top"
+          ><div><h1 id="title">Dashboard</h1><div id="subtitle" class="muted">Cargando…</div></div
+          ><button class="secondary" onclick="refresh()">Actualizar</button></div
+        >
+        <section id="dashboard" class="section active"
+          ><div class="grid" id="dashboardGrid"></div
+        ></section>
+        <section id="projects" class="section"
+          ><div class="grid"
+            ><div class="card full"
+              ><div class="label">Carpeta raíz</div><div id="projectsRootLabel" class="muted"></div
+              ><div class="row"
+                ><input id="projectsRootInput" /><button
+                  class="secondary"
+                  onclick="saveProjectsRoot()"
+                  >Guardar</button
+                ></div
+              ></div
+            ><div class="card wide"
+              ><div class="label">Proyectos</div
+              ><input id="projectSearch" placeholder="Buscar…" oninput="renderProjects()" /><div
+                id="projectList"
+                class="list"
+              ></div></div
+            ><div class="card"
+              ><div class="label">Crear proyecto</div
+              ><input id="newName" placeholder="Nombre" /><textarea
+                id="newPurpose"
+                placeholder="Descripción"
+              ></textarea
+              ><button class="primary" onclick="createProject()">Crear</button></div
+            ></div
+          ></section
+        >
+        <section id="agents" class="section"
+          ><div class="grid"
+            ><div class="card full"
+              ><div class="label">Codex / OpenCode</div><div id="agentList" class="list"></div
+              ><div class="actions"
+                ><p class="muted"
+                  >Inicia y autentica Codex/OpenCode fuera de Factoría. Este panel solo muestra
+                  detección pasiva.</p
+                ></div
+              ></div
+            ></div
+          ></section
+        >
+        <section id="designer" class="section"
+          ><div class="canvas-toolbar"
+            ><div
+              ><div class="label">Workflow <span id="workflowDirty" class="unsaved"></span></div
+              ><div class="value" style="font-size:19px">Editor visual estilo n8n</div></div
+            ><div class="actions"
+              ><select id="workflowKind" style="width:150px" onchange="changeWorkflowKind()"
+                ><option value="feature">Feature</option
+                ><option value="fix">Fix</option></select
+              ><button class="secondary" onclick="fitCanvas()">Ajustar vista</button
+              ><button class="secondary" onclick="resetWorkflowLocal()">Descartar</button
+              ><button class="primary" onclick="saveWorkflow()">Guardar</button></div
+            ></div
+          ><div class="card workflow-metadata" style="margin:12px 0"
+            ><div class="row"
+              ><label
+                >Crear a partir de<select id="workflowTemplate"
+                  ><option value="feature">Feature</option
+                  ><option value="fix">Fix</option></select
+                ></label
+              ><button id="newWorkflowButton" class="secondary" onclick="newWorkflow()" disabled
+                >Crear workflow</button
+              ></div
+            ><div class="grid"
+              ><label
+                >Identificador<input
+                  id="workflowId"
+                  maxlength="48"
+                  disabled
+                  placeholder="fix-api"
+                  oninput="workflowMetadataChanged()" /></label
+              ><label
+                >Nombre<input
+                  id="workflowName"
+                  maxlength="120"
+                  disabled
+                  oninput="workflowMetadataChanged()" /></label
+              ><label>Tipo base<input id="workflowBase" disabled /></label></div
+            ><label
+              >Descripción<textarea
+                id="workflowDescription"
+                maxlength="1000"
+                rows="2"
+                disabled
+                oninput="workflowMetadataChanged()"
+              ></textarea></label
+            ><p class="muted"
+              >El identificador y el tipo base se conservan tras guardar. Los controles obligatorios
+              dependen del tipo base.</p
+            ></div
+          ><div class="workflow-note"
+            ><strong>Mueve los nodos horizontalmente para reordenar el flujo.</strong
+            ><div class="muted"
+              >Las conexiones se recalculan automáticamente. Factoria seguirá rechazando cualquier
+              orden que rompa gates o seguridad.</div
+            ><div class="legend"
+              ><span><i class="dot"></i> obligatorio</span
+              ><span><i class="dot optional"></i> opcional</span></div
+            ></div
+          ><div class="canvas-shell"
+            ><div class="canvas-grid"></div
+            ><div id="workflowCanvas" class="canvas"
+              ><div id="canvasInner" class="canvas-inner"
+                ><svg id="connections" class="connections"></svg
+                ><div id="workflowBoard"></div></div></div></div
+        ></section>
+        <section id="flows" class="section"
+          ><div class="grid"
+            ><div class="card full"
+              ><h2>Ejecutar desde tu herramienta</h2
+              ><p
+                >Prepara la integración del proyecto y abre Codex u OpenCode por tu cuenta. Pide
+                allí la corrección o funcionalidad para usar su flujo configurado.</p
+              ><p>La aplicación no inicia sesiones ni diagnósticos de los proveedores.</p></div
+            ><div class="card full"
+              ><div class="label">Ejecuciones externas registradas</div
+              ><div id="jobList" class="list"></div
+              ><div id="flowList" class="list"></div></div></div
+        ></section>
+        <section id="history" class="section"
+          ><div class="card full"><div id="historyList" class="list"></div></div></section
+        ><section id="security" class="section"
+          ><div class="card full"><div id="securityBody"></div></div></section
+        ><section id="commands" class="section"
+          ><div class="card full"
+            ><div class="label">Consola Factoria</div
+            ><input id="commandInput" placeholder="status" /><button
+              class="primary"
+              onclick="executeTypedCommand()"
+              >Ejecutar</button
+            ><pre id="commandOutput">Sin salida todavía.</pre>
+          </div></section
+        >
+      </main></div
+    ><div id="toast" class="toast"></div>
+    <script src="/assets/shell-common.js"></script
+    ><script src="/assets/editor-state.js"></script
+    ><script src="/assets/shell-main.js"></script
+    ><script src="/assets/workflows.js"></script
+    ><script src="/assets/agents.js"></script
+    ><script src="/assets/skills.js"></script
+    ><script src="/assets/templates.js"></script
+    ><script src="/assets/resources.js"></script
+    ><script src="/assets/relations.js"></script
+    ><script src="/assets/configuration.js"></script></body
+></html>

@@ -48,7 +48,9 @@ class AgentOrchestrator:
     def run(self, stage: AgentStage, *, project_root: Path) -> AgentStageResult:
         spec = ROLE_SPECS[stage.role]
         base_profile = stage.profile or spec.default_profile
-        structured = spec.structured_output if stage.structured_output is None else stage.structured_output
+        structured = (
+            spec.structured_output if stage.structured_output is None else stage.structured_output
+        )
 
         traces: list[AgentAttemptTrace] = []
         last_result: AgentResult | None = None
@@ -83,17 +85,22 @@ class AgentOrchestrator:
                     adapter=adapter.name,
                     profile=profile,
                     model=model,
-                    fallback=stage.preferred_tool is not None and adapter.name != stage.preferred_tool,
+                    fallback=stage.preferred_tool is not None
+                    and adapter.name != stage.preferred_tool,
                     passed=result.passed,
                     error=result.error,
                 )
             )
             if result.passed:
-                return AgentStageResult(result=result, trace=AgentStageTrace(stage.role, tuple(traces)))
+                return AgentStageResult(
+                    result=result, trace=AgentStageTrace(stage.role, tuple(traces))
+                )
 
         if last_result is None:
             raise AgentOrchestrationError("No agent attempt was executed")
-        return AgentStageResult(result=last_result, trace=AgentStageTrace(stage.role, tuple(traces)))
+        return AgentStageResult(
+            result=last_result, trace=AgentStageTrace(stage.role, tuple(traces))
+        )
 
     def _select_adapter(
         self,

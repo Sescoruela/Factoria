@@ -135,7 +135,9 @@ class ExecutionGovernor:
             escalated=context.escalated,
         )
 
-    def assert_allowed(self, action: GovernedAction, context: ExecutionContext) -> GovernanceDecision:
+    def assert_allowed(
+        self, action: GovernedAction, context: ExecutionContext
+    ) -> GovernanceDecision:
         decision = self.evaluate(action, context)
         if not decision.allowed:
             raise PermissionError(decision.reason or "Action blocked by execution policy")

@@ -11,7 +11,11 @@ from factoria.application.memory_bootstrap import MemoryBootstrapService
 from factoria.application.policy_runtime import build_execution_context
 from factoria.domain.models import ProjectKind
 from factoria.domain.permissions import PermissionProfile
-from factoria.memory.detectors import BasicTechnologyDetector, DirectoryModuleDetector, GitActivityAnalyzer
+from factoria.memory.detectors import (
+    BasicTechnologyDetector,
+    DirectoryModuleDetector,
+    GitActivityAnalyzer,
+)
 from factoria.memory.initializer import MemoryInitializer
 
 
@@ -33,7 +37,9 @@ def build_memory_init_parser() -> argparse.ArgumentParser:
         choices=tuple(kind.value for kind in ProjectKind),
         help="Override the activity-based active/maintenance proposal",
     )
-    memory_init.add_argument("--yes", action="store_true", help="Confirm the complete proposal and write it")
+    memory_init.add_argument(
+        "--yes", action="store_true", help="Confirm the complete proposal and write it"
+    )
     return parser
 
 
@@ -78,7 +84,13 @@ def run_memory_init_cli(argv: list[str]) -> int:
         for path in written:
             print(f"Escrito: {path.relative_to(root)}")
         return 0
-    except (FileExistsError, PermissionError, RuntimeError, ValueError, subprocess.CalledProcessError) as exc:
+    except (
+        FileExistsError,
+        PermissionError,
+        RuntimeError,
+        ValueError,
+        subprocess.CalledProcessError,
+    ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
@@ -117,7 +129,10 @@ def _print_proposal(root: Path, proposal) -> None:
         print("- ninguno detectado con evidencia suficiente")
 
     print("Prioridades no funcionales propuestas: " + ", ".join(memory.non_functional_priorities))
-    print("Reglas duras específicas del proyecto: " + (", ".join(memory.mandatory_rules) or "ninguna inferida"))
+    print(
+        "Reglas duras específicas del proyecto: "
+        + (", ".join(memory.mandatory_rules) or "ninguna inferida")
+    )
     print(f"Configuración propuesta: {proposal.config_target.relative_to(root)}")
     if proposal.write_config:
         for line in proposal.config_text.rstrip().splitlines():

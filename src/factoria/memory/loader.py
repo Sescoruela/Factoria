@@ -94,11 +94,15 @@ def _parse_module_line(line: str) -> ModuleMemory:
     body = match.group("body")
     path_part, separator, affects_part = body.partition("; afecta a:")
     path_part = path_part.strip()
-    paths = () if path_part == "sin rutas confirmadas" else tuple(
-        item.strip() for item in path_part.split(",") if item.strip()
+    paths = (
+        ()
+        if path_part == "sin rutas confirmadas"
+        else tuple(item.strip() for item in path_part.split(",") if item.strip())
     )
-    affects = () if not separator else tuple(
-        item.strip() for item in affects_part.split(",") if item.strip()
+    affects = (
+        ()
+        if not separator
+        else tuple(item.strip() for item in affects_part.split(",") if item.strip())
     )
     return ModuleMemory(name=match.group("name").strip(), paths=paths, affects=affects)
 
@@ -116,7 +120,10 @@ def _commands(lines: list[str]) -> tuple[tuple[ConfirmedCommand, ...], MappingPr
     modern: list[ConfirmedCommand] = []
     legacy: dict[str, list[tuple[str, ...]]] = {}
     for line in _nonempty(lines):
-        if line in {"- Ninguno confirmado todavía", "- No hay comandos de verificación confirmados"}:
+        if line in {
+            "- Ninguno confirmado todavía",
+            "- No hay comandos de verificación confirmados",
+        }:
             continue
         match = _COMMAND_RE.fullmatch(line)
         if match is not None:
@@ -174,8 +181,10 @@ def _contracts(lines: list[str]) -> tuple[ContractMemory, ...]:
         match = _CONTRACT_RE.fullmatch(line)
         if match is None:
             raise MemoryFormatError(f"Unsupported contract entry: {line}")
-        split = lambda value: () if value.strip() == "-" else tuple(
-            item.strip() for item in value.split(",") if item.strip()
+        split = (
+            lambda value: ()
+            if value.strip() == "-"
+            else tuple(item.strip() for item in value.split(",") if item.strip())
         )
         result.append(
             ContractMemory(
@@ -245,11 +254,17 @@ def load_project_memory(project_root: Path) -> ProjectMemory:
     if purpose == "Pendiente de confirmar.":
         purpose = ""
 
-    technologies = _bullets(sections.get("Tecnologías", []), ignore_prefixes=("Sin datos confirmados",))
+    technologies = _bullets(
+        sections.get("Tecnologías", []), ignore_prefixes=("Sin datos confirmados",)
+    )
     modules = _modules(sections.get("Módulos", []))
     commands, legacy_commands = _commands(sections.get("Comandos confirmados", []))
-    mandatory_rules = _bullets(sections.get("Reglas obligatorias", []), ignore_prefixes=("Sin datos confirmados",))
-    non_functional_priorities = _bullets(sections.get("Prioridades no funcionales", []), ignore_prefixes=("Sin datos confirmados",))
+    mandatory_rules = _bullets(
+        sections.get("Reglas obligatorias", []), ignore_prefixes=("Sin datos confirmados",)
+    )
+    non_functional_priorities = _bullets(
+        sections.get("Prioridades no funcionales", []), ignore_prefixes=("Sin datos confirmados",)
+    )
     dependencies = _dependencies(sections.get("Dependencias", []))
     contracts = _contracts(sections.get("Contratos", []))
     external_dependencies = _external_dependencies(sections.get("Dependencias externas", []))

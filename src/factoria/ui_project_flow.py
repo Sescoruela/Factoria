@@ -12,10 +12,13 @@ from factoria.ui_workspace import UiWorkspaceSettings
 
 COMMAND_HELP: tuple[tuple[str, str], ...] = (
     ("status [--all]", "Ver el estado del proyecto"),
-    ("memoria-init [--name NOMBRE] [--purpose TEXTO] [--yes]", "Inicializar la memoria del proyecto"),
+    (
+        "memoria-init [--name NOMBRE] [--purpose TEXTO] [--yes]",
+        "Inicializar la memoria del proyecto",
+    ),
     ("memoria-update [--yes]", "Revisar/actualizar la memoria existente"),
-    ("feature \"título\" [--branch rama] [--tool codex|opencode]", "Iniciar una feature"),
-    ("fix \"título\" [--branch rama] [--tool codex|opencode] [--large]", "Iniciar un fix"),
+    ('feature "título" [--branch rama] [--tool codex|opencode]', "Iniciar una feature"),
+    ('fix "título" [--branch rama] [--tool codex|opencode] [--large]', "Iniciar un fix"),
     ("resume [flow_id] [--approve-plan|--approve-final]", "Reanudar un flujo"),
     ("pause FLOW_ID [--reason texto]", "Pausar un flujo"),
     ("cancel FLOW_ID [--reason texto] [--yes]", "Cancelar un flujo"),
@@ -60,7 +63,11 @@ class ProjectFlowTerminalUI(ManagedTerminalUI):
             self.output("  7. Onboarding / guía")
             self.output("  8. Actualizar dashboard")
             self.output("  9. Gestionar proyectos")
-            if self._is_git_project() and not (self.root / "AGENTS.md").exists() and not self.read_only:
+            if (
+                self._is_git_project()
+                and not (self.root / "AGENTS.md").exists()
+                and not self.read_only
+            ):
                 self.output("  M. Inicializar memoria del proyecto")
             self.output("  H. Ver todos los comandos disponibles")
             self.output("  0. Salir")
@@ -91,7 +98,12 @@ class ProjectFlowTerminalUI(ManagedTerminalUI):
                 continue
             elif choice == "9":
                 self._manage_projects()
-            elif choice == "m" and self._is_git_project() and not (self.root / "AGENTS.md").exists() and not self.read_only:
+            elif (
+                choice == "m"
+                and self._is_git_project()
+                and not (self.root / "AGENTS.md").exists()
+                and not self.read_only
+            ):
                 self._initialize_memory_from_dashboard()
             elif choice in {"h", "help", "ayuda", "comandos"}:
                 self._show_command_help()
@@ -112,11 +124,15 @@ class ProjectFlowTerminalUI(ManagedTerminalUI):
             self.output(f"    {description}")
         self.output("\nEjemplos:")
         self.output("  status")
-        self.output("  memoria-init --name Organizador --purpose \"Organizar turnos por medias horas\"")
+        self.output(
+            '  memoria-init --name Organizador --purpose "Organizar turnos por medias horas"'
+        )
 
         self.output("  factoria history --limit 20")
         self.output("\nFeature/fix y reanudación: desde Codex/OpenCode, fuera de la aplicación.")
-        self.output("\nLas confirmaciones y políticas de seguridad siguen aplicándose igual que en el CLI.")
+        self.output(
+            "\nLas confirmaciones y políticas de seguridad siguen aplicándose igual que en el CLI."
+        )
 
     def _execute_console_command(self, raw: str) -> None:
         try:
@@ -145,7 +161,9 @@ class ProjectFlowTerminalUI(ManagedTerminalUI):
             self._run_command(args)
         except SystemExit as exc:
             if exc.code not in {None, 0}:
-                self.output("El comando no se pudo interpretar. Escribe H para ver ejemplos y comandos disponibles.")
+                self.output(
+                    "El comando no se pudo interpretar. Escribe H para ver ejemplos y comandos disponibles."
+                )
         except (OSError, RuntimeError, ValueError, PermissionError) as exc:
             self.output(f"El comando no pudo completarse: {exc}")
 
@@ -180,7 +198,9 @@ class ProjectFlowTerminalUI(ManagedTerminalUI):
     def _manage_projects(self) -> None:
         while True:
             self.output("\nGestión de proyectos")
-            self.output(f"Carpeta raíz actual: {self.workspace_settings.projects_root or 'sin configurar'}")
+            self.output(
+                f"Carpeta raíz actual: {self.workspace_settings.projects_root or 'sin configurar'}"
+            )
             self.output("  1. Seleccionar proyecto")
             if not self.read_only:
                 self.output("  2. Crear proyecto nuevo")
@@ -260,7 +280,9 @@ class ProjectFlowTerminalUI(ManagedTerminalUI):
             return False
 
         if self._confirm("¿Crear también el commit inicial con README.md?", default=True):
-            subprocess.run(["git", "-C", str(target), "add", "README.md"], check=False, capture_output=True)
+            subprocess.run(
+                ["git", "-C", str(target), "add", "README.md"], check=False, capture_output=True
+            )
             committed = subprocess.run(
                 ["git", "-C", str(target), "commit", "-m", "Initial commit"],
                 check=False,
@@ -273,14 +295,20 @@ class ProjectFlowTerminalUI(ManagedTerminalUI):
                 self.output("  Revisa que Git tenga configurados user.name y user.email.")
 
         self.root = target
-        self.workspace_settings = UiWorkspaceSettings(projects_root=projects_root, last_project=target)
+        self.workspace_settings = UiWorkspaceSettings(
+            projects_root=projects_root, last_project=target
+        )
         self.workspace_settings.save()
         self.output(f"✓ Proyecto creado y seleccionado: {name} · {target}")
 
-        if self._confirm("¿Quieres preparar ahora el proyecto para trabajar con Factoria?", default=True):
+        if self._confirm(
+            "¿Quieres preparar ahora el proyecto para trabajar con Factoria?", default=True
+        ):
             self._prepare_project_memory(name=name, purpose=purpose)
         else:
-            self.output("Memoria Factoria pendiente. Podrás inicializarla más adelante desde el dashboard.")
+            self.output(
+                "Memoria Factoria pendiente. Podrás inicializarla más adelante desde el dashboard."
+            )
 
         self.output("Volviendo al dashboard del proyecto…")
         return True
@@ -298,9 +326,13 @@ class ProjectFlowTerminalUI(ManagedTerminalUI):
             args.extend(["--purpose", purpose])
         code = self._run_command(args)
         if code == 0:
-            self.output("✓ Memoria Factoria preparada. Revísala antes del primer flujo y haz commit cuando esté lista.")
+            self.output(
+                "✓ Memoria Factoria preparada. Revísala antes del primer flujo y haz commit cuando esté lista."
+            )
             return True
-        self.output("⚠ No se pudo completar memoria-init. El proyecto sigue seleccionado y puedes reintentarlo después.")
+        self.output(
+            "⚠ No se pudo completar memoria-init. El proyecto sigue seleccionado y puedes reintentarlo después."
+        )
         return False
 
 

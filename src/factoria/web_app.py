@@ -83,7 +83,9 @@ def _project_payload(root: Path | None) -> dict[str, object] | None:
 
 def _agent_payload() -> list[dict[str, object]]:
     persisted = _apply_agent_paths()
-    return [{**item, 'configured_path': persisted.get(str(item['name']))} for item in tool_presence()]
+    return [
+        {**item, "configured_path": persisted.get(str(item["name"]))} for item in tool_presence()
+    ]
 
 
 def _job_summaries() -> list[dict[str, object]]:
@@ -102,13 +104,21 @@ def _workflow_payload(root: Path | None) -> dict[str, object]:
     try:
         presets, revision = workflow_catalog_snapshot(root)
         from factoria.application.agent_profiles import load_agent_profiles
-        agents = [{'role': agent.role, 'base_role': agent.base_role, 'name': agent.name}
-                  for agent in load_agent_profiles(root)]
+
+        agents = [
+            {"role": agent.role, "base_role": agent.base_role, "name": agent.name}
+            for agent in load_agent_profiles(root)
+        ]
         if revision != workflow_catalog_revision(root):
-            raise WorkflowCatalogConflict('El catálogo de agentes cambió; vuelve a cargar los flujos')
-        return {kind: {**preset.to_mapping(), 'revision': revision, 'agents': agents} for kind, preset in presets.items()}
+            raise WorkflowCatalogConflict(
+                "El catálogo de agentes cambió; vuelve a cargar los flujos"
+            )
+        return {
+            kind: {**preset.to_mapping(), "revision": revision, "agents": agents}
+            for kind, preset in presets.items()
+        }
     except (ValueError, OSError) as exc:
-        return {kind: {'kind': kind, 'steps': [], 'error': str(exc)} for kind in ('feature', 'fix')}
+        return {kind: {"kind": kind, "steps": [], "error": str(exc)} for kind in ("feature", "fix")}
 
 
 def _state() -> dict[str, object]:
@@ -198,7 +208,9 @@ def _create_project(name: str, purpose: str = "") -> Path:
             raise RuntimeError(completed.stderr.strip() or "git init falló")
         text = f"# {name}\n" + (f"\n{purpose.strip()}\n" if purpose.strip() else "")
         (target / "README.md").write_text(text, encoding="utf-8")
-        subprocess.run(["git", "-C", str(target), "add", "README.md"], capture_output=True, check=False)
+        subprocess.run(
+            ["git", "-C", str(target), "add", "README.md"], capture_output=True, check=False
+        )
         subprocess.run(
             ["git", "-C", str(target), "commit", "-m", "Initial commit"],
             capture_output=True,
@@ -218,18 +230,16 @@ def _preset_from_payload(data: dict[str, object]) -> VisualWorkflowPreset:
     raw_steps = data.get("steps", [])
     if not isinstance(raw_steps, list) or any(not isinstance(item, dict) for item in raw_steps):
         raise ValueError("steps debe ser una lista de objetos")
-    for field in ('name', 'description'):
-        if not isinstance(data.get(field, ''), str):
-            raise ValueError(f'{field} debe ser texto')
+    for field in ("name", "description"):
+        if not isinstance(data.get(field, ""), str):
+            raise ValueError(f"{field} debe ser texto")
     return VisualWorkflowPreset(
         kind=kind,
-        id=data.get('id'),
-        name=data.get('name', ''),
-        description=data.get('description', ''),
+        id=data.get("id"),
+        name=data.get("name", ""),
+        description=data.get("description", ""),
         steps=tuple(
-            VisualWorkflowStep.from_mapping(item)
-            for item in raw_steps
-            if isinstance(item, dict)
+            VisualWorkflowStep.from_mapping(item) for item in raw_steps if isinstance(item, dict)
         ),
     )
 
@@ -320,21 +330,42 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlparse(self.path).path
-        if path in {'/assets/shell-classic.css', '/assets/configuration.js', '/assets/agents.js', '/assets/skills.js', '/assets/templates.js', '/assets/workflows.js', '/assets/shell-classic.js', '/assets/agents.css', '/assets/shell-main.js', '/assets/resources.js', '/assets/shell-common.js', '/assets/relations.js', '/assets/shell-main.css'}:
-            body = files('factoria.web').joinpath(path.rsplit('/', 1)[-1]).read_bytes()
+        if path in {
+            "/assets/shell-classic.css",
+            "/assets/configuration.js",
+            "/assets/agents.js",
+            "/assets/skills.js",
+            "/assets/templates.js",
+            "/assets/workflows.js",
+            "/assets/shell-classic.js",
+            "/assets/agents.css",
+            "/assets/shell-main.js",
+            "/assets/resources.js",
+            "/assets/shell-common.js",
+            "/assets/editor-state.js",
+            "/assets/relations.js",
+            "/assets/shell-main.css",
+        }:
+            body = files("factoria.web").joinpath(path.rsplit("/", 1)[-1]).read_bytes()
             self.send_response(HTTPStatus.OK)
-            self.send_header('Content-Type', ('text/css' if path.endswith('.css') else 'application/javascript') + '; charset=utf-8')
-            self.send_header('Cache-Control', 'no-store')
-            self.send_header('X-Content-Type-Options', 'nosniff')
-            self.send_header('Content-Length', str(len(body)))
+            self.send_header(
+                "Content-Type",
+                ("text/css" if path.endswith(".css") else "application/javascript")
+                + "; charset=utf-8",
+            )
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
             return
-        if path in {'/', '/editors'}:
-            if path=='/editors':
+        if path in {"/", "/editors"}:
+            if path == "/editors":
                 from factoria.web_shell import main_shell_html
-                html=main_shell_html().encode('utf-8')
-            else:html = files("factoria.web").joinpath("index.html").read_bytes()
+
+                html = main_shell_html().encode("utf-8")
+            else:
+                html = files("factoria.web").joinpath("index.html").read_bytes()
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
@@ -365,64 +396,35 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             self._json({"error": "unauthorized"}, 403)
             return
         path = urlparse(self.path).path
-        if path in {'/api/skill/create','/api/skill/save','/api/agent-role/create','/api/agent-role/save','/api/project/prepare'}:
+        if path in {
+            "/api/skill/create",
+            "/api/skill/save",
+            "/api/agent-role/create",
+            "/api/agent-role/save",
+            "/api/project/prepare",
+        }:
             # Reuse the existing authenticated editors in the /editors shell.
             from factoria.web_editor_api import handle_editor_post
+
             handle_editor_post(self)
             return
         try:
-            if path in {'/api/config/status', '/api/config/preview', '/api/config/apply'}:
-                if not 0 <= int(self.headers.get('Content-Length', '0')) <= 16384: raise ValueError('Solicitud demasiado grande')
-                data=self._body(); project=_selected_project(UiWorkspaceSettings.load())
-                if project is None or data.get('project_path') != str(project):
-                    self._json({'error': 'El proyecto cambió; volver a revisar'}, 409); return
-                from factoria.application.config_recovery import config_status, preview_config, apply_config
-                result = (config_status(project) if path.endswith('/status') else
-                          apply_config(project, data.get('action'), identifier=data.get('backup_id'), token=data.get('token'), confirmed=data.get('confirmed') is True) if path.endswith('/apply') else
-                          preview_config(project, data.get('action'), data.get('backup_id')))
-                self._json({'ok': True, **result}); return
-            if path=='/api/project/relations':
-                if not 0<=int(self.headers.get('Content-Length','0'))<=16384:raise ValueError('Solicitud demasiado grande')
-                data=self._body();project=_selected_project(UiWorkspaceSettings.load())
-                if project is None or data.get('project_path')!=str(project):
-                    self._json({'error':'El proyecto cambió; vuelve a cargar las relaciones'},409);return
-                from factoria.application.project_relations import project_relations
-                self._json({'ok':True,**project_relations(project)});return
-            if path.startswith('/api/resource/') and not 0 <= int(self.headers.get('Content-Length', '0')) <= 16384:
-                raise ValueError('Solicitud de recurso demasiado grande o no válida')
-            if path.startswith('/api/template/') and not 0 <= int(self.headers.get('Content-Length', '0')) <= 1052672:
-                raise ValueError('Tamaño de plantilla no válido o superior al permitido')
+            from factoria.web_project_api import PROJECT_RESOURCE_ROUTES, handle_project_post
+
+            if path in PROJECT_RESOURCE_ROUTES:
+                handle_project_post(self, path)
+                return
+            if (
+                path.startswith("/api/resource/")
+                and not 0 <= int(self.headers.get("Content-Length", "0")) <= 16384
+            ):
+                raise ValueError("Solicitud de recurso demasiado grande o no válida")
+            if (
+                path.startswith("/api/template/")
+                and not 0 <= int(self.headers.get("Content-Length", "0")) <= 1052672
+            ):
+                raise ValueError("Tamaño de plantilla no válido o superior al permitido")
             data = self._body()
-            if path in {'/api/resource/list','/api/resource/preview','/api/resource/apply'}:
-                from factoria.application.resource_lifecycle import resource_inventory, preview_resource, apply_resource, ResourceConflict
-                project=_selected_project(UiWorkspaceSettings.load())
-                if project is None or data.get('project_path')!=str(project):
-                    self._json({'error':'El proyecto cambió; vuelve a revisar impacto'},409)
-                    return
-                try:
-                    if path.endswith('/list'):result=resource_inventory(project)
-                    elif path.endswith('/preview'):result=preview_resource(project,data.get('request'))
-                    else:result=apply_resource(project,data.get('request'),token=data.get('token'),confirmed=data.get('confirmed') is True)
-                    self._json({'ok':True,**result})
-                except ResourceConflict as exc:self._json({'error':str(exc)},409)
-                return
-            if path in {'/api/template/export', '/api/template/preview', '/api/template/apply'}:
-                from factoria.application.project_templates import export_template, preview_template, apply_template, TemplateConflict
-                project = _selected_project(UiWorkspaceSettings.load())
-                if project is None or data.get('project_path') != str(project):
-                    self._json({'error': 'El proyecto seleccionado cambió; vuelve a previsualizar'}, 409)
-                    return
-                try:
-                    if path.endswith('/export'):
-                        result = {'template': export_template(project, data.get('name', ''))}
-                    elif path.endswith('/preview'):
-                        result = preview_template(project, data.get('template'))
-                    else:
-                        result = apply_template(project, data.get('template'), expected_token=data.get('token'), confirmed=data.get('confirmed') is True)
-                    self._json({'ok': True, **result})
-                except TemplateConflict as exc:
-                    self._json({'error': str(exc)}, 409)
-                return
             if path == "/api/projects/root":
                 target = _set_projects_root(str(data.get("path", "")))
                 self._json({"ok": True, "path": str(target), "state": _editor_state()})
@@ -449,12 +451,19 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
                 project = _selected_project(settings)
                 if project is None:
                     raise ValueError("Selecciona primero un proyecto")
-                if data.get('project_path') != str(project):
-                    raise WorkflowCatalogConflict('El proyecto del borrador ya no está seleccionado; vuelve a cargar')
-                if not isinstance(data.get('revision'), str):
-                    raise ValueError('Falta la versión del catálogo; vuelve a cargar el flujo')
+                if data.get("project_path") != str(project):
+                    raise WorkflowCatalogConflict(
+                        "El proyecto del borrador ya no está seleccionado; vuelve a cargar"
+                    )
+                if not isinstance(data.get("revision"), str):
+                    raise ValueError("Falta la versión del catálogo; vuelve a cargar el flujo")
                 preset = _preset_from_payload(data)
-                saved = save_preset(project, preset, expected_revision=data['revision'], create=path.endswith('/create'))
+                saved = save_preset(
+                    project,
+                    preset,
+                    expected_revision=data["revision"],
+                    create=path.endswith("/create"),
+                )
                 self._json({"ok": True, "path": str(saved), "state": _editor_state()})
                 return
             if path == "/api/job/start":
@@ -471,7 +480,9 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
                     raise ValueError("args debe ser una lista de strings")
                 settings = UiWorkspaceSettings.load()
                 code, output = _run_factoria_command(list(raw), _selected_project(settings))
-                self._json({"ok": code == 0, "code": code, "output": output, "state": _editor_state()})
+                self._json(
+                    {"ok": code == 0, "code": code, "output": output, "state": _editor_state()}
+                )
                 return
             raise ValueError("Acción no soportada")
         except WorkflowCatalogConflict as exc:
@@ -485,10 +496,10 @@ class FactoriaHTTPServer(ThreadingHTTPServer):
     factoria_token: str
 
 
-def run_web_ui(*, open_browser: bool = True) -> int:
+def serve_web_ui(handler_class, *, open_browser: bool = True) -> int:
     _apply_agent_paths()
     token = secrets.token_urlsafe(24)
-    server = FactoriaHTTPServer((_HOST, 0), FactoriaWebHandler)
+    server = FactoriaHTTPServer((_HOST, 0), handler_class)
     server.factoria_token = token
     host, port = server.server_address[:2]
     url = f"http://{host}:{port}/?token={token}"
@@ -502,3 +513,7 @@ def run_web_ui(*, open_browser: bool = True) -> int:
     finally:
         server.server_close()
     return 0
+
+
+def run_web_ui(*, open_browser: bool = True) -> int:
+    return serve_web_ui(FactoriaWebHandler, open_browser=open_browser)

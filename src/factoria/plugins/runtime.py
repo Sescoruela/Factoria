@@ -100,10 +100,7 @@ class PluginRuntime:
         config = load_global_config(Path.home() / ".factoria" / "config.toml")
         roots: list[tuple[PluginSource, Path]] = []
         roots.extend((PluginSource.PERSONAL, path) for path in config.personal_plugin_paths)
-        roots.extend(
-            (PluginSource.ORGANIZATION, path)
-            for path in config.organization_plugin_paths
-        )
+        roots.extend((PluginSource.ORGANIZATION, path) for path in config.organization_plugin_paths)
         builtin = self.builtin_root
         if builtin is None:
             candidate = Path(__file__).resolve().parent / "builtin"

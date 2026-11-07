@@ -19,9 +19,7 @@ DEFAULT_THRESHOLDS: Mapping[MemoryDocumentKind, int] = MappingProxyType(
 
 @dataclass(frozen=True, slots=True)
 class MemoryStalenessPolicy:
-    thresholds: Mapping[MemoryDocumentKind, int] = field(
-        default_factory=lambda: DEFAULT_THRESHOLDS
-    )
+    thresholds: Mapping[MemoryDocumentKind, int] = field(default_factory=lambda: DEFAULT_THRESHOLDS)
 
     def threshold_for(self, document: MemoryDocumentKind) -> int:
         value = self.thresholds.get(document)

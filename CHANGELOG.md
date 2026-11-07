@@ -2,6 +2,8 @@
 
 ## 0.3.0 — Preparación, sin release publicada
 
+- Refactor transversal: formato consistente, contratos neutros de rutas y persistencia, recursos compartidos, separación CLI/API, límites de capas y consulta común de borradores.
+
 - H13: esquema 1 explícito, migración revisada de catálogos legacy, checkpoints locales y restauración con integridad, journal pendiente y bloqueo de ediciones tras interrupciones. Web y CLI, sin migraciones automáticas.
 
 - H12: assets JS/CSS, sesión/API y composición de estado compartidos; interfaz principal definida y borradores de agentes respetados en paneles auxiliares.

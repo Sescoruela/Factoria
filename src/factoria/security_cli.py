@@ -11,7 +11,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--project", default=".")
     sub = parser.add_subparsers(dest="security_command", required=True)
     sub.add_parser("incidents", help="List persisted secret incidents")
-    resolve = sub.add_parser("resolve", help="Confirm rotation/revocation and verify secret removal")
+    resolve = sub.add_parser(
+        "resolve", help="Confirm rotation/revocation and verify secret removal"
+    )
     resolve.add_argument("incident_id")
     resolve.add_argument(
         "--confirm-rotation",

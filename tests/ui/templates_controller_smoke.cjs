@@ -20,6 +20,7 @@ const context={document,window:{},state:{selected_project:{path:'/source'}},
     if(route.endsWith('/preview'))return {token:'reviewed-revision',create:['agent:own'],reuse:[],conflicts:conflict?['agent:own']:[]};
     return {applied:true,project_path:payload.project_path};
   }};
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../src/factoria/web/editor-state.js'),'utf8'),context);
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../src/factoria/web/templates.js'),'utf8'),context);
 const get=id=>document.getElementById(id);
 (async()=>{

@@ -150,18 +150,16 @@ def load_global_config(path: Path) -> GlobalConfig:
         default_profile=_profile(data.get("default_profile"), field_name="default_profile")
         or PermissionProfile.NORMAL,
         default_tool=tool,
-        max_agents=_positive_int(data.get("max_agents"), field_name="max_agents", default=2)
-        or 2,
+        max_agents=_positive_int(data.get("max_agents"), field_name="max_agents", default=2) or 2,
         personal_plugin_paths=_paths(plugins.get("personal_paths"), base=path.parent),
-        organization_plugin_paths=_paths(
-            plugins.get("organization_paths"), base=path.parent
-        ),
+        organization_plugin_paths=_paths(plugins.get("organization_paths"), base=path.parent),
     )
 
 
 def load_project_config(path: Path) -> ProjectConfig:
     if path.parent.name == ".factoria":
-        from factoria.application.config_schema import schema_version
+        from factoria.config.schema import schema_version
+
         schema_version(path.parent.parent)
     return project_config_from_mapping(_read_toml(path))
 
@@ -169,7 +167,7 @@ def load_project_config(path: Path) -> ProjectConfig:
 def project_config_from_mapping(data: dict[str, Any]) -> ProjectConfig:
     """Validate captured project settings without rereading the filesystem."""
     if not isinstance(data, dict):
-        raise ConfigError('Project configuration must be a mapping')
+        raise ConfigError("Project configuration must be a mapping")
     if "default_tool" in data:
         raise ConfigError(
             "Projects cannot define default_tool; tool preference is global or per execution"

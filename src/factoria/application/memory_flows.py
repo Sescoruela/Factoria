@@ -5,7 +5,7 @@ from datetime import date
 from pathlib import Path
 from typing import Protocol, Sequence
 
-from factoria.domain.models import MemoryMetadata, ProjectMemory
+from factoria.domain.models import MemoryChange, MemoryMetadata, ProjectMemory
 from factoria.memory.filesystem import write_initial_memory
 from factoria.memory.initializer import MemoryInitProposal, MemoryInitializer
 from factoria.memory.renderer import render_agents_md, render_memory_document
@@ -14,13 +14,6 @@ from factoria.domain.models import MemoryDocumentKind, ProjectKind
 
 class MemoryAnalyzer(Protocol):
     def analyze(self, project_root: Path, current: ProjectMemory) -> ProjectMemory: ...
-
-
-@dataclass(frozen=True, slots=True)
-class MemoryChange:
-    target: str
-    reason: str
-    evidence: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -108,10 +101,11 @@ class MemoryUpdateFlow:
         content = render_agents_md(memory)
         if agents.exists():
             from factoria.application.project_integration import START, END
-            previous = agents.read_text(encoding='utf-8')
+
+            previous = agents.read_text(encoding="utf-8")
             if START in previous and END in previous:
                 block = previous.split(START, 1)[1].split(END, 1)[0]
-                content += '\n' + START + block + END + '\n'
+                content += "\n" + START + block + END + "\n"
         agents.write_text(content, encoding="utf-8", newline="")
         written.append(agents)
 
@@ -133,8 +127,6 @@ class MemoryUpdateFlow:
         }
         for kind in kinds:
             target = docs_root / names[kind]
-            target.write_text(
-                render_memory_document(memory, kind), encoding="utf-8", newline=""
-            )
+            target.write_text(render_memory_document(memory, kind), encoding="utf-8", newline="")
             written.append(target)
         return tuple(written)

@@ -45,9 +45,11 @@ class LiveFlowSession:
         raw_stage = values.pop("runtime_stage", None)
         legacy_phase = values.pop("phase", None)
         raw_steps = values.pop("workflow_steps", ())
-        raw_agents = values.pop('agent_profiles', ())
-        if not isinstance(raw_agents, (list, tuple)) or not all(isinstance(item, dict) for item in raw_agents):
-            raise RuntimeStateError('agent_profiles must be a list of objects')
+        raw_agents = values.pop("agent_profiles", ())
+        if not isinstance(raw_agents, (list, tuple)) or not all(
+            isinstance(item, dict) for item in raw_agents
+        ):
+            raise RuntimeStateError("agent_profiles must be a list of objects")
         if raw_stage is None and legacy_phase not in {None, "blocked"}:
             raw_stage = legacy_phase
         try:
@@ -56,7 +58,9 @@ class LiveFlowSession:
             raise RuntimeStateError(f"Unsupported persisted runtime stage: {raw_stage}") from exc
         if raw_steps is None:
             raw_steps = ()
-        if not isinstance(raw_steps, (list, tuple)) or not all(isinstance(item, dict) for item in raw_steps):
+        if not isinstance(raw_steps, (list, tuple)) or not all(
+            isinstance(item, dict) for item in raw_steps
+        ):
             raise RuntimeStateError("workflow_steps must be a list of objects")
         return cls(
             runtime_stage=stage,

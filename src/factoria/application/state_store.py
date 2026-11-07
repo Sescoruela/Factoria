@@ -12,7 +12,7 @@ from .flow_service import FlowExecution
 
 
 def _quote(value: str) -> str:
-    return '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
 @dataclass(frozen=True, slots=True)

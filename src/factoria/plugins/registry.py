@@ -192,9 +192,7 @@ class PluginRegistry:
 
             warnings: list[str] = []
             if deprecated_layout:
-                warnings.append(
-                    "Top-level plugin fields are deprecated; move them under [plugin]"
-                )
+                warnings.append("Top-level plugin fields are deprecated; move them under [plugin]")
             if entrypoint is not None and source is not PluginSource.BUILTIN:
                 warnings.append(
                     "External entrypoint is trusted Python code and will execute in the Factoria process"

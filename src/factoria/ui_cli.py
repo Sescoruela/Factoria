@@ -22,7 +22,9 @@ CommandRunner = Callable[[list[str]], int]
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="factoria")
     parser.add_argument("--project", default=".", help="Project root (default: current directory)")
-    parser.add_argument("--read-only", action="store_true", help="Disable actions that modify project or flow state")
+    parser.add_argument(
+        "--read-only", action="store_true", help="Disable actions that modify project or flow state"
+    )
     parser.add_argument("--profile", help=argparse.SUPPRESS)
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("ui", help="Open the interactive Factoria terminal UI")
@@ -96,7 +98,9 @@ class TerminalUI:
             "verificación, review y trazabilidad. Tú sigues controlando las aprobaciones."
         )
         self.output("\n1/4 · Cómo pensar en Factoria")
-        self.output("  feature: plan explícito → aprobación → implementación → review → aprobación final")
+        self.output(
+            "  feature: plan explícito → aprobación → implementación → review → aprobación final"
+        )
         self.output("  fix pequeño: explorar → implementar → verificar → review")
         self.output("  commit: siempre se previsualiza y requiere confirmación explícita")
         self.output("  push/PR: siguen siendo manuales por diseño")
@@ -109,11 +113,18 @@ class TerminalUI:
             self.output("  - La memoria no está inicializada y --read-only impide crearla.")
             self.output("    Ejecuta después: factoria memoria-init --yes")
         else:
-            self.output("  La memoria permite a los agentes conocer estructura, reglas y verificaciones confirmadas.")
+            self.output(
+                "  La memoria permite a los agentes conocer estructura, reglas y verificaciones confirmadas."
+            )
             if self._confirm("¿Quieres preparar ahora la memoria inicial?", default=True):
-                name = self.input(f"Nombre del proyecto [{self.root.name}]: ").strip() or self.root.name
+                name = (
+                    self.input(f"Nombre del proyecto [{self.root.name}]: ").strip()
+                    or self.root.name
+                )
                 purpose = self.input("Propósito breve del proyecto (opcional): ").strip()
-                self.output("\nFactoria mostrará/propondrá la memoria y la escribirá solo porque la estás confirmando aquí.")
+                self.output(
+                    "\nFactoria mostrará/propondrá la memoria y la escribirá solo porque la estás confirmando aquí."
+                )
                 if self._confirm("¿Confirmas ejecutar memoria-init --yes?", default=False):
                     args = ["memoria-init", "--name", name, "--yes"]
                     if purpose:
@@ -132,16 +143,22 @@ class TerminalUI:
 
         self.output("\n3/4 · Herramientas y entorno")
         self.output("  Instala, inicia y autentica Codex/OpenCode fuera de Factoría.")
-        self.output("  La aplicación guarda la configuración del proyecto y no ejecuta diagnósticos de esos CLIs.")
+        self.output(
+            "  La aplicación guarda la configuración del proyecto y no ejecuta diagnósticos de esos CLIs."
+        )
         self._continue()
 
         self.output("\n4/4 · Tu primer flujo")
         self.output("  1. Configura agentes y flujos y prepara la integración del proyecto.")
         self.output("  2. Guarda la configuración en Git y selecciona una rama de trabajo limpia.")
         self.output("  3. Abre Codex u OpenCode por tu cuenta en ese proyecto.")
-        self.output("  4. Pide una feature o un fix y sigue el flujo configurado desde esa herramienta.")
+        self.output(
+            "  4. Pide una feature o un fix y sigue el flujo configurado desde esa herramienta."
+        )
         self._save_onboarding_complete()
-        self.output("\n✓ Onboarding completado. Puedes repetirlo en cualquier momento con `factoria onboarding`.")
+        self.output(
+            "\n✓ Onboarding completado. Puedes repetirlo en cualquier momento con `factoria onboarding`."
+        )
         return 0
 
     def _render_dashboard(self) -> None:
@@ -186,7 +203,9 @@ class TerminalUI:
             self.output("\nMODO READ-ONLY: acciones de escritura deshabilitadas")
 
     def _start_flow(self, kind: str) -> None:
-        self.output(f"Abre Codex/OpenCode fuera de Factoría y solicita el flujo {kind} en el proyecto preparado.")
+        self.output(
+            f"Abre Codex/OpenCode fuera de Factoría y solicita el flujo {kind} en el proyecto preparado."
+        )
 
     def _resume_flow(self) -> None:
         self.output("Reanuda el flujo desde la sesión externa de Codex/OpenCode.")
@@ -213,7 +232,10 @@ class TerminalUI:
         args = ["commit", flow_id, "--yes"]
         if self._confirm("Si había verificación manual, ¿la completaste toda?", default=False):
             args.append("--confirm-manual-verification")
-        if self._confirm("Si había impacto externo, ¿revisaste los consumidores/repositorios afectados?", default=False):
+        if self._confirm(
+            "Si había impacto externo, ¿revisaste los consumidores/repositorios afectados?",
+            default=False,
+        ):
             args.append("--confirm-external-impact-review")
         self._run_command(args)
         self._pause()
@@ -223,14 +245,20 @@ class TerminalUI:
         if self.read_only:
             self._pause()
             return
-        if not self._confirm("¿Quieres intentar resolver un incidente ya rotado/revocado?", default=False):
+        if not self._confirm(
+            "¿Quieres intentar resolver un incidente ya rotado/revocado?", default=False
+        ):
             self._pause()
             return
         incident_id = self.input("ID completo del incidente: ").strip()
         if not incident_id:
             return
-        self.output("Factoria solo lo resolverá si confirmas la rotación/revocación y verifica que ya no aparece.")
-        if self._confirm("¿La credencial ya fue rotada o revocada fuera de Factoria?", default=False):
+        self.output(
+            "Factoria solo lo resolverá si confirmas la rotación/revocación y verifica que ya no aparece."
+        )
+        if self._confirm(
+            "¿La credencial ya fue rotada o revocada fuera de Factoria?", default=False
+        ):
             self._run_command(["security", "resolve", incident_id, "--confirm-rotation"])
         self._pause()
 
@@ -264,6 +292,7 @@ class TerminalUI:
 
     def _run_command(self, args: list[str]) -> int:
         from factoria.application.tool_presence import assert_ui_command_allowed
+
         try:
             assert_ui_command_allowed(args)
         except ValueError as exc:

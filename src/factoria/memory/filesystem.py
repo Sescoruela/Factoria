@@ -27,7 +27,9 @@ def memory_targets(project_root: Path, memory: ProjectMemory) -> tuple[Path, ...
     return tuple(targets)
 
 
-def write_initial_memory(project_root: Path, memory: ProjectMemory) -> tuple[WrittenMemoryFile, ...]:
+def write_initial_memory(
+    project_root: Path, memory: ProjectMemory
+) -> tuple[WrittenMemoryFile, ...]:
     """Write initial project memory without overwriting existing memory files."""
     project_root = project_root.resolve()
     targets = memory_targets(project_root, memory)

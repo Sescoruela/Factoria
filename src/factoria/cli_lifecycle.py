@@ -23,7 +23,9 @@ def register_lifecycle_commands(sub) -> None:
     commit = sub.add_parser("commit", help="Preview and explicitly commit an approved flow")
     commit.add_argument("flow_id", nargs="?")
     commit.add_argument("--message", help="Override the proposed commit message")
-    commit.add_argument("--yes", action="store_true", help="Confirm staging and creating the commit")
+    commit.add_argument(
+        "--yes", action="store_true", help="Confirm staging and creating the commit"
+    )
     commit.add_argument(
         "--confirm-manual-verification",
         action="store_true",
@@ -75,7 +77,10 @@ def run_commit(args, root: Path, execution) -> int:
         session = load_live_session(session_path, execution=execution)
     except RuntimeStateError as exc:
         raise RuntimeError(str(exc)) from exc
-    if execution.flow.state is not FlowState.PAUSED or session.runtime_stage is not RuntimeStage.READY_FOR_COMMIT:
+    if (
+        execution.flow.state is not FlowState.PAUSED
+        or session.runtime_stage is not RuntimeStage.READY_FOR_COMMIT
+    ):
         stage = session.runtime_stage.value if session.runtime_stage else "-"
         raise RuntimeError(
             f"Flow is not ready for commit; state={execution.flow.state.value}, runtime_stage={stage}"

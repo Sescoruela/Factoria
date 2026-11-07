@@ -76,7 +76,9 @@ class CodexAdapter(SubprocessToolAdapter):
     def run(self, request: AgentRequest) -> AgentResult:
         return self._execute(request, self.build_command(request), adapter_name=self.name)
 
-    def _run_probe(self, args: tuple[str, ...], *, name: str, required_tokens: tuple[str, ...] = ()) -> CheckResult:
+    def _run_probe(
+        self, args: tuple[str, ...], *, name: str, required_tokens: tuple[str, ...] = ()
+    ) -> CheckResult:
         executable = self._resolved_executable()
         if executable is None:
             discovery = discover_codex()
