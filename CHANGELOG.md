@@ -2,6 +2,8 @@
 
 ## 0.3.0 — Preparación, sin release publicada
 
+- H12: assets JS/CSS, sesión/API y composición de estado compartidos; interfaz principal definida y borradores de agentes respetados en paneles auxiliares.
+
 - Smoke de navegador real con 22 casos y workflow de informes/trazas (H11; CI pendiente con Actions deshabilitado). Conservación de autenticación al recargar, catálogos tras guardar workflows y borradores de agente ante cambios externos de proyecto.
 
 - Vista navegable de relaciones workflow/etapa/agente/skills con diagnóstico de referencias, huérfanos e integración y conservación de borradores (H10).

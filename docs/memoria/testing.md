@@ -1,6 +1,13 @@
 <!-- factoria-memory: type=active | reviewed_commit=999bb373751a8cc7445dfe5ad5381809d2517028 | date=2026-11-07 | factoria=0.3.0 -->
 # Verificación y pruebas
 
+## H12 · Frontend
+
+07/11/2026: 382 unittest correctos y 23/23 Chromium reales locales. Se conservan
+los contratos de ambas APIs y los recorridos, con una prueba nueva de borrador de
+agente en Relaciones. Assets JS/CSS incluidos en wheel. CI H11 pendiente, Actions
+deshabilitado. [Estructura](../frontend.md).
+
 ## H11 · Navegador real y CI pendiente
 
 22 casos con Chromium real y API/archivos reales correctos el 07/11/2026, más

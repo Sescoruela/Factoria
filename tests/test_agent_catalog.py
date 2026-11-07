@@ -166,7 +166,7 @@ class AgentCatalogTests(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as caught:
                 request('/api/agent-role/create', payload, False)
             self.assertEqual(caught.exception.code, 403)
-            with patch('factoria.web_app_n8n._state', return_value={'selected_project': {'path': str(self.root)}}):
+            with patch('factoria.web_app._state', return_value={'selected_project': {'path': str(self.root)}}):
                 result = request('/api/agent-role/create', payload)
                 self.assertEqual(len(result['state']['agent_roles']), 6)
                 payload['revision'] = result['state']['agent_catalog_revision']

@@ -93,7 +93,7 @@ class IntegrationTests(ProjectFixture):
             with self.assertRaises(urllib.error.HTTPError) as error:
                 request({'confirmed': True}, False)
             self.assertEqual(error.exception.code, 403)
-            with patch('factoria.web_app_n8n._selected_project', return_value=self.root), patch('factoria.web_app_n8n._extended_state', return_value={}):
+            with patch('factoria.web_editor_api._selected_project', return_value=self.root), patch('factoria.web_editor_api._extended_state', return_value={}):
                 self.assertFalse(request({'confirmed': False})['applied'])
                 self.assertFalse(ProjectIntegration(self.root).check()['ready'])
                 self.assertTrue(request({'confirmed': True})['applied'])

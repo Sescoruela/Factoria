@@ -10,7 +10,7 @@ const button=document.createElement('button');button.dataset.page='templates';bu
 const el=id=>document.getElementById(id), result=text=>{el('templateResult').textContent=text;};
 const project=()=>state.selected_project?.path||null;
 function invalidate(){preview=null;el('templateApply').disabled=true;el('templateDownload').disabled=!el('templateText').value;}
-function drafts(){return window.hasUnsavedSkills?.()||(typeof agentEdits!=='undefined'&&agentEdits)||(typeof workflowDirty!=='undefined'&&workflowDirty);}
+function drafts(){return (window.hasUnsavedSkills?.()||window.hasUnsavedAgents?.())||(typeof agentEdits!=='undefined'&&agentEdits)||(typeof workflowDirty!=='undefined'&&workflowDirty);}
 button.onclick=()=>{document.querySelectorAll('.nav button,.section').forEach(x=>x.classList.remove('active'));button.classList.add('active');section.classList.add('active');const title=el('title');if(title)title.textContent='Plantillas';};
 async function action(work){
  if(busy)return; if(!project())return result('Selecciona un proyecto.');

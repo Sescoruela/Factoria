@@ -14,7 +14,8 @@ class WebAssetTests(unittest.TestCase):
         html = files("factoria.web").joinpath("index.html").read_text(encoding="utf-8")
         self.assertIn("FACTORIA", html)
         self.assertIn("Dashboard", html)
-        self.assertIn("/api/state", html)
+        self.assertIn("/assets/shell-classic.js", html)
+        self.assertIn("/api/state", files("factoria.web").joinpath("shell-classic.js").read_text(encoding="utf-8"))
 
     def test_command_boundary_rejects_unknown_command(self) -> None:
         with self.assertRaises(ValueError):

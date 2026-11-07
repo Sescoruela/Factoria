@@ -129,9 +129,9 @@ def _state() -> dict[str, object]:
 
 def _editor_state() -> dict[str, object]:
     """Return the same complete editor state after every shared API mutation."""
-    from factoria.web_app_n8n import _extended_state
+    from factoria.web_editor_state import enrich_editor_state
 
-    return _extended_state()
+    return enrich_editor_state(_state(), _selected_project(UiWorkspaceSettings.load()))
 
 
 def _set_projects_root(path: str) -> Path:
@@ -320,10 +320,10 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlparse(self.path).path
-        if path in {'/assets/workflows.js', '/assets/templates.js', '/assets/resources.js', '/assets/relations.js', '/assets/skills.js'}:
+        if path in {'/assets/shell-classic.css', '/assets/agents.js', '/assets/skills.js', '/assets/templates.js', '/assets/workflows.js', '/assets/shell-classic.js', '/assets/agents.css', '/assets/shell-main.js', '/assets/resources.js', '/assets/shell-common.js', '/assets/relations.js', '/assets/shell-main.css'}:
             body = files('factoria.web').joinpath(path.rsplit('/', 1)[-1]).read_bytes()
             self.send_response(HTTPStatus.OK)
-            self.send_header('Content-Type', 'application/javascript; charset=utf-8')
+            self.send_header('Content-Type', ('text/css' if path.endswith('.css') else 'application/javascript') + '; charset=utf-8')
             self.send_header('Cache-Control', 'no-store')
             self.send_header('X-Content-Type-Options', 'nosniff')
             self.send_header('Content-Length', str(len(body)))
@@ -332,7 +332,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             return
         if path in {'/', '/editors'}:
             if path=='/editors':
-                from factoria.web_app_n8n import main_shell_html
+                from factoria.web_shell import main_shell_html
                 html=main_shell_html().encode('utf-8')
             else:html = files("factoria.web").joinpath("index.html").read_bytes()
             self.send_response(HTTPStatus.OK)
@@ -348,8 +348,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             self._json({"error": "unauthorized"}, 403)
             return
         if path == "/api/state":
-            from factoria.web_app_n8n import _extended_state
-            self._json(_extended_state())
+            self._json(_editor_state())
             return
         if path.startswith("/api/job/"):
             job_id = path.rsplit("/", 1)[-1]
@@ -366,10 +365,10 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             self._json({"error": "unauthorized"}, 403)
             return
         path = urlparse(self.path).path
-        if path in {'/api/skill/create','/api/skill/save','/api/agent-role/create','/api/agent-role/save'}:
+        if path in {'/api/skill/create','/api/skill/save','/api/agent-role/create','/api/agent-role/save','/api/project/prepare'}:
             # Reuse the existing authenticated editors in the /editors shell.
-            from factoria.web_app_n8n import FactoriaN8NHandler
-            FactoriaN8NHandler.do_POST(self)
+            from factoria.web_editor_api import handle_editor_post
+            handle_editor_post(self)
             return
         try:
             if path=='/api/project/relations':

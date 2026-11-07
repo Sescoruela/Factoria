@@ -1,12 +1,6 @@
-from __future__ import annotations
-
-UI_PATCH = r'''
-<style>
-.agent-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.agent-editor{background:#12151b;border:1px solid #2c313b;border-radius:10px;padding:14px}.agent-editor h3{margin:0 0 4px}.agent-editor .role-note{font-size:12px;color:#8f95a5;margin-bottom:10px}.agent-editor label{display:block;font-size:11px;color:#a8aebb;margin-top:8px}.concept-note{padding:11px;border:1px dashed #3a404b;border-radius:9px;background:#151820;margin-bottom:12px}.snapshot-note{margin-top:9px;color:#87e9c0;font-size:12px}
-</style>
-<script>
 (function(){
 let agentEdits=false;let agentProject=null;let agentDraft=null;let agentRevision=null;let agentCreating=false;let agentSaving=false;
+window.hasUnsavedAgents=()=>agentEdits||agentSaving;
 const roleLabels={explorer:'Explorer',planner:'Planner',implementer:'Implementer',reviewer:'Reviewer',documenter:'Documenter'};
 const roleNotes={explorer:'Explora el repositorio sin modificarlo.',planner:'Define plan, criterios y riesgos.',implementer:'Realiza cambios autorizados en el proyecto.',reviewer:'Revisa cambios y devuelve una evaluación estructurada.',documenter:'Propone actualizaciones de memoria y documentación.'};
 const nav=document.querySelector('.nav');
@@ -123,5 +117,3 @@ window.setNodeProfile=function(i,v){workflowDraft[i].profile=v||null;markDirty()
 const note=document.querySelector('#designer .workflow-note');if(note){note.insertAdjacentHTML('beforeend','<div class="snapshot-note">Puedes editar este diseño en cualquier momento. Un flujo que ya haya arrancado conserva una snapshot propia y no cambia.</div>')}
 applyTerminology();
 })();
-</script>
-'''
