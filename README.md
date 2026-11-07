@@ -182,6 +182,7 @@ autentica Codex/OpenCode desde la aplicación.
 - [Estado vigente y límites](docs/project-status.md).
 - [Uso de skills, agentes y workflows](docs/editor-milestones.md).
 - [Exportar e importar plantillas entre proyectos](docs/project-templates.md).
+- [Duplicar, archivar y restaurar recursos](docs/resource-lifecycle.md).
 - [CLI y seguimiento directo](docs/cli.md).
 - [Instalación, actualización e integridad](docs/release-process.md).
 - [Roadmap y siguientes hitos](docs/roadmap.md).

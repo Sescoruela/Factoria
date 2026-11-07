@@ -83,5 +83,5 @@ async function runFlow(kind){toast('Abre Codex/OpenCode fuera de Factoría y sol
 function tokenize(s){return s.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g)?.map(x=>x.replace(/^["']|["']$/g,''))||[]}function executeTypedCommand(){const args=tokenize(document.getElementById('commandInput').value.trim().replace(/^factoria\s+/,''));if(args.length)runCommand(args)}
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.page).classList.add('active');document.getElementById('title').textContent=b.textContent;if(b.dataset.page==='designer'&&!workflowDirty)loadWorkflowBoard(true)});refresh();setInterval(refresh,5000)
 </script>
-<script src="/assets/workflows.js"></script><script src="/assets/templates.js"></script></body>
+<script src="/assets/workflows.js"></script><script src="/assets/templates.js"></script><script src="/assets/resources.js"></script></body>
 </html>

@@ -21,6 +21,17 @@ def run_project_cli(argv: list[str]) -> int:
     prepare.add_argument('--yes', action='store_true')
     project.add_parser('check', help='Check freshness and ownership without calling an LLM')
     project.add_parser('workflows', help='List configured workflow identifiers and base types')
+    resources = project.add_parser('resources', help='Duplicate, archive or restore project resources').add_subparsers(dest='resource_action')
+    resources.add_parser('list')
+    for operation in ('duplicate','archive','restore'):
+        command=resources.add_parser(operation)
+        command.add_argument('kind',choices=('skill','agent','workflow'))
+        command.add_argument('identifier',help='Active identifier, or archive_id for restore')
+        if operation=='duplicate':
+            command.add_argument('--new-id',required=True)
+            command.add_argument('--name')
+        command.add_argument('--yes',action='store_true')
+        command.add_argument('--token',help='Token from the reviewed preview')
     templates = project.add_parser('templates', help='Export or preview/import portable project resources').add_subparsers(dest='template_action', required=True)
     export = templates.add_parser('export')
     export.add_argument('--name', required=True)
@@ -60,6 +71,17 @@ def run_project_cli(argv: list[str]) -> int:
         if args.read_only and not (args.command == 'project' and (args.action in {'check', 'workflows'} or not getattr(args, 'yes', False))) and not (args.command == 'native' and args.action == 'status'):
             raise PermissionError('Modo solo lectura: operación bloqueada')
         if args.command == 'project':
+            if args.action == 'resources':
+                from factoria.application.resource_lifecycle import resource_inventory, preview_resource, apply_resource
+                if args.resource_action in (None,'list'):
+                    result=resource_inventory(root)
+                else:
+                    request={'action':args.resource_action,'kind':args.kind,
+                             'archive_id' if args.resource_action=='restore' else 'id':args.identifier}
+                    if args.resource_action=='duplicate':request.update(new_id=args.new_id,name=args.name)
+                    result=(apply_resource(root,request,token=args.token,confirmed=True) if args.yes else preview_resource(root,request))
+                print(json.dumps(result,ensure_ascii=True,indent=2))
+                return 1 if result.get('blockers') else 0
             if args.action == 'templates':
                 from factoria.application.project_templates import export_template, read_template, preview_template, apply_template
                 if args.template_action == 'export':

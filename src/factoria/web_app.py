@@ -313,7 +313,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlparse(self.path).path
-        if path in {'/assets/workflows.js', '/assets/templates.js'}:
+        if path in {'/assets/workflows.js', '/assets/templates.js', '/assets/resources.js'}:
             body = files('factoria.web').joinpath(path.rsplit('/', 1)[-1]).read_bytes()
             self.send_response(HTTPStatus.OK)
             self.send_header('Content-Type', 'application/javascript; charset=utf-8')
@@ -356,9 +356,24 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             return
         path = urlparse(self.path).path
         try:
+            if path.startswith('/api/resource/') and not 0 <= int(self.headers.get('Content-Length', '0')) <= 16384:
+                raise ValueError('Solicitud de recurso demasiado grande o no válida')
             if path.startswith('/api/template/') and not 0 <= int(self.headers.get('Content-Length', '0')) <= 1052672:
                 raise ValueError('Tamaño de plantilla no válido o superior al permitido')
             data = self._body()
+            if path in {'/api/resource/list','/api/resource/preview','/api/resource/apply'}:
+                from factoria.application.resource_lifecycle import resource_inventory, preview_resource, apply_resource, ResourceConflict
+                project=_selected_project(UiWorkspaceSettings.load())
+                if project is None or data.get('project_path')!=str(project):
+                    self._json({'error':'El proyecto cambió; vuelve a revisar impacto'},409)
+                    return
+                try:
+                    if path.endswith('/list'):result=resource_inventory(project)
+                    elif path.endswith('/preview'):result=preview_resource(project,data.get('request'))
+                    else:result=apply_resource(project,data.get('request'),token=data.get('token'),confirmed=data.get('confirmed') is True)
+                    self._json({'ok':True,**result})
+                except ResourceConflict as exc:self._json({'error':str(exc)},409)
+                return
             if path in {'/api/template/export', '/api/template/preview', '/api/template/apply'}:
                 from factoria.application.project_templates import export_template, preview_template, apply_template, TemplateConflict
                 project = _selected_project(UiWorkspaceSettings.load())

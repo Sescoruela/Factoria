@@ -11,7 +11,7 @@ mantiene sus definiciones por proyecto y prepara los archivos que consumen Codex
 OpenCode. El usuario inicia y autentica esas herramientas por su cuenta, fuera de la
 aplicación. Abrir, refrescar o configurar Factoría no debe arrancar ninguno de sus CLIs.
 
-## Estado confirmado al 06/11/2026
+## Estado confirmado al 07/11/2026
 
 - Corregido el diagnóstico de proveedores que se repetía al actualizar el panel.
 - La web y la terminal de la aplicación permiten detección pasiva y guardar preferencias/rutas.
@@ -67,7 +67,7 @@ Esfuerzos orientativos de implementación y pruebas, sujetos al diseño del cat�
 - Identificadores estables y formatos anteriores compatibles; workflows nuevos de hasta 48 caracteres portables.
 - Cada etapa conserva su rol y solo admite agentes de ese rol base.
 - Los flujos propios se seleccionan explícitamente; las intenciones ambiguas se aclaran.
-- Los cambios externos provocan conflicto y conservan el borrador. Las plantillas importables se entregan en H08; duplicar/archivar recursos sigue en H09. Ver [plantillas](project-templates.md).
+- Los cambios externos provocan conflicto y conservan el borrador. Las plantillas importables se entregan en H08; duplicar/archivar/restaurar recursos se entrega en H09. Ver [ciclo de vida](resource-lifecycle.md). Ver [plantillas](project-templates.md).
 
 ## Agentes: uso y formato entregados
 

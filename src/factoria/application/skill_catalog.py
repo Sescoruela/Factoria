@@ -71,6 +71,8 @@ def skill_catalog_revision(root: Path | None) -> str:
     digest = hashlib.sha256()
     if root is not None:
         root = root.resolve()
+        from factoria.application.resource_archive import archive_revision
+        digest.update(archive_revision(root).encode())
         for path in _files(root):
             digest.update(path.name.encode() + b'\0' + path.read_bytes() + b'\0')
     return digest.hexdigest()
@@ -102,6 +104,8 @@ def skill_catalog_snapshot(root: Path | None) -> tuple[tuple[SkillDefinition, ..
         skills, foreign = [], []
         if root is not None:
             for path in _files(root.resolve()):
+                from factoria.application.resource_archive import assert_not_archived
+                assert_not_archived(root, 'skill', path.stem)
                 item = _decode(path)
                 if item is None:
                     foreign.append(path.name)
@@ -120,10 +124,13 @@ def save_skill(root: Path, skill: SkillDefinition, *, expected_revision: str, cr
     root = root.resolve()
     ExecutionGovernor().assert_allowed(GovernedAction.WRITE, build_execution_context(root))
     checked = validate_skill(skill)
+    from factoria.application.resource_archive import assert_not_archived
+    assert_not_archived(root, 'skill', checked.id)
     if any(SecretScanner().scan_text(value, location=skill.id)
            for value in (skill.name, skill.description, skill.content)):
         raise ValueError('Posible secreto en la skill; no se guarda')
     with _LOCK:
+        assert_not_archived(root, 'skill', checked.id)
         revision = skill_catalog_revision(root)
         if revision != expected_revision:
             raise SkillCatalogConflict('Las skills cambiaron fuera de este editor; recarga antes de guardar')

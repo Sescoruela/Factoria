@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=a73de1abbf011a9a16b99a1e7859cd1908d7e3d7 | date=2026-11-06 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=0fe34442e94bf5eb620b36a8682a87213ddff671 | date=2026-11-07 | factoria=0.3.0 -->
 # Arquitectura
 
 ## Objetivo
@@ -12,6 +12,7 @@ principalmente con Codex/OpenCode, que consumen la configuración generada.
 - `application/`: servicios de flujo, verificación, revisión, Git, historial y actualización.
 - `application/skill_catalog.py`: skills Markdown versionables, creación exclusiva, guardado atómico y revisiones de catálogo.
 - `application/project_integration.py`: compilación de configuración compartida a assets por herramienta.
+- `application/resource_lifecycle.py`, `resource_archive.py`: duplicación, impacto de referencias, archivo reversible y restauración; reservas compartidas por editores/plantillas y registros versionables en `.factoria/archive/`.
 - `application/project_templates.py`: bundles JSON v1 cerrados, preview ligado a catálogos/proyecto/contenido, importación conservadora y copia de recuperación en Git; sin copiar memoria ni políticas.
 - `orchestration/workflows.py`: cada etapa conserva su rol de seguridad y puede seleccionar un agente del catálogo con `agent_id`.
 - `application/native_workflow.py`: seguimiento directo sin llamadas LLM, con snapshots y evidencia.

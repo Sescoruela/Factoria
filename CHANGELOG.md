@@ -2,6 +2,8 @@
 
 ## 0.3.0 — Preparación, sin release publicada
 
+- Duplicación, archivado reversible y restauración web/CLI de recursos con preview de referencias, reserva de identificadores e historial conservado (H09).
+
 - Plantillas JSON portables de skills, agentes y workflows: exportación, preview, conflictos e importación confirmada desde web/CLI; recuperación local ante fallos.
 
 - Catálogos de skills y agentes: crear, editar y guardar con revisiones y escritura atómica.

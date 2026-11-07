@@ -148,6 +148,12 @@ def _raw(root: Path, current: str, legacy: str) -> dict:
 def _plan(root: Path, payload: dict):
     root = root.resolve()
     data = validate_template(payload)
+    from factoria.application.resource_archive import assert_not_archived
+    for kind, identifiers in (('skill', [s['id'] for s in data['skills']]),
+                              ('agent', [a['role'] for a in data['agents']]),
+                              ('workflow', data['workflows'])):
+        for identifier in identifiers:
+            assert_not_archived(root, kind, identifier)
     before = _revision(root)
     current_skills, _, foreign = skills.skill_catalog_snapshot(root)
     current_agents = {item.role: item.to_mapping() for item in agents.load_agent_profiles(root)}
