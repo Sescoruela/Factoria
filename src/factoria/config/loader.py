@@ -160,7 +160,13 @@ def load_global_config(path: Path) -> GlobalConfig:
 
 
 def load_project_config(path: Path) -> ProjectConfig:
-    data = _read_toml(path)
+    return project_config_from_mapping(_read_toml(path))
+
+
+def project_config_from_mapping(data: dict[str, Any]) -> ProjectConfig:
+    """Validate captured project settings without rereading the filesystem."""
+    if not isinstance(data, dict):
+        raise ConfigError('Project configuration must be a mapping')
     if "default_tool" in data:
         raise ConfigError(
             "Projects cannot define default_tool; tool preference is global or per execution"

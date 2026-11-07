@@ -313,7 +313,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlparse(self.path).path
-        if path in {'/assets/workflows.js', '/assets/templates.js', '/assets/resources.js'}:
+        if path in {'/assets/workflows.js', '/assets/templates.js', '/assets/resources.js', '/assets/relations.js', '/assets/skills.js'}:
             body = files('factoria.web').joinpath(path.rsplit('/', 1)[-1]).read_bytes()
             self.send_response(HTTPStatus.OK)
             self.send_header('Content-Type', 'application/javascript; charset=utf-8')
@@ -323,8 +323,11 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
-        if path == "/":
-            html = files("factoria.web").joinpath("index.html").read_bytes()
+        if path in {'/', '/editors'}:
+            if path=='/editors':
+                from factoria.web_app_n8n import main_shell_html
+                html=main_shell_html().encode('utf-8')
+            else:html = files("factoria.web").joinpath("index.html").read_bytes()
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
@@ -338,7 +341,8 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             self._json({"error": "unauthorized"}, 403)
             return
         if path == "/api/state":
-            self._json(_state())
+            from factoria.web_app_n8n import _extended_state
+            self._json(_extended_state())
             return
         if path.startswith("/api/job/"):
             job_id = path.rsplit("/", 1)[-1]
@@ -355,7 +359,19 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             self._json({"error": "unauthorized"}, 403)
             return
         path = urlparse(self.path).path
+        if path in {'/api/skill/create','/api/skill/save','/api/agent-role/create','/api/agent-role/save'}:
+            # Reuse the existing authenticated editors in the /editors shell.
+            from factoria.web_app_n8n import FactoriaN8NHandler
+            FactoriaN8NHandler.do_POST(self)
+            return
         try:
+            if path=='/api/project/relations':
+                if not 0<=int(self.headers.get('Content-Length','0'))<=16384:raise ValueError('Solicitud demasiado grande')
+                data=self._body();project=_selected_project(UiWorkspaceSettings.load())
+                if project is None or data.get('project_path')!=str(project):
+                    self._json({'error':'El proyecto cambió; vuelve a cargar las relaciones'},409);return
+                from factoria.application.project_relations import project_relations
+                self._json({'ok':True,**project_relations(project)});return
             if path.startswith('/api/resource/') and not 0 <= int(self.headers.get('Content-Length', '0')) <= 16384:
                 raise ValueError('Solicitud de recurso demasiado grande o no válida')
             if path.startswith('/api/template/') and not 0 <= int(self.headers.get('Content-Length', '0')) <= 1052672:

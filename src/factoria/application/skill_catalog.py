@@ -80,6 +80,11 @@ def skill_catalog_revision(root: Path | None) -> str:
 
 def _decode(path: Path) -> SkillDefinition | None:
     text = path.read_bytes().decode('utf-8')
+    return decode_skill_text(text, path.name)
+
+
+def decode_skill_text(text: str, filename: str) -> SkillDefinition | None:
+    """Decode a captured skill without reopening a possibly changing file."""
     if not text.startswith(_MARKER):
         return None  # Foreign files are never claimed or overwritten.
     parts = text.split('\n', 6)
@@ -91,11 +96,11 @@ def _decode(path: Path) -> SkillDefinition | None:
         data = {key: json.loads(parts[index].removeprefix(key + ': '))
                 for index, key in enumerate(('id', 'name', 'description'), 2)}
         skill = validate_skill(SkillDefinition.from_mapping({**data, 'content': parts[6]}))
-        if path.name != skill.id + '.md':
+        if filename != skill.id + '.md':
             raise ValueError('El identificador no coincide con el archivo')
         return skill
     except (ValueError, TypeError) as exc:
-        raise ValueError(f'Skill no válida: {path.name}: {exc}') from exc
+        raise ValueError(f'Skill no válida: {filename}: {exc}') from exc
 
 
 def skill_catalog_snapshot(root: Path | None) -> tuple[tuple[SkillDefinition, ...], str, tuple[str, ...]]:

@@ -2,6 +2,8 @@
 
 ## 0.3.0 — Preparación, sin release publicada
 
+- Vista navegable de relaciones workflow/etapa/agente/skills con diagnóstico de referencias, huérfanos e integración y conservación de borradores (H10).
+
 - Duplicación, archivado reversible y restauración web/CLI de recursos con preview de referencias, reserva de identificadores e historial conservado (H09).
 
 - Plantillas JSON portables de skills, agentes y workflows: exportación, preview, conflictos e importación confirmada desde web/CLI; recuperación local ante fallos.

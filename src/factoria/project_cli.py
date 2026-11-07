@@ -21,6 +21,7 @@ def run_project_cli(argv: list[str]) -> int:
     prepare.add_argument('--yes', action='store_true')
     project.add_parser('check', help='Check freshness and ownership without calling an LLM')
     project.add_parser('workflows', help='List configured workflow identifiers and base types')
+    project.add_parser('relations',help='Read-only workflow, stage, agent and skill relationships')
     resources = project.add_parser('resources', help='Duplicate, archive or restore project resources').add_subparsers(dest='resource_action')
     resources.add_parser('list')
     for operation in ('duplicate','archive','restore'):
@@ -71,6 +72,11 @@ def run_project_cli(argv: list[str]) -> int:
         if args.read_only and not (args.command == 'project' and (args.action in {'check', 'workflows'} or not getattr(args, 'yes', False))) and not (args.command == 'native' and args.action == 'status'):
             raise PermissionError('Modo solo lectura: operación bloqueada')
         if args.command == 'project':
+            if args.action=='relations':
+                from factoria.application.project_relations import project_relations
+                result=project_relations(root)
+                print(json.dumps(result,ensure_ascii=True,indent=2))
+                return 1 if not result['consistent'] or any(d['severity']=='error' for d in result['diagnostics']) else 0
             if args.action == 'resources':
                 from factoria.application.resource_lifecycle import resource_inventory, preview_resource, apply_resource
                 if args.resource_action in (None,'list'):
