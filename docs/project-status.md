@@ -1,7 +1,7 @@
 # Estado verificable de Factoria
 
 Revisión: **07/11/2026**, sobre el código integrado hasta
-`e06933195e3231bebacbe25aacaf19f529dc2164` y la entrega H13 de configuración.
+`59ac469a2145faddac857b669c4aa0bfa5fef149` y el refactor transversal posterior.
 Esta página reúne el estado vigente; los registros fechados conservan su alcance original.
 
 **0.3.0 preparada, sin tag ni release publicada. MVP todavía no aceptado.**
@@ -21,6 +21,7 @@ hasta nuevo aviso. Las modificaciones de workflows no reactivan ese ajuste.
 | Inicio externo | UI/TUI con detección pasiva; el usuario inicia y autentica las herramientas | [Decisión y límites](memoria/decisiones.md) |
 | Distribución | Wheel/sdist, checksums y actualización Python comprobados localmente; binario dirige al instalador | [H06 y límites](release-h06-status.md) |
 | Plantillas H08 | Exportación JSON y preview/import conservador desde ambos shells y CLI; sin memoria/política/preferencias de máquina | [Uso y evidencia](project-templates.md) |
+| Refactor transversal | Contratos neutros de rutas/bytes, límites de capas, recursos/CLI/API compartidos y estilo consistente | [Detalle y evidencia](code-refactor.md) |
 | Recuperación H13 | Migración explícita, checkpoints y recuperación de interrupciones con snapshots conservadas | [Guía y evidencia](configuration-recovery.md) |
 | Relaciones H10 | Mapa de configuración guardada, diagnóstico parcial y navegación que conserva borradores | [Uso y evidencia](project-relations.md) |
 | Navegador H11–H13 | 25 casos Chromium reales correctos localmente y workflow de evidencia preparado; CI pendiente | [Guía y evidencia](browser-smoke.md) |
@@ -35,7 +36,7 @@ agentes de una sesión externa siguen dependiendo de Codex/OpenCode.
 
 | Tipo | Última evidencia disponible | Qué queda fuera |
 | --- | --- | --- |
-| Pruebas deterministas | H13: **398 tests**, Linux/Python 3.12.14, correctos | Autenticación, selección natural y uso por un LLM |
+| Pruebas deterministas | Refactor: **406 tests**, Linux/Python 3.12.14, correctos | Autenticación, selección natural y uso por un LLM |
 | Navegador real | H13: **25/25** en Chromium headless local, dos shells, dos pestañas y persistencia real; fallo de control con traza/captura | CI, Windows, otros navegadores y revisión visual/accesibilidad; [H11 #17](https://github.com/Sescoruela/Factoria/issues/17) abierto hasta CI |
 | Host con checkout | Fix y feature de laboratorio completados con agente/skill/workflow propios, aprobaciones y commits locales | Sesión externa independiente, descubrimiento natural y aislamiento de modelos; [evidencia H05](acceptance/h05-status.md) |
 | Codex CLI/OpenCode autenticados | Pendiente de ejecución y registro | No se certifica por los tests, por un CLI presente ni por un manifiesto |
