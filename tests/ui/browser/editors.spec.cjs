@@ -261,3 +261,42 @@ test('agent draft blocks relationship navigation in the canonical shell', async 
   await nav(page, 'agentRoles');
   await expect(page.locator('#agent-instructions')).toHaveValue('Borrador que debe conservarse');
 });
+
+for(const shell of ['main','classic']) {
+  test(`${shell}: migrate, checkpoint and restore from the recovery panel`, async ({page,lab})=>{
+    await open(page,lab,shell);
+    await create(page,'agent');
+    const original=disk(lab,'agent');
+    async function previewAndApply(){
+      await page.locator('#configPreview').click();
+      await expect(page.locator('#configStatus')).toContainText('Preview listo');
+      const prompt=page.waitForEvent('dialog');
+      const click=page.locator('#configApply').click();
+      await (await prompt).accept();await click;
+      await expect(page.locator('#configStatus')).toContainText('Operación completada');
+    }
+    await nav(page,'configuration');
+    await expect(page.locator('#configStatus')).toContainText('Copias actualizadas');
+    await previewAndApply();
+    expect(JSON.parse(fs.readFileSync(path.join(lab.project,'.factoria/schema.json'),'utf8')).schema_version).toBe(1);
+    await page.locator('#configAction').selectOption('snapshot');
+    await previewAndApply();
+    await page.locator('#configReload').click();
+    const checkpoint=page.locator('#configBackup option').filter({hasText:'checkpoint'});
+    await expect(checkpoint).toHaveCount(1);
+    const identifier=await checkpoint.getAttribute('value');
+    await edit(page,'agent');
+    await page.locator('#agent-instructions').fill('Cambio después de la copia');
+    await save(page,'agent');
+    expect(disk(lab,'agent')).not.toBe(original);
+    await nav(page,'configuration');
+    await expect(page.locator('#configStatus')).toContainText('Copias actualizadas');
+    await page.locator('#configAction').selectOption('restore');
+    await page.locator('#configBackup').selectOption(identifier);
+    await previewAndApply();
+    expect(disk(lab,'agent')).toBe(original);
+    await page.getByRole('button',{name:'Actualizar',exact:true}).click();
+    await edit(page,'agent');
+    await expect(page.locator('#agent-instructions')).toHaveValue('Instrucciones iniciales');
+  });
+}

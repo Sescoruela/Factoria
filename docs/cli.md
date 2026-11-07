@@ -102,3 +102,10 @@ una copia; `archive workflow fix-api` propone archivar; `restore workflow ID_DE_
 propone restaurar un registro. Prefijar estos últimos con `factoria project resources`.
 Aplicar repitiendo con `--yes --token TOKEN_DEL_PREVIEW` después de revisar el impacto.
 Consultar [reglas, referencias y recuperación](resource-lifecycle.md).
+
+## Migrar o recuperar configuración
+
+`factoria --project /ruta/proyecto project config status` muestra esquema y copias.
+`project config migrate`, `snapshot` y `restore ID` solo previsualizan; aplicar exige
+`--yes --token TOKEN_DEL_PREVIEW`. `--read-only` bloquea esa aplicación.
+[Inventario, fallos, límites y comandos completos](configuration-recovery.md).

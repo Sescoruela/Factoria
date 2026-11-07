@@ -274,21 +274,25 @@ Los permisos y aprobaciones de la herramienta siguen vigentes.
         return IntegrationPlan(files, tuple(changed), tuple(conflicts))
 
     def apply(self, *, confirmed: bool = False) -> IntegrationPlan:
-        if not confirmed:
-            raise PermissionError('Preparar el proyecto requiere confirmación')
-        ExecutionGovernor().assert_allowed(GovernedAction.WRITE, build_execution_context(self.root))
-        plan = self.plan()
-        if plan.conflicts:
-            raise ValueError('Archivos modificados por el usuario; resolver antes de regenerar: ' + ', '.join(plan.conflicts))
-        for relative in plan.changed:
-            path = project_path(self.root, relative)
-            if relative not in plan.files:
-                path.unlink()
-                continue
-            path.parent.mkdir(parents=True, exist_ok=True)
-            with path.open('w', encoding='utf-8', newline='') as handle:
-                handle.write(plan.files[relative])
-        return plan
+        from factoria.application.project_templates import _locks
+        with _locks():
+            from factoria.application.config_schema import assert_config_writable
+            assert_config_writable(self.root)
+            if not confirmed:
+                raise PermissionError('Preparar el proyecto requiere confirmación')
+            ExecutionGovernor().assert_allowed(GovernedAction.WRITE, build_execution_context(self.root))
+            plan = self.plan()
+            if plan.conflicts:
+                raise ValueError('Archivos modificados por el usuario; resolver antes de regenerar: ' + ', '.join(plan.conflicts))
+            for relative in plan.changed:
+                path = project_path(self.root, relative)
+                if relative not in plan.files:
+                    path.unlink()
+                    continue
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with path.open('w', encoding='utf-8', newline='') as handle:
+                    handle.write(plan.files[relative])
+            return plan
 
     def check(self) -> dict:
         plan = self.plan()

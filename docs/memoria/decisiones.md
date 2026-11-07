@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=999bb373751a8cc7445dfe5ad5381809d2517028 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=e06933195e3231bebacbe25aacaf19f529dc2164 | date=2026-11-07 | factoria=0.3.0 -->
 # Decisiones
 
 - La memoria y configuración compartida viven junto al código del proyecto.
@@ -32,3 +32,11 @@ integración, también al guardar workflows. La pestaña conserva el token local
 `sessionStorage` para recargar sin dejarlo en la URL; no inicia ni autentica
 proveedores. Node/Playwright son solo desarrollo. La evidencia Chromium local no
 cierra H11 hasta observar CI, con Actions deshabilitado.
+
+## H13 · Recuperación explícita
+
+El formato histórico 0 sigue siendo legible; migrar a 1 requiere preview y
+confirmación. Esquemas desconocidos bloquean lectores y escritores. Los journals
+H13 guardan bytes/hashes antes de escribir y bloquean nuevas ediciones si quedan
+pendientes. Recuperar no pisa cambios externos ajenos. Los journals antiguos H08/H09
+no se adoptan automáticamente; checkpoints H13 son operaciones explícitas.

@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=999bb373751a8cc7445dfe5ad5381809d2517028 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=e06933195e3231bebacbe25aacaf19f529dc2164 | date=2026-11-07 | factoria=0.3.0 -->
 # Arquitectura
 
 ## Objetivo
@@ -50,3 +50,8 @@ trazas y CI pendiente: [guía](../browser-smoke.md).
 H12: no se inyectan parches Python en HTML. Assets JS/CSS y servicios compartidos
 de estado/API descritos en [frontend](../frontend.md). La vista n8n es principal;
 la clásica es compatibilidad.
+
+H13: `application/config_schema.py` aplica gates de versión; `config_recovery.py`
+previsualiza/migra/checkpoint/restaura con copias locales en metadatos Git y journal
+recuperable. El panel `configuration.js` y CLI comparten el servicio autenticado y
+con políticas. Snapshots/memoria/historial quedan fuera del inventario. [Guía](../configuration-recovery.md).

@@ -1,7 +1,7 @@
 # Estado verificable de Factoria
 
 Revisión: **07/11/2026**, sobre el código integrado hasta
-`999bb373751a8cc7445dfe5ad5381809d2517028` y las entregas H11/H12 de navegador y frontend.
+`e06933195e3231bebacbe25aacaf19f529dc2164` y la entrega H13 de configuración.
 Esta página reúne el estado vigente; los registros fechados conservan su alcance original.
 
 **0.3.0 preparada, sin tag ni release publicada. MVP todavía no aceptado.**
@@ -21,8 +21,9 @@ hasta nuevo aviso. Las modificaciones de workflows no reactivan ese ajuste.
 | Inicio externo | UI/TUI con detección pasiva; el usuario inicia y autentica las herramientas | [Decisión y límites](memoria/decisiones.md) |
 | Distribución | Wheel/sdist, checksums y actualización Python comprobados localmente; binario dirige al instalador | [H06 y límites](release-h06-status.md) |
 | Plantillas H08 | Exportación JSON y preview/import conservador desde ambos shells y CLI; sin memoria/política/preferencias de máquina | [Uso y evidencia](project-templates.md) |
+| Recuperación H13 | Migración explícita, checkpoints y recuperación de interrupciones con snapshots conservadas | [Guía y evidencia](configuration-recovery.md) |
 | Relaciones H10 | Mapa de configuración guardada, diagnóstico parcial y navegación que conserva borradores | [Uso y evidencia](project-relations.md) |
-| Navegador H11 | 22 casos Chromium reales correctos localmente y workflow de evidencia preparado; CI pendiente | [Guía y evidencia](browser-smoke.md) |
+| Navegador H11–H13 | 25 casos Chromium reales correctos localmente y workflow de evidencia preparado; CI pendiente | [Guía y evidencia](browser-smoke.md) |
 | Ciclo de vida H09 | Duplicar, revisar impacto, archivar y restaurar recursos con reservas y dependencias compatibles | [Uso y evidencia](resource-lifecycle.md) |
 
 «Implementado» indica código y evidencia técnica. No afirma que una sesión nueva de
@@ -34,8 +35,8 @@ agentes de una sesión externa siguen dependiendo de Codex/OpenCode.
 
 | Tipo | Última evidencia disponible | Qué queda fuera |
 | --- | --- | --- |
-| Pruebas deterministas | H12: **382 tests**, Linux/Python 3.12.14, correctos | Autenticación, selección natural y uso por un LLM |
-| Navegador real | H12: **23/23** en Chromium headless local, dos shells, dos pestañas y persistencia real; fallo de control con traza/captura | CI, Windows, otros navegadores y revisión visual/accesibilidad; [H11 #17](https://github.com/Sescoruela/Factoria/issues/17) abierto hasta CI |
+| Pruebas deterministas | H13: **398 tests**, Linux/Python 3.12.14, correctos | Autenticación, selección natural y uso por un LLM |
+| Navegador real | H13: **25/25** en Chromium headless local, dos shells, dos pestañas y persistencia real; fallo de control con traza/captura | CI, Windows, otros navegadores y revisión visual/accesibilidad; [H11 #17](https://github.com/Sescoruela/Factoria/issues/17) abierto hasta CI |
 | Host con checkout | Fix y feature de laboratorio completados con agente/skill/workflow propios, aprobaciones y commits locales | Sesión externa independiente, descubrimiento natural y aislamiento de modelos; [evidencia H05](acceptance/h05-status.md) |
 | Codex CLI/OpenCode autenticados | Pendiente de ejecución y registro | No se certifica por los tests, por un CLI presente ni por un manifiesto |
 | Instalación Python | H06: actualización local 0.2.0→0.3.0, dos reaperturas y 37 archivos conservados | Upgrade Windows, todas las versiones históricas y UI visual; [informe](release-h06-smoke.json) |
@@ -62,7 +63,7 @@ H08/H09/H10 mantienen su evidencia histórica de DOM/API simulados. H11 añade n
 | H10 | Relaciones, diagnóstico y navegación a editores implementados; [guía y límites](project-relations.md) |
 | [H11 #17](https://github.com/Sescoruela/Factoria/issues/17) | Implementado y validado localmente; pendiente ejecutar y revisar informes/artefactos en CI. Actions deshabilitado |
 | H12 | Assets JS/CSS y servicios compartidos; [estructura y evidencia](frontend.md) |
-| H13 | Evolución posterior en [roadmap](roadmap.md); no sustituye las pruebas de cierre del MVP |
+| H13 | Esquema, migración y recuperación implementados; [guía y límites](configuration-recovery.md). No sustituye aceptación/distribución H05/H06 |
 
 La aceptación pendiente bloquea la declaración de MVP terminado. La documentación
 de un procedimiento no significa que se haya ejecutado ni que su resultado sea correcto.

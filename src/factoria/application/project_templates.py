@@ -199,11 +199,14 @@ def preview_template(root: Path, data: dict) -> dict:
 
 
 def apply_template(root: Path, data: dict, *, expected_token: str, confirmed: bool) -> dict:
+    from factoria.application.config_schema import assert_config_writable
+    if root is not None: assert_config_writable(root)
     if not confirmed:
         raise PermissionError('Revisa el preview y confirma la importación')
     root = root.resolve()
     ExecutionGovernor().assert_allowed(GovernedAction.WRITE, build_execution_context(root))
     with _locks():
+        assert_config_writable(root)
         plan, writes = _plan(root, data)
         if not isinstance(expected_token, str) or expected_token != plan['token']:
             raise TemplateConflict('El proyecto o la plantilla cambió; vuelve a previsualizar')

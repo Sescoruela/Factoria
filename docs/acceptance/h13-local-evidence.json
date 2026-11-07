@@ -1,0 +1,49 @@
+{
+  "date": "2026-11-07",
+  "base_remote_commit": "e06933195e3231bebacbe25aacaf19f529dc2164",
+  "python": "3.12.14",
+  "os": "Linux",
+  "unittest": {
+    "passed": 398,
+    "h13_tests": 16,
+    "duration_seconds": 31.338
+  },
+  "browser_stats": {
+    "startTime": "2026-11-07T12:57:23.473Z",
+    "duration": 24843.661,
+    "expected": 25,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "browser": "Chromium headless 153.0.8010.0; temporary @sparticuz/chromium 153.0.0; Playwright 1.62.1",
+  "scope": "local config migration/checkpoint/restore and existing regression suite",
+  "actions": "disabled; no remote CI run claimed",
+  "limitations": [
+    "No new Windows or provider acceptance",
+    "No hardware power-failure certification or filesystem-wide transaction",
+    "Historical H08/H09 recovery journals remain manual",
+    "Current write policy must be readable and permit restoration",
+    "No automatic checkpoints for ordinary editor saves"
+  ],
+  "source_sha256": {
+    "src/factoria/application/agent_profiles.py": "e4bd986e37c74d5fabbd601b4221cff4a78c87d281914e886f16c84d434c4ac7",
+    "src/factoria/application/config_recovery.py": "2223e1435c0a5df02c9a73d8447c118be76a04f4e3e10b11965a493c296b9810",
+    "src/factoria/application/config_schema.py": "45a5313447e35cc4b33e460e17d1d8e8875b25a718420066c0d11e7115a09cad",
+    "src/factoria/application/project_integration.py": "deee06869d9edd12fb21e907b4f17fb65e77fa1cbbe607ecdd7f2d640649b60f",
+    "src/factoria/application/project_relations.py": "978abf4f7623f7a92f075dacbc446b8f234c97d689673c0252a96da4574fca09",
+    "src/factoria/application/project_templates.py": "66365d1d68983ed0ac690ef822ba67d40ca6ea656ea496a617a691d885bc2e44",
+    "src/factoria/application/resource_lifecycle.py": "abd9c939500295b66c6e55d579f52a6fcdcd65af4bf23959c18d152211f0ddc0",
+    "src/factoria/application/skill_catalog.py": "ab879fec7d9d21b9f5dc08da68818d16bc077666a80e5bf11a8093ef028efdf3",
+    "src/factoria/application/workflow_presets.py": "99fff95baf86c975dd3ecf1a516101413986628cc949cefa7175cd3352cdf9d8",
+    "src/factoria/config/loader.py": "aa86dc894d5e4bccbb10bef5f22fb72d460b4cc6c041f11dce4ed50f736bddbe",
+    "src/factoria/project_cli.py": "2476039ca9917e9f569ddaa3e25b5a16dabec6c79a357783e1ac2d2923fb5549",
+    "src/factoria/web/configuration.js": "64c309f29bffd630779970e3b032bf219a363ec67f0c6049693b711f73b5d428",
+    "src/factoria/web/index.html": "2d1e4037ddb0971134ce8ef228410011a232eed332ef493d0bde0f9ba0025929",
+    "src/factoria/web/index_n8n.html": "59772f82e4fa51f1f6ad2a23b5a6d91d16b97b57dac2e92e94a2c2050f7524b2",
+    "src/factoria/web/relations.js": "4e21e2591ef47ca73b4b31e1716ea9a5a0d8d9197d4f539bf85779ea719cf601",
+    "src/factoria/web_app.py": "89aa79dd7e2cdfd1bec52ca49a8410c2abfb4e84beb4d6ec7ce79ff719898211",
+    "tests/test_config_recovery.py": "97c4e62fc22064811941ed889af38b8ba16fe9e0028a9b04ef8fd6c979309b20",
+    "tests/ui/browser/editors.spec.cjs": "94578d152e03884c20e953a25cee5ce711c02a565e500e16946ea6392c1e7ee8"
+  }
+}

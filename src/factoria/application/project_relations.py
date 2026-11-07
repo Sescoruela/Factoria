@@ -17,7 +17,7 @@ from factoria.config.loader import project_config_from_mapping
 
 def _capture(root):
     names={'.factoria/agents.json','.factoria/ui-agents.json','.factoria/workflows.json',
-           '.factoria/ui-workflows.json','.factoria/config.toml','AGENTS.md'}
+           '.factoria/ui-workflows.json','.factoria/config.toml','.factoria/schema.json','AGENTS.md'}
     problems=[]
     for folder,suffix in (('.factoria/skills','.md'),('.factoria/archive','.json'),('docs/memoria','.md')):
         try:
@@ -47,6 +47,13 @@ def project_relations(root: Path) -> dict:
     root=root.resolve()
     with _locks():
         sources,problems,before=_capture(root)
+        from factoria.application.config_schema import schema_version
+        try: schema_version(root)
+        except (ValueError, OSError):
+            return {'project_path':str(root),'nodes':[],'edges':[],
+                    'diagnostics':[{'code':'unsupported_schema','subject':'.factoria/schema.json','severity':'error'}],
+                    'integration':{'status':'unavailable','ready':False},'consistent':True,
+                    'orphan_analysis_complete':False,'revision':before}
         nodes={};edges=[];diagnostics=[];external_checks={}
         def issue(code,subject,severity='error'):
             diagnostics.append({'code':code,'subject':subject,'severity':severity})
