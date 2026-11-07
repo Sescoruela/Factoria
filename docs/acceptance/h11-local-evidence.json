@@ -1,0 +1,63 @@
+{
+  "date": "2026-11-07",
+  "base_remote_commit": "999bb373751a8cc7445dfe5ad5381809d2517028",
+  "scope": "local real-browser functional tests; CI acceptance pending",
+  "environment": {
+    "os": "Linux",
+    "python": "3.12.14",
+    "node": "24.22.1",
+    "playwright": "1.62.1",
+    "chromium": "153.0.8010.0",
+    "binary_distribution": "temporary @sparticuz/chromium 153.0.0; not a project dependency"
+  },
+  "browser_stats": {
+    "startTime": "2026-11-07T12:07:25.736Z",
+    "duration": 32007.382999999998,
+    "expected": 22,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "unittest": {
+    "passed": 382,
+    "duration_seconds": 42.613
+  },
+  "intentional_failure_probe": {
+    "unexpected": 1,
+    "expected_exit_code": 1,
+    "verified_artifacts": [
+      "HTML",
+      "JSON",
+      "JUnit",
+      "PNG screenshot",
+      "ZIP trace"
+    ]
+  },
+  "github_actions": "disabled by user; not re-enabled; no remote run claimed",
+  "h11_issue": "open until CI evidence is observed",
+  "limitations": [
+    "CI bundled Chromium not executed",
+    "No new Windows validation",
+    "No visual/accessibility audit",
+    "No provider authentication or H05/H06 acceptance",
+    "503 failure is browser-injected; persistence uses real HTTP otherwise"
+  ],
+  "source_sha256": {
+    ".github/workflows/browser-smoke.yml": "72246cb97d7022f0e7d6dd8488a650dbd17274d01c932ca50816304e956aa304",
+    "src/factoria/web/index.html": "be45f5d815e0812d278d85dbbea66c59f933f73b5f2f08b9a6c0ead1e46d6b6b",
+    "src/factoria/web/index_n8n.html": "3a1ace891ccbe7af0cf6f2ec1ea344292420b5fdf2f9c819dfeefa9248b4835d",
+    "src/factoria/web_app.py": "da596e76a9a62d7803175aa440ab4c106492653e51f4375dbb5ab313ff5babc6",
+    "src/factoria/web_n8n_patch.py": "de679a8e5a7cc484ebb52c0c7f279344e640d2ae78c8bba4444438734899c63d",
+    "tests/ui/browser/editors.spec.cjs": "527253959f5f01a7643c317ff2e963ec37c30dab2821159fc20953cf440afb8b",
+    "tests/ui/browser/fixture_server.py": "bc2300b3c6bad10b36e9cef9ede01b6aca9b0345a08d5c41d8cd8937929d566f",
+    "tests/ui/browser/package-lock.json": "a6fe36cf7d2885bd69a2cf2e8a610ce35dc1d01253f241914f019058294c388b",
+    "tests/ui/browser/package.json": "9cf132ab43b61d5f68481871353933bd24f0abaea77a7f3daf727f989a9a08db",
+    "tests/ui/browser/playwright.config.cjs": "c6f8817e89512a817ccc77d86749897e9c13e8d6a49b73cbd7e6ef487aeac061"
+  },
+  "legacy_dom_api_smokes": {
+    "skills": "passed",
+    "workflow_agents": "passed",
+    "named_workflows": "passed",
+    "scope": "jsdom + real HTTP; separate from the 22 Chromium cases"
+  }
+}

@@ -32,7 +32,10 @@ function agentStatus(message){document.getElementById('agentEditorStatus').textC
 function canLeaveAgent(){return !agentSaving&&(!agentEdits||confirm('Hay cambios de agente sin guardar. ¿Descartarlos?'));}
 window.renderAgentRoles=function(){
   const project=state.selected_project?.path||null;
-  if(project!==agentProject){agentEdits=false;agentDraft=null;agentProject=project;agentRevision=null;}
+  if(project!==agentProject){
+    if(agentEdits||agentSaving){agentStatus('Borrador de otro proyecto conservado. Vuelve al proyecto de origen o descarta / recarga.');return;}
+    agentDraft=null;agentProject=project;agentRevision=null;
+  }
   const el=document.getElementById('agentRoleList');if(!el)return;
   document.getElementById('newAgentButton').disabled=!project||agentSaving||!!state.agent_configuration_error;
   if(agentEdits||agentSaving)return;
@@ -64,6 +67,7 @@ window.discardAgentRole=async function(){
 };
 window.saveAgentRole=async function(){
   if(!agentDraft||agentSaving)return;
+  if(agentProject!==state.selected_project?.path)return agentStatus('Vuelve al proyecto de origen del borrador antes de guardar.');
   const payload={role:document.getElementById('agent-id').value.trim(),name:document.getElementById('agent-name').value.trim(),description:document.getElementById('agent-description').value,base_role:document.getElementById('agent-base').value,profile:document.getElementById('agent-profile').value,platform:document.getElementById('agent-platform').value||null,instructions:document.getElementById('agent-instructions').value,skills:document.getElementById('agent-skills').value.split('\n').map(s=>s.trim()).filter(Boolean),project_path:agentProject,revision:agentRevision};
   if(!payload.name)return agentStatus('Escribe un nombre para el agente');
   agentSaving=true;document.getElementById('agent-fields').disabled=true;document.getElementById('saveAgentButton').disabled=true;agentStatus('Guardando…');

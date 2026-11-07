@@ -1,5 +1,17 @@
-<!-- factoria-memory: type=active | reviewed_commit=f97e3760d8e84e972e18ca3be8ef3ec4da110137 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=999bb373751a8cc7445dfe5ad5381809d2517028 | date=2026-11-07 | factoria=0.3.0 -->
 # Verificación y pruebas
+
+## H11 · Navegador real y CI pendiente
+
+22 casos con Chromium real y API/archivos reales correctos el 07/11/2026, más
+382 unittest correctos. Cubre ambas interfaces, edición/reapertura de los tres
+recursos, borradores, conflictos entre pestañas, cambio externo de proyecto, 503
+inyectado/reintento y autenticación. Fallo de control con PNG/traza ZIP e informes
+comprobados. Playwright es solo desarrollo, con lockfile; Python sigue sin
+dependencias de runtime. Workflow preparado para guardar evidencia tras fallos;
+Actions deshabilitado, **H11 sigue abierto hasta observar CI**. No acredita Windows,
+auditoría visual ni proveedores. Versiones, comandos y límites en [guía](../browser-smoke.md)
+y [resumen con hashes](../acceptance/h11-local-evidence.json).
 
 ## H10 · Relaciones del proyecto
 
@@ -83,8 +95,7 @@ Smoke opcional de DOM/API con Node y jsdom (solo desarrollo; no es una prueba de
 navegador real): instalar jsdom en una carpeta temporal y ejecutar
 `NODE_PATH=<carpeta>/node_modules python tests/ui/run_skills_smoke.py`. Usa repositorios
 y preferencias temporales y cubre creación, edición, reapertura, conflictos, cambio
-de proyecto, selector de agentes y preparación de ambas herramientas. H11 conserva
-la tarea de automatizar pruebas con navegador real en CI.
+de proyecto, selector de agentes y preparación de ambas herramientas. H11 añade una suite separada de navegador real; su aceptación remota sigue pendiente.
 
 ## H03 · Asignación de agentes a etapas
 
@@ -97,8 +108,7 @@ de cambios posteriores en agente, workflow o skill. No llaman a proveedores LLM.
 
 Smoke DOM/API opcional: `NODE_PATH=<carpeta>/node_modules python tests/ui/run_skills_smoke.py --workflow-agents`.
 Requiere Node y jsdom de desarrollo; cubre ambos shells, catálogo actualizado,
-selección compatible, guardado, reapertura y conflictos. H11 sigue reservando
-la automatización de pruebas con navegador real en CI.
+selección compatible, guardado, reapertura y conflictos. H11 añade una suite de navegador real; la ejecución remota sigue pendiente.
 
 ## H04 · Workflows propios
 

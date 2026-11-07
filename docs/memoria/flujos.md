@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=f97e3760d8e84e972e18ca3be8ef3ec4da110137 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=999bb373751a8cc7445dfe5ad5381809d2517028 | date=2026-11-07 | factoria=0.3.0 -->
 # Flujos
 
 ## memoria-init y memoria-update
@@ -46,3 +46,10 @@ externas autenticadas. H05 mantiene esas comprobaciones pendientes.
 H06 tiene paquetes y upgrade Python comprobados; Windows y release siguen pendientes.
 Actions está deshabilitado hasta nuevo aviso. Ver [estado vigente](../project-status.md)
 y [criterios de cierre](../mvp-checklist.md).
+
+## H11 · Cambios externos de proyecto
+
+Actualizar tras seleccionar otro proyecto en otra pestaña conserva los borradores
+de skills, agentes y workflows. El formulario de agente valida el origen antes de
+guardar; regresar al proyecto original o descartar requiere una acción explícita.
+Los conflictos conservan la versión guardada por la otra pestaña y el borrador local.

@@ -127,6 +127,13 @@ def _state() -> dict[str, object]:
     }
 
 
+def _editor_state() -> dict[str, object]:
+    """Return the same complete editor state after every shared API mutation."""
+    from factoria.web_app_n8n import _extended_state
+
+    return _extended_state()
+
+
 def _set_projects_root(path: str) -> Path:
     target = Path(path).expanduser().resolve()
     target.mkdir(parents=True, exist_ok=True)
@@ -350,7 +357,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             if item is None:
                 self._json({"error": "job not found"}, 404)
                 return
-            self._json({"job": item, "state": _state()})
+            self._json({"job": item, "state": _editor_state()})
             return
         self.send_error(404)
 
@@ -409,24 +416,24 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
                 return
             if path == "/api/projects/root":
                 target = _set_projects_root(str(data.get("path", "")))
-                self._json({"ok": True, "path": str(target), "state": _state()})
+                self._json({"ok": True, "path": str(target), "state": _editor_state()})
                 return
             if path == "/api/project/select":
                 target = Path(str(data.get("path", ""))).expanduser().resolve()
                 _save_selected_project(target)
-                self._json({"ok": True, "state": _state()})
+                self._json({"ok": True, "state": _editor_state()})
                 return
             if path == "/api/project/create":
                 target = _create_project(str(data.get("name", "")), str(data.get("purpose", "")))
-                self._json({"ok": True, "path": str(target), "state": _state()})
+                self._json({"ok": True, "path": str(target), "state": _editor_state()})
                 return
             if path == "/api/agent/default":
                 written = _set_default_tool(str(data.get("tool", "")))
-                self._json({"ok": True, "config": str(written), "state": _state()})
+                self._json({"ok": True, "config": str(written), "state": _editor_state()})
                 return
             if path == "/api/agent/path":
                 configured = _set_agent_path(str(data.get("tool", "")), str(data.get("path", "")))
-                self._json({"ok": True, "path": str(configured), "state": _state()})
+                self._json({"ok": True, "path": str(configured), "state": _editor_state()})
                 return
             if path in {"/api/workflow/save", "/api/workflow/create"}:
                 settings = UiWorkspaceSettings.load()
@@ -439,7 +446,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
                     raise ValueError('Falta la versión del catálogo; vuelve a cargar el flujo')
                 preset = _preset_from_payload(data)
                 saved = save_preset(project, preset, expected_revision=data['revision'], create=path.endswith('/create'))
-                self._json({"ok": True, "path": str(saved), "state": _state()})
+                self._json({"ok": True, "path": str(saved), "state": _editor_state()})
                 return
             if path == "/api/job/start":
                 raw = data.get("args", [])
@@ -447,7 +454,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
                     raise ValueError("args debe ser una lista de strings")
                 settings = UiWorkspaceSettings.load()
                 job = _start_async_job(list(raw), _selected_project(settings))
-                self._json({"ok": True, "job": job, "state": _state()}, 202)
+                self._json({"ok": True, "job": job, "state": _editor_state()}, 202)
                 return
             if path == "/api/command":
                 raw = data.get("args", [])
@@ -455,7 +462,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
                     raise ValueError("args debe ser una lista de strings")
                 settings = UiWorkspaceSettings.load()
                 code, output = _run_factoria_command(list(raw), _selected_project(settings))
-                self._json({"ok": code == 0, "code": code, "output": output, "state": _state()})
+                self._json({"ok": code == 0, "code": code, "output": output, "state": _editor_state()})
                 return
             raise ValueError("Acción no soportada")
         except WorkflowCatalogConflict as exc:
