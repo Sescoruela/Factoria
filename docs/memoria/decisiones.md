@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=f97e3760d8e84e972e18ca3be8ef3ec4da110137 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=999bb373751a8cc7445dfe5ad5381809d2517028 | date=2026-11-07 | factoria=0.3.0 -->
 # Decisiones
 
 - La memoria y configuración compartida viven junto al código del proyecto.
@@ -24,3 +24,11 @@
 - H10 diagnostica sin reparar ni ejecutar: fuentes rotas producen mapa parcial, no defaults inventados. Los huérfanos requieren información suficiente. Navegar a editores vuelve a comprobar revisión/proyecto y bloquea si hay borradores; el shell clásico reutiliza el editor completo en otra pestaña local.
 - H09 no archiva básicos ni elimina referencias automáticamente: primero se retiran consumidores. Conserva snapshots/historial y reserva IDs archivados hasta restaurar. La copia de recuperación no sustituye una transacción frente a caídas ni cierra H13.
 - H08 comparte recursos mediante JSON v1 cerrado, sin memoria, políticas ni configuración de máquina. Se reutilizan idénticos; conflictos bloquean sin sobrescritura. La copia local permite recuperación manual; no se promete transacción multiarchivo ante caídas (H13).
+
+## H11 · Estado y sesión web
+
+Las respuestas compartidas de API conservan catálogos de skills/agentes e
+integración, también al guardar workflows. La pestaña conserva el token local en
+`sessionStorage` para recargar sin dejarlo en la URL; no inicia ni autentica
+proveedores. Node/Playwright son solo desarrollo. La evidencia Chromium local no
+cierra H11 hasta observar CI, con Actions deshabilitado.

@@ -37,8 +37,8 @@ Implementación no equivale a aceptación autenticada. Detalle: [editores](edito
 
 | Comprobación | Resultado y alcance | Registro |
 | --- | --- | --- |
-| Suite determinista | H10: 382 tests correctos en Linux/Python 3.12.14 | [Relaciones y límites](project-relations.md) |
-| Interfaz | Smokes DOM/API históricos; sin validación de navegador real en esta entrega | [Memoria de pruebas](memoria/testing.md) |
+| Suite determinista | H11: 382 tests correctos en Linux/Python 3.12.14 | [Evidencia y límites](browser-smoke.md) |
+| Interfaz | H11: 22 casos Chromium reales locales correctos y fallo de control con evidencia; CI pendiente, sin auditoría visual | [Guía H11](browser-smoke.md) |
 | Host con checkout / fix | Completado tras autorización; 3 pruebas, review y commit local | [H05](acceptance/h05-status.md) |
 | Host con checkout / feature | Plan y resultado aprobados; 7 pruebas, aceptación, review y commit local; completado | [Cierre de feature](acceptance/evidence/host-feature/completion.json) |
 | Python / paquetes | Wheel/sdist, recursos y checksums; upgrade aislado con dos reaperturas y 37 archivos conservados | [Informe H06](release-h06-smoke.json) |

@@ -1,0 +1,10 @@
+{
+  "name": "factoria-browser-smoke",
+  "private": true,
+  "scripts": {
+    "test": "playwright test --config playwright.config.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

@@ -184,6 +184,7 @@ autentica Codex/OpenCode desde la aplicación.
 - [Exportar e importar plantillas entre proyectos](docs/project-templates.md).
 - [Duplicar, archivar y restaurar recursos](docs/resource-lifecycle.md).
 - [Mapa de relaciones, diagnóstico y navegación a editores](docs/project-relations.md).
+- [Pruebas de navegador y CI pendiente (H11)](docs/browser-smoke.md)
 - [CLI y seguimiento directo](docs/cli.md).
 - [Instalación, actualización e integridad](docs/release-process.md).
 - [Roadmap y siguientes hitos](docs/roadmap.md).

@@ -2,6 +2,8 @@
 
 ## 0.3.0 — Preparación, sin release publicada
 
+- Smoke de navegador real con 22 casos y workflow de informes/trazas (H11; CI pendiente con Actions deshabilitado). Conservación de autenticación al recargar, catálogos tras guardar workflows y borradores de agente ante cambios externos de proyecto.
+
 - Vista navegable de relaciones workflow/etapa/agente/skills con diagnóstico de referencias, huérfanos e integración y conservación de borradores (H10).
 
 - Duplicación, archivado reversible y restauración web/CLI de recursos con preview de referencias, reserva de identificadores e historial conservado (H09).

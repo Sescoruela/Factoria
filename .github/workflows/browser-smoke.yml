@@ -1,0 +1,52 @@
+name: Browser smoke
+
+# Repository Actions remain disabled until the user explicitly re-enables them.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: tests/ui/browser/package-lock.json
+      - name: Install Python runtime without browser dependencies
+        run: python -m pip install -e .
+      - name: Install locked development dependencies
+        run: npm ci --prefix tests/ui/browser --ignore-scripts --no-audit --no-fund
+      - name: Install Chromium with system dependencies
+        working-directory: tests/ui/browser
+        run: npx playwright install --with-deps chromium --only-shell
+      - name: Run real-browser smoke against disposable projects
+        working-directory: tests/ui/browser
+        run: npm test
+      - name: Preserve reports and failure evidence
+        if: ${{ always() && !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: factoria-browser-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            tests/ui/browser/playwright-report/
+            tests/ui/browser/test-results/
+            tests/ui/browser/results.json
+            tests/ui/browser/results.xml

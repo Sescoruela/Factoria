@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=f97e3760d8e84e972e18ca3be8ef3ec4da110137 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=999bb373751a8cc7445dfe5ad5381809d2517028 | date=2026-11-07 | factoria=0.3.0 -->
 # Factoria
 
 ## Propósito
@@ -49,6 +49,7 @@ Las reglas obligatorias no se ignoran automáticamente aunque el código actual 
 - Plantillas portables web/CLI: `docs/project-templates.md`; preview y confirmación sin sobrescribir recursos en conflicto.
 - Ciclo de vida de recursos: `docs/resource-lifecycle.md`; referencias bloqueantes, archivo reversible y snapshots conservadas. No reutilizar IDs archivados sin restaurar.
 - Mapa de configuración guardada: `docs/project-relations.md`; diagnóstico de solo lectura y navegación a editores sin descartar borradores.
+- Smoke real y evidencia local/CI pendiente: `docs/browser-smoke.md`. Node/Playwright solo son dependencias de desarrollo; no reactivar Actions para ejecutar la suite.
 - No confundir las pruebas deterministas con aceptación en una sesión real de Codex/OpenCode.
 - Estado vigente y límites: `docs/project-status.md`. Código 0.3.0 preparado; no hay release publicada ni aceptación externa completa.
 - GitHub Actions está deshabilitado por petición del usuario hasta nuevo aviso; no reactivarlo como parte de una tarea.

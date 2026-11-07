@@ -18,3 +18,8 @@ build/
 .factoria/ui-state.json
 .factoria/ui-workflows.json
 .factoria/ui-agents.json
+node_modules/
+tests/ui/browser/test-results/
+tests/ui/browser/playwright-report/
+tests/ui/browser/results.json
+tests/ui/browser/results.xml

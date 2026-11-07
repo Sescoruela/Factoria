@@ -1,4 +1,4 @@
-<!-- factoria-memory: type=active | reviewed_commit=f97e3760d8e84e972e18ca3be8ef3ec4da110137 | date=2026-11-07 | factoria=0.3.0 -->
+<!-- factoria-memory: type=active | reviewed_commit=999bb373751a8cc7445dfe5ad5381809d2517028 | date=2026-11-07 | factoria=0.3.0 -->
 # Arquitectura
 
 ## Objetivo
@@ -39,3 +39,10 @@ El entrypoint bloquea update/rollback por pip en ejecutables frozen; la actualiz
 del binario usa el instalador. La versión canónica está en pyproject.toml y los
 metadatos de release se incluyen como recurso del paquete. Estado actual y pruebas:
 [registro vigente](../project-status.md).
+
+## Pruebas de navegador H11
+
+`tests/ui/browser/` contiene Playwright fijado y dos servidores reales con HOME/Git
+desechables. Se distribuye fuera del runtime. La API compartida devuelve el estado
+completo de editores tras sus operaciones, conservando los campos base. Informes,
+trazas y CI pendiente: [guía](../browser-smoke.md).
