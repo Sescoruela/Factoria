@@ -113,6 +113,20 @@ crearía una segunda sesión LLM innecesaria.
 
 ## Codex en ChatGPT y conversación sin repositorio
 
+El panel de plataformas distingue **Codex CLI** de **Codex en ChatGPT Desktop**
+en ambos shells y en la TUI. En Windows consulta pasivamente las carpetas conocidas
+bajo `%LOCALAPPDATA%` y los paquetes `OpenAI.ChatGPT*` / `OpenAI.Codex*`.
+Muestra el directorio concreto como indicio. La ausencia del CLI no oculta el
+resultado de ChatGPT, y `available` / `cli_available` siguen describiendo solo el CLI.
+No se ejecutan PowerShell, proveedores ni diagnósticos para esta consulta.
+
+«Indicios de instalación detectados» no confirma que la app siga instalada
+(pueden quedar carpetas tras desinstalar), que haya una sesión autenticada o que
+Codex tenga acceso al proyecto. «Sin indicios locales» tampoco excluye instalaciones
+en otras ubicaciones o el uso desde navegador. La sesión web no se detecta buscando
+un ejecutable local. No se leen credenciales ni se inicia ChatGPT desde Factoría.
+
+
 Codex en un entorno con checkout puede consumir `AGENTS.md` y skills locales. La
 disponibilidad del CLI de Factoría, Git y shell debe comprobarse en ese entorno.
 No se integra con binarios privados de ChatGPT Desktop ni se supone que una

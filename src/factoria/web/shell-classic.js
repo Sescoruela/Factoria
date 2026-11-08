@@ -90,22 +90,11 @@ function renderProjects() {
       .join('') || '<div class="muted">No hay proyectos.</div>';
 }
 function renderAgents() {
-  const el = document.getElementById('agentList');
-  el.innerHTML = (state.agents || [])
-    .map((a) => {
-      const desktop =
-        a.name === 'codex' && a.desktop_detected && !a.available
-          ? '<span class="pill warn">CHATGPT DESKTOP DETECTADO</span>'
-          : '';
-      const source = a.cli_source ? `<div class="muted">CLI: ${esc(a.cli_source)}</div>` : '';
-      const details = (a.checks || [])
-        .filter((c) => !c.passed && c.details)
-        .map((c) => `<div class="muted">${esc(c.details)}</div>`)
-        .join('');
-      return `<div class="item"><strong>${esc(a.name)}</strong><span class="pill ${a.ready ? 'ok' : a.available ? 'warn' : 'bad'}">${a.available ? 'DETECTADO · INICIO EXTERNO' : 'NO DETECTADO'}</span>${desktop}${state.default_tool === a.name ? '<span class="pill ok">PREDETERMINADO</span>' : ''}${source}${details}<div class="actions"><button class="secondary"  onclick="setDefaultAgent('${esc(a.name)}')">Usar por defecto</button><button class="secondary" onclick="setAgentPath('${esc(a.name)}')">Indicar ruta CLI</button></div></div>`;
-    })
+  document.getElementById('agentList').innerHTML = (state.agents || [])
+    .map((agent) => renderPlatformCard(agent, state.default_tool))
     .join('');
 }
+
 function renderFlows() {
   const jobs = state.jobs || [];
   document.getElementById('jobList').innerHTML =

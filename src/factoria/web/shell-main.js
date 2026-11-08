@@ -89,12 +89,10 @@ function renderProjects() {
 }
 function renderAgents() {
   document.getElementById('agentList').innerHTML = (state.agents || [])
-    .map(
-      (a) =>
-        `<div class="item"><strong>${esc(a.name)}</strong><span class="pill ${a.ready ? 'ok' : a.available ? 'warn' : 'bad'}">${a.available ? 'DETECTADO · INICIO EXTERNO' : 'NO DETECTADO'}</span>${state.default_tool === a.name ? '<span class="pill ok">PREDETERMINADO</span>' : ''}<div class="actions"><button class="secondary"  onclick="setDefaultAgent('${esc(a.name)}')">Usar por defecto</button><button class="secondary" onclick="setAgentPath('${esc(a.name)}')">Indicar ruta</button></div></div>`,
-    )
+    .map((agent) => renderPlatformCard(agent, state.default_tool))
     .join('');
 }
+
 function renderFlows() {
   const jobs = state.jobs || [];
   document.getElementById('jobList').innerHTML =

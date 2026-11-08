@@ -113,6 +113,11 @@ archivos generados. Regenera tras cambiar agentes, flujos, skills o memoria.
 
 ### Codex dentro de ChatGPT y ChatGPT sin repositorio
 
+El panel muestra por separado el CLI y los indicios locales de ChatGPT Desktop en
+Windows; no necesitas que exista el comando `codex` para que se muestre el segundo.
+La detección es pasiva: no verifica autenticación, sesión ni acceso al proyecto.
+El uso desde navegador no puede deducirse de una instalación local.
+
 Codex/ChatGPT con acceso al checkout puede consumir las instrucciones y skills del
 repositorio. Para ejecutar el seguimiento necesita acceso al CLI de Factoria y a Git.
 Una conversación de ChatGPT sin ese acceso no puede descubrir archivos de tu equipo:

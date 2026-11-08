@@ -136,6 +136,16 @@ class AgentAwareTerminalUI(ProjectFlowTerminalUI):
         for item in tool_presence():
             state = "DETECTADO · inicio externo" if item["available"] else "NO DETECTADO"
             self.output(f"  {item['name']:<8}: {state}")
+            if item["name"] == "codex":
+                desktop = (
+                    "indicios de instalación detectados"
+                    if item.get("desktop_detected")
+                    else "sin indicios locales"
+                )
+                self.output(f"    Codex en ChatGPT Desktop: {desktop}.")
+                self.output(
+                    "    Sesión y acceso al proyecto sin verificar; navegador no detectable."
+                )
         self.output("  Autenticación e inicio: abre Codex/OpenCode fuera de Factoría.")
 
     def _configure_agents(self) -> None:

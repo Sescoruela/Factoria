@@ -9,10 +9,39 @@ from unittest.mock import patch
 
 from factoria.adapters.codex_discovery import discover_codex
 from factoria.adapters.opencode import _opencode_timeout_seconds
+from factoria.application.tool_presence import tool_presence
 from factoria.web_app import _JOBS, _JOBS_LOCK, _job, _start_async_job
 
 
 class CodexDiscoveryTests(unittest.TestCase):
+    def test_store_chatgpt_is_visible_without_cli_or_starting_processes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            package = Path(temp) / "Packages" / "OpenAI.ChatGPT-Desktop_fixture"
+            package.mkdir(parents=True)
+            env = {"LOCALAPPDATA": temp, "CODEX_CLI_PATH": ""}
+            with patch("factoria.adapters.codex_discovery.sys.platform", "win32"), patch.dict(
+                os.environ, env
+            ), patch("factoria.adapters.codex_discovery.shutil.which", return_value=None), patch(
+                "subprocess.run", side_effect=AssertionError("No processes during discovery")
+            ):
+                result = tool_presence()[0]
+            self.assertTrue(result["desktop_detected"])
+            self.assertEqual(result["desktop_hint"], str(package))
+            self.assertFalse(result["available"])
+            self.assertFalse(result["cli_available"])
+            self.assertFalse(result["ready"])
+
+    def test_package_name_must_be_a_directory_and_match_openai(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            packages = Path(temp) / "Packages"
+            packages.mkdir()
+            (packages / "OpenAI.ChatGPT_fake_file").write_text("")
+            (packages / "Other.ChatGPT_fixture").mkdir()
+            with patch("factoria.adapters.codex_discovery.sys.platform", "win32"), patch.dict(
+                os.environ, {"LOCALAPPDATA": temp, "CODEX_CLI_PATH": ""}
+            ), patch("factoria.adapters.codex_discovery.shutil.which", return_value=None):
+                self.assertFalse(discover_codex().desktop_detected)
+
     def test_explicit_codex_cli_path_wins(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             executable = Path(temp) / "codex.exe"

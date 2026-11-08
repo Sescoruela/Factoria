@@ -26,17 +26,17 @@ def discover_codex() -> CodexDiscovery:
     The desktop-runtime path is a heuristic rather than a documented public contract,
     so callers must still run the normal Factoria self-tests before declaring it ready.
     """
+    desktop, hint = _desktop_details()
     explicit = os.environ.get("CODEX_CLI_PATH", "").strip()
     if explicit:
         path = Path(explicit).expanduser()
         if path.is_file():
-            return CodexDiscovery(path.resolve(), "CODEX_CLI_PATH", _desktop_detected())
+            return CodexDiscovery(path.resolve(), "CODEX_CLI_PATH", desktop, hint)
 
     which = shutil.which("codex")
     if which:
-        return CodexDiscovery(Path(which).resolve(), "PATH", _desktop_detected())
+        return CodexDiscovery(Path(which).resolve(), "PATH", desktop, hint)
 
-    desktop, hint = _desktop_details()
     runtime = _desktop_runtime_cli()
     if runtime is not None:
         return CodexDiscovery(runtime, "ChatGPT Desktop runtime", True, hint)
@@ -60,11 +60,12 @@ def _desktop_runtime_cli() -> Path | None:
     return None
 
 
-def _desktop_detected() -> bool:
-    return _desktop_details()[0]
-
-
 def _desktop_details() -> tuple[bool, str | None]:
+    """Find local installation traces, never authentication or an active session.
+
+    Windows package-data folders can survive uninstall. These filesystem hints
+    must not be presented as verified availability of Codex inside ChatGPT.
+    """
     if sys.platform != "win32":
         return False, None
     local = os.environ.get("LOCALAPPDATA")
@@ -75,18 +76,19 @@ def _desktop_details() -> tuple[bool, str | None]:
         root / "OpenAI" / "Codex",
         root / "OpenAI" / "ChatGPT",
         root / "Programs" / "ChatGPT",
+        root / "Programs" / "OpenAI" / "ChatGPT",
     ]
     for candidate in candidates:
-        if candidate.exists():
+        if candidate.is_dir():
             return True, str(candidate)
     packages = root / "Packages"
     if packages.is_dir():
         try:
-            if any(
-                path.name.lower().startswith(("openai.chatgpt", "openai.codex"))
-                for path in packages.iterdir()
-            ):
-                return True, str(packages)
+            for path in sorted(packages.iterdir()):
+                if path.is_dir() and path.name.lower().startswith(
+                    ("openai.chatgpt", "openai.codex")
+                ):
+                    return True, str(path)
         except OSError:
             pass
     return False, None

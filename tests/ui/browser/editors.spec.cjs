@@ -113,6 +113,30 @@ async function chooseProject(page, project) {
 
 for (const shell of ['main', 'classic']) {
   test.describe(shell, () => {
+    test('shows ChatGPT installation independently of a missing Codex CLI', async ({page, lab}) => {
+      let desktopDetected = true;
+      await page.route('**/api/state', async route => {
+        const response = await route.fetch();
+        const payload = await response.json();
+        payload.agents = [{name: 'codex', available: false, cli_available: false,
+          ready: false, desktop_detected: desktopDetected,
+          desktop_hint: desktopDetected ? 'C:\\fixture\\OpenAI.ChatGPT-Desktop_<test>' : null}];
+        await route.fulfill({response, json: payload});
+      });
+      await open(page, lab, shell, true);
+      await nav(page, 'agents');
+      const card = page.locator('#agentList');
+      await expect(card).toContainText('INDICIOS DE INSTALACIÓN DETECTADOS');
+      await expect(card).toContainText('CLI: NO DETECTADO');
+      await expect(card).toContainText('Sesión y acceso al proyecto sin verificar');
+      await expect(card).toContainText('OpenAI.ChatGPT-Desktop_<test>');
+      await expect(card.locator('test')).toHaveCount(0);
+      desktopDetected = false;
+      await page.reload();
+      await nav(page, 'agents');
+      await expect(card).toContainText('SIN INDICIOS LOCALES');
+      await expect(card).toContainText('CLI: NO DETECTADO');
+    });
     test('create, edit, reload and reopen the linked three resource types', async ({page, lab}) => {
       await open(page, lab, shell);
       for (const kind of Object.keys(kinds)) await create(page, kind);

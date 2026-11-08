@@ -14,6 +14,7 @@ def tool_presence() -> list[dict[str, object]]:
         {
             "name": "codex",
             "available": codex.cli_path is not None,
+            "cli_available": codex.cli_path is not None,
             "ready": False,
             "external_start": True,
             "checks": [],

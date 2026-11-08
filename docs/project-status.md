@@ -8,6 +8,21 @@ Esta página reúne el estado vigente; los registros fechados conservan su alcan
 GitHub Actions está deshabilitado por petición del usuario desde el 05/11/2026,
 hasta nuevo aviso. Las modificaciones de workflows no reactivan ese ajuste.
 
+## Corrección local — 08/11/2026: ChatGPT Desktop
+
+Cambio preparado en `fix/chatgpt-desktop-detection` para integrar en `main`;
+comprobación en el Windows del usuario pendiente. Ambas vistas y la TUI muestran indicios locales de ChatGPT
+independientemente de la presencia del CLI. No acredita sesión, autenticación ni
+acceso al proyecto; navegador y ubicaciones no conocidas no son detectables por
+esta consulta. Se conserva `available` como disponibilidad del CLI.
+
+Comprobado localmente: 408 unittest correctos con `PYTHONPATH` absoluto a `src`,
+`node tests/ui/platforms_smoke.cjs`, Ruff lint/formato, Prettier y `git diff --check`.
+Las dos pruebas nuevas de navegador están escritas pero no superadas: Chromium no
+pudo arrancar por la restricción de sockets del entorno (`Operation not permitted`).
+La descarga alternativa de Headless Shell tampoco produjo un ZIP válido. No se
+atribuye aceptación real a estas comprobaciones ni se reactiva GitHub Actions.
+
 ## Capacidades entregadas
 
 | Capacidad | Implementación y comprobación | Evidencia |
