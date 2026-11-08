@@ -3,11 +3,13 @@
 from factoria.application.agent_profiles import agent_catalog_snapshot
 from factoria.application.skill_catalog import skill_catalog_snapshot
 from factoria.application.project_integration import ProjectIntegration
+from factoria.application.visual_agents import visual_agent_templates
 
 
 def enrich_editor_state(payload: dict, project) -> dict[str, object]:
     platforms = list(payload.get("agents", []))
     payload["platforms"] = platforms
+    payload["agent_templates"] = [item.to_mapping() for item in visual_agent_templates()]
     try:
         skills, revision, foreign = skill_catalog_snapshot(project)
         payload["skills"] = [skill.to_mapping() for skill in skills]

@@ -36,7 +36,7 @@
     s.id = 'agentRoles';
     s.className = 'section';
     s.innerHTML =
-      '<div class="concept-note"><strong>Agentes de Factoria</strong><div class="muted">Define las instrucciones y skills de cada especialista. Después podrás asignarlo a una etapa y preparar el proyecto para Codex u OpenCode.</div></div><div class="actions"><button class="primary" id="newAgentButton" onclick="newAgentRole()">Crear agente</button></div><p id="agentEditorStatus" role="status" aria-live="polite"></p><div id="agentRoleList" class="agent-grid"></div><div id="agentRoleEditor"></div>';
+      '<div class="concept-note"><strong>Agentes de Factoria</strong><div class="muted">Define las instrucciones y skills de cada especialista. Después podrás asignarlo a una etapa y preparar el proyecto para Codex u OpenCode.</div></div><div class="actions"><button class="primary" id="newAgentButton" onclick="newAgentRole()">Crear agente</button><label>Especialista visual<select id="agentTemplatePicker"><option value="">Selecciona una plantilla…</option></select></label><button class="secondary" id="newVisualAgentButton" onclick="newVisualAgentRole()">Crear desde plantilla</button></div><p id="agentEditorStatus" role="status" aria-live="polite"></p><div id="agentRoleList" class="agent-grid"></div><div id="agentRoleEditor"></div>';
     document.querySelector('main.main').appendChild(s);
   }
   function openAgentRoles(button) {
@@ -56,6 +56,16 @@
     );
   }
   window.renderAgentRoles = function () {
+    const picker = document.getElementById('agentTemplatePicker');
+    if (picker && !agentEdits && !agentSaving) {
+      const selected = picker.value;
+      picker.innerHTML =
+        '<option value="">Selecciona una plantilla…</option>' +
+        (state.agent_templates || [])
+          .map((a) => `<option value="${esc(a.role)}">${esc(a.name)}</option>`)
+          .join('');
+      picker.value = selected;
+    }
     const project = state.selected_project?.path || null;
     if (project !== agentProject) {
       if (agentEdits || agentSaving) {
@@ -70,8 +80,10 @@
     }
     const el = document.getElementById('agentRoleList');
     if (!el) return;
-    document.getElementById('newAgentButton').disabled =
-      !project || agentSaving || !!state.agent_configuration_error;
+    for (const id of ['newAgentButton', 'newVisualAgentButton', 'agentTemplatePicker']) {
+      document.getElementById(id).disabled =
+        !project || agentSaving || !!state.agent_configuration_error;
+    }
     if (agentEdits || agentSaving) return;
     if (state.agent_configuration_error) {
       el.textContent = state.agent_configuration_error;
@@ -105,7 +117,12 @@
       }
     }
   };
-  window.newAgentRole = function () {
+  window.newVisualAgentRole = function () {
+    const id = document.getElementById('agentTemplatePicker').value;
+    if (!id) return agentStatus('Selecciona una plantilla visual.');
+    window.newAgentRole(id);
+  };
+  window.newAgentRole = function (templateId) {
     if (
       !state.selected_project ||
       !state.agent_catalog_revision ||
@@ -113,21 +130,35 @@
       !canLeaveAgent()
     )
       return;
-    agentDraft = {
-      role: '',
-      name: '',
-      description: '',
-      base_role: 'implementer',
-      profile: 'equilibrado',
-      platform: null,
-      instructions: '',
-      skills: [],
-    };
+    const template = templateId
+      ? (state.agent_templates || []).find((a) => a.role === templateId)
+      : null;
+    if (templateId && !template) return agentStatus('Selecciona una plantilla válida.');
+    if (template && (state.agent_roles || []).some((a) => a.role === template.role))
+      return agentStatus(
+        'Ya existe ese especialista. Modifícalo o crea uno con otro identificador.',
+      );
+    agentDraft = template
+      ? structuredClone(template)
+      : {
+          role: '',
+          name: '',
+          description: '',
+          base_role: 'implementer',
+          profile: 'equilibrado',
+          platform: null,
+          instructions: '',
+          skills: [],
+        };
     agentRevision = state.agent_catalog_revision;
     agentCreating = true;
     agentEdits = true;
     renderAgentEditor();
-    agentStatus('Nuevo agente · cambios sin guardar');
+    agentStatus(
+      template
+        ? 'Plantilla cargada · revisa y guarda el agente; después asígnalo a su etapa en el diseñador.'
+        : 'Nuevo agente · cambios sin guardar',
+    );
   };
   window.editAgentRole = function (role) {
     if (!canLeaveAgent() || state.agent_configuration_error) return;

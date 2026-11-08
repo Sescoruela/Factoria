@@ -76,6 +76,13 @@ Codex/OpenCode; esos pasos se hacen externamente.
    las aprobaciones requeridas y ejecuta las verificaciones confirmadas.
 9. Revisa el resultado y autoriza el commit. Push y PR continúan siendo manuales.
 
+### Diseño y revisión visual
+
+En **Agentes → Especialista visual**, crea y guarda **Diseñador visual** y
+**Revisor visual** desde sus plantillas. Asígnalos a plan y review en el diseñador
+del workflow, guarda y prepara la integración. Son optativos y editables; no cambian
+flujos iniciados. [Uso, entregables y límites](docs/visual-agents.md).
+
 ### Workflows propios
 
 En **Diseñador de flujo**, elige una plantilla en **Crear a partir de**, pulsa

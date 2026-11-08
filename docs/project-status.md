@@ -23,6 +23,14 @@ pudo arrancar por la restricción de sockets del entorno (`Operation not permitt
 La descarga alternativa de Headless Shell tampoco produjo un ZIP válido. No se
 atribuye aceptación real a estas comprobaciones ni se reactiva GitHub Actions.
 
+## Especialistas visuales — 08/11/2026
+
+Cambio preparado en `feat/visual-style-agents` para integrar en `main`: plantillas optativas de diseñador
+(planner) y revisor visual (reviewer), creación como borradores editables y asignación
+normal por etapa. Sin cambios automáticos en los proyectos ni en sus flujos activos.
+Validación de exportación a ambas herramientas y smoke DOM/API; pendiente aceptación
+con LLM y resultado visual real. [Uso y límites](visual-agents.md).
+
 ## Capacidades entregadas
 
 | Capacidad | Implementación y comprobación | Evidencia |
