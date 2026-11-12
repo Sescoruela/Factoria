@@ -127,8 +127,19 @@ class NamedWorkflowTests(unittest.TestCase):
         save_preset(self.root, named('feature-api', 'feature'), create=True)
         plan = ProjectIntegration(self.root).plan()
         for path in ('.agents/skills/factoria-fix-api/SKILL.md', '.opencode/commands/factoria-fix-api.md'):
-            self.assertIn('factoria native start fix-api --tool', plan.files[path])
+            self.assertIn('factoria native --compact start fix-api --tool', plan.files[path])
             self.assertIn('Tipo base: fix', plan.files[path])
+        context_path = '.factoria/generated/policies/context-economy.md'
+        self.assertIn('Presupuesto de contexto por etapa', plan.files[context_path])
+        for identifier in ('fix', 'feature', 'fix-api', 'feature-api'):
+            for path in (
+                f'.agents/skills/factoria-{identifier}/SKILL.md',
+                f'.opencode/commands/factoria-{identifier}.md',
+            ):
+                self.assertIn(context_path, plan.files[path])
+                self.assertIn(f'factoria native --compact start {identifier} --tool', plan.files[path])
+        bundle = plan.files['.factoria/generated/chatgpt-context.md']
+        self.assertEqual(bundle.count(plan.files[context_path]), 1)
         self.assertIn('fix-api', plan.files['.factoria/generated/workflows.md'])
         self.assertIn('ambigua', plan.files['AGENTS.md'])
         ProjectIntegration(self.root).apply(confirmed=True)

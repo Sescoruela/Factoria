@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from factoria.application.agent_profiles import load_agent_profiles
+from factoria.application.product_design import CONTEXT_ECONOMY
 from factoria.application.governance import ExecutionGovernor, GovernedAction
 from factoria.application.policy_runtime import build_execution_context
 from factoria.application.workflow_presets import (
@@ -26,6 +27,7 @@ from factoria.security import SecretScanner
 START = "<!-- factoria:integration:start -->"
 END = "<!-- factoria:integration:end -->"
 MANIFEST = ".factoria/integration-manifest.json"
+CONTEXT_GUIDE = ".factoria/generated/policies/context-economy.md"
 
 
 from factoria.project_paths import project_path as project_path
@@ -117,13 +119,15 @@ Si la integración está desactualizada, pedir regenerarla; no usar instruccione
 
 ## Inicio y seguimiento
 
-1. Leer `AGENTS.md` y solo la memoria relevante de `docs/memoria/`.
-2. Ejecutar `factoria native start {kind} --tool <codex|opencode> --task "<petición>"`.
+1. Leer `AGENTS.md`, aplicar la skill compartida `{CONTEXT_GUIDE}` durante todo
+   el flujo y consultar solo la memoria relevante de `docs/memoria/`. Si el
+   contexto portable ya incluye la skill, usar esa copia.
+2. Ejecutar `factoria native --compact start {kind} --tool <codex|opencode> --task "<petición>"`.
    Requiere una rama de trabajo y árbol limpio. Pedir crear/cambiar rama si procede.
    Este comando prepara el seguimiento local; NO inicia otro LLM.
 3. Leer la salida JSON y su campo `instruction`; realizar únicamente la etapa indicada.
 4. Guardar la evidencia en el archivo indicado por `evidence_file` y ejecutar
-   `factoria native next <flow-id>`. Repetir hasta `ready_for_commit`.
+   `factoria native --compact next <flow-id>`. Repetir hasta `ready_for_commit`.
 5. Para los puntos de aprobación, mostrar el plan o resultado y ESPERAR respuesta humana.
    Solo tras recibirla, usar `--approve-plan`, `--approve-final` o `--confirm-manual`.
    Si hay consumidores externos afectados, revisar el impacto y confirmar por separado
@@ -131,9 +135,9 @@ Si la integración está desactualizada, pedir regenerarla; no usar instruccione
    sin evidencia de acceso y verificación.
    Nunca interpretar la petición inicial como aprobación de estos puntos posteriores.
 6. Preparar un resumen y mensaje de commit; commit, push y PR requieren la autorización
-   correspondiente. Tras el commit y árbol limpio: `factoria native finish <flow-id>`.
-   Pausa/reanudación: `factoria native pause|resume <flow-id>`.
-   Cancelar sin borrar código ni ramas: `factoria native cancel <flow-id> --yes`.
+   correspondiente. Tras el commit y árbol limpio: `factoria native --compact finish <flow-id>`.
+   Pausa/reanudación: `factoria native --compact pause|resume <flow-id>`.
+   Cancelar sin borrar código ni ramas: `factoria native --compact cancel <flow-id> --yes`.
 
 ## Etapas configuradas
 
@@ -145,7 +149,7 @@ Para review, escribir JSON con result (approved o changes_required),
 acceptance_criteria_met (boolean), mandatory_rules_violated (lista), findings
 (lista de severity critical/important/minor y message), risks (lista) y recommendation.
 Si hay hallazgos bloqueantes, no avanzar: corregir y volver a verificar con
-`factoria native retry <flow-id>`; no alterar la evidencia para ocultarlos.
+`factoria native --compact retry <flow-id>`; no alterar la evidencia para ocultarlos.
 
 ## Límites
 
@@ -188,6 +192,8 @@ class ProjectIntegration:
         }
         # Source files are user-maintained; include them for migration, never own them.
         source_files = set(files)
+        context_guide = f"# {CONTEXT_ECONOMY.name}\n\n{CONTEXT_ECONOMY.content}"
+        files[CONTEXT_GUIDE] = context_guide
         catalog = "# Agentes del proyecto\n\n"
         catalog += "Catálogo compartido por Codex y OpenCode. Las etapas pueden seleccionar agentes compatibles por identificador, conservando el rol y los controles del flujo.\n\n"
         for agent in definition["agents"]:
@@ -202,7 +208,7 @@ class ProjectIntegration:
         files[".factoria/generated/skills.md"] = skills_guide
         workflow_catalog = "# Workflows del proyecto\n\nSeleccionar explícitamente un identificador propio cuando se solicite. Si hay varias opciones compatibles y la intención es ambigua, preguntar antes de empezar; no inventar un flujo.\n\n"
         for kind, metadata in definition["workflow_definitions"].items():
-            workflow_catalog += f'- `{kind}` · {metadata["name"]} · base `{metadata["kind"]}`: {metadata["description"]}\n  - Codex: `$factoria-{kind}` · OpenCode: `/factoria-{kind}`\n  - CLI: `factoria native start {kind} --tool <codex|opencode> --task "<petición>"`\n'
+            workflow_catalog += f'- `{kind}` · {metadata["name"]} · base `{metadata["kind"]}`: {metadata["description"]}\n  - Codex: `$factoria-{kind}` · OpenCode: `/factoria-{kind}`\n  - CLI: `factoria native --compact start {kind} --tool <codex|opencode> --task "<petición>"`\n'
         files[".factoria/generated/workflows.md"] = workflow_catalog
         for kind in definition["workflows"]:
             guide = workflow_guide(kind, definition)
@@ -290,6 +296,7 @@ Los permisos y aprobaciones de la herramienta siguen vigentes.
         bundle = "# Contexto portable de Factoría\n\n"
         bundle += "Para ChatGPT sin acceso al repositorio: adjuntar este documento y los archivos de código necesarios.\n"
         bundle += "Sin herramientas no hay ejecución, verificación ni seguimiento automático; presentar propuestas y pasos pendientes.\n\n"
+        bundle += f"## Skill compartida ({CONTEXT_GUIDE})\n\n{context_guide}\n"
         bundle += "## Configuración\n\n```json\n" + _json(definition) + "```\n\n"
         bundle += "\n\n".join(workflow_guide(k, definition) for k in definition["workflows"])
         for relative in (

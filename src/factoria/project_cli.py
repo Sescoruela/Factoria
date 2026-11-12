@@ -57,7 +57,9 @@ def build_project_parser() -> argparse.ArgumentParser:
     importing.add_argument("file", type=Path)
     importing.add_argument("--yes", action="store_true")
     importing.add_argument("--token", help="Token returned by the reviewed preview")
-    native = group.add_parser("native").add_subparsers(dest="action", required=True)
+    native_parser = group.add_parser("native")
+    native_parser.add_argument("--compact", action="store_true", help="Emit compact JSON")
+    native = native_parser.add_subparsers(dest="action", required=True)
     start = native.add_parser("start")
     start.add_argument(
         "kind", help="Identificador del workflow: fix, feature o uno propio del catálogo"
@@ -229,7 +231,10 @@ def _run_native(args, root: Path) -> int:
             args.flow_id, args.action, confirmed=getattr(args, "yes", False)
         )
 
-    print(json.dumps(result, ensure_ascii=True, indent=2))
+    if args.compact:
+        print(json.dumps(result, ensure_ascii=True, separators=(",", ":")))
+    else:
+        print(json.dumps(result, ensure_ascii=True, indent=2))
     return 0
 
 

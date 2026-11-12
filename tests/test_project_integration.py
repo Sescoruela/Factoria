@@ -410,6 +410,16 @@ class NativeWorkflowTests(ProjectFixture):
             self.assertTrue(run('project', 'check')['ready'])
             state = run('native', 'start', 'fix', '--tool', tool, '--task', 'Fix value')
             flow_id = state['flow_id']
+            pretty_status = subprocess.run(
+                [*command, 'native', 'status', flow_id], cwd=self.root, env=env,
+                capture_output=True, text=True, encoding='utf-8', check=True,
+            ).stdout
+            compact_status = subprocess.run(
+                [*command, 'native', '--compact', 'status', flow_id], cwd=self.root, env=env,
+                capture_output=True, text=True, encoding='utf-8', check=True,
+            ).stdout
+            self.assertEqual(json.loads(pretty_status), json.loads(compact_status))
+            self.assertLess(len(compact_status), len(pretty_status))
             Path(state['evidence_file']).write_text('Reproduce VALUE=1; expected VALUE=2')
             state = run('native', 'next', flow_id)
             (self.root / 'app.py').write_text('VALUE = 2\n')

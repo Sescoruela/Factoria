@@ -36,7 +36,7 @@
     s.id = 'agentRoles';
     s.className = 'section';
     s.innerHTML =
-      '<div class="concept-note"><strong>Agentes de Factoria</strong><div class="muted">Define las instrucciones y skills de cada especialista. Después podrás asignarlo a una etapa y preparar el proyecto para Codex u OpenCode.</div></div><div class="actions"><button class="primary" id="newAgentButton" onclick="newAgentRole()">Crear agente</button><label>Especialista visual<select id="agentTemplatePicker"><option value="">Selecciona una plantilla…</option></select></label><button class="secondary" id="newVisualAgentButton" onclick="newVisualAgentRole()">Crear desde plantilla</button></div><p id="agentEditorStatus" role="status" aria-live="polite"></p><div id="agentRoleList" class="agent-grid"></div><div id="agentRoleEditor"></div>';
+      '<div class="concept-note"><strong>Agentes de Factoria</strong><div class="muted">Define las instrucciones y skills de cada especialista. Después podrás asignarlo a una etapa y preparar el proyecto para Codex u OpenCode.</div></div><div class="actions"><button class="primary" id="newAgentButton" onclick="newAgentRole()">Crear agente</button><label>Plantilla de agente<select id="agentTemplatePicker"><option value="">Selecciona una plantilla…</option></select></label><button class="secondary" id="newVisualAgentButton" onclick="newVisualAgentRole()">Crear desde plantilla</button></div><p id="agentEditorStatus" role="status" aria-live="polite"></p><div id="agentRoleList" class="agent-grid"></div><div id="agentRoleEditor"></div>';
     document.querySelector('main.main').appendChild(s);
   }
   function openAgentRoles(button) {
@@ -119,7 +119,7 @@
   };
   window.newVisualAgentRole = function () {
     const id = document.getElementById('agentTemplatePicker').value;
-    if (!id) return agentStatus('Selecciona una plantilla visual.');
+    if (!id) return agentStatus('Selecciona una plantilla de agente.');
     window.newAgentRole(id);
   };
   window.newAgentRole = function (templateId) {

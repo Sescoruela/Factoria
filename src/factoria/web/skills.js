@@ -15,7 +15,7 @@
   section.id = 'skills';
   section.className = 'section';
   section.innerHTML =
-    '<div class="concept-note"><strong>Skills del proyecto</strong><p>Guarda conocimiento e instrucciones reutilizables en Markdown. Después podrás asignarlas a tus agentes y preparar Codex y OpenCode.</p></div><button class="primary" id="newSkillButton" onclick="newSkill()">Crear skill</button><p id="skillStatus" role="status" aria-live="polite"></p><div id="skillList" class="agent-grid"></div><div id="skillEditor"></div>';
+    '<div class="concept-note"><strong>Skills del proyecto</strong><p>Guarda conocimiento e instrucciones reutilizables en Markdown. Después podrás asignarlas a tus agentes y preparar Codex y OpenCode.</p></div><button class="primary" id="newSkillButton" onclick="newSkill()">Crear skill</button><label>Plantilla de skill<select id="skillTemplatePicker"><option value="">Selecciona una plantilla…</option></select></label><button class="secondary" id="newSkillTemplateButton" onclick="newSkillFromTemplate()">Crear desde plantilla</button><p id="skillStatus" role="status" aria-live="polite"></p><div id="skillList" class="agent-grid"></div><div id="skillEditor"></div>';
   document.querySelector('main.main').appendChild(section);
   button.onclick = () => {
     document.querySelectorAll('.nav button').forEach((x) => x.classList.remove('active'));
@@ -46,6 +46,17 @@
     const project = state.selected_project?.path || null;
     document.getElementById('newSkillButton').disabled =
       !project || skillSaving || !!state.skill_configuration_error;
+    const templatePicker = document.getElementById('skillTemplatePicker');
+    const selectedTemplate = templatePicker.value;
+    const templates = state.skill_templates || [];
+    templatePicker.innerHTML =
+      '<option value="">Selecciona una plantilla…</option>' +
+      templates
+        .map((item) => `<option value="${esc(item.id)}">${esc(item.name)}</option>`)
+        .join('');
+    templatePicker.value = selectedTemplate;
+    templatePicker.disabled = document.getElementById('newSkillTemplateButton').disabled =
+      !project || skillSaving || !!state.skill_configuration_error || !templates.length;
     const picker = document.getElementById('agentSkillPicker');
     if (picker && state.skills)
       picker.innerHTML =
@@ -98,7 +109,13 @@
       }
     }
   }
-  window.newSkill = function () {
+  window.newSkillFromTemplate = function () {
+    const id = document.getElementById('skillTemplatePicker').value;
+    const template = (state.skill_templates || []).find((item) => item.id === id);
+    if (!template) return status('Selecciona una plantilla de skill.');
+    window.newSkill(template);
+  };
+  window.newSkill = function (template) {
     if (
       !state.selected_project ||
       !state.skill_catalog_revision ||
@@ -106,10 +123,14 @@
       !canLeave()
     )
       return;
+    if (template && state.skills?.some((skill) => skill.id === template.id))
+      return status('Ya existe esa skill. Ábrela en el catálogo para modificarla.');
     skillProject = state.selected_project.path;
     skillRevision = state.skill_catalog_revision;
     skillCreating = true;
-    skillDraft = { id: '', name: '', description: '', content: '' };
+    skillDraft = template
+      ? structuredClone(template)
+      : { id: '', name: '', description: '', content: '' };
     skillDirty = true;
     renderEditor();
     status('Nueva skill · cambios sin guardar');

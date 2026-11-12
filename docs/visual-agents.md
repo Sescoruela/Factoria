@@ -7,7 +7,7 @@ existentes. No incorporan dependencias de runtime ni un proveedor de imágenes.
 ## Uso
 
 1. Seleccionar el proyecto y abrir **Agentes**.
-2. En **Especialista visual**, elegir **Diseñador visual** y **Crear desde plantilla**.
+2. En **Plantilla de agente**, elegir **Diseñador visual** y **Crear desde plantilla**.
    Revisar las instrucciones y pulsar **Guardar agente**.
 3. Repetir con **Revisor visual** para una revisión visual explícita.
 4. En el diseñador del workflow, asignar `visual-designer` a **plan / planner** y

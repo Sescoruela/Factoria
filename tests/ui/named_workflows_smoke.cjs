@@ -49,7 +49,7 @@ async function open(url){
  }
  dom=await open(fixture.url);w=dom.window;await w.prepareIntegration(true);
  for(const id of ['fix-api','feature-api']){
-  assert.ok(fs.readFileSync(fixture.project+`/.agents/skills/factoria-${id}/SKILL.md`,'utf8').includes('factoria native start '+id+' --tool'));
+  assert.ok(fs.readFileSync(fixture.project+`/.agents/skills/factoria-${id}/SKILL.md`,'utf8').includes('factoria native --compact start '+id+' --tool'));
   assert.ok(fs.readFileSync(fixture.project+`/.opencode/commands/factoria-${id}.md`,'utf8').includes('agente `api-reviewer`'));
  }
  assert.ok(fs.readFileSync(fixture.project+'/.factoria/generated/workflows.md','utf8').includes('ambigua'));

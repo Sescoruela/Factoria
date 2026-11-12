@@ -7,6 +7,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from factoria.application.agent_profiles import load_agent_profiles, save_agent_profile
+from factoria.application.skill_catalog import SkillDefinition, save_skill
+from factoria.application.agent_profiles import AgentRoleProfile
 from factoria.application.project_integration import ProjectIntegration
 from factoria.application.visual_agents import visual_agent_templates
 from factoria.application.workflow_presets import default_preset, save_preset, validate_assignments
@@ -25,7 +27,7 @@ class VisualAgentTests(unittest.TestCase):
     def test_templates_are_opt_in_and_state_read_does_not_write(self):
         original = load_agent_profiles(self.root)
         payload = enrich_editor_state({"agents": []}, self.root)
-        self.assertEqual(len(payload["agent_templates"]), 2)
+        self.assertIn("integration-planner", {item["role"] for item in payload["agent_templates"]})
         self.assertEqual(load_agent_profiles(self.root), original)
         self.assertFalse(any(self.root.iterdir()))
         payload["agent_templates"][0]["instructions"] = "draft edit"
@@ -56,6 +58,60 @@ class VisualAgentTests(unittest.TestCase):
             exported = (self.root / f".opencode/agents/factoria-{agent.role}.md").read_text()
             self.assertNotIn('"edit": "allow"', exported)
             self.assertNotIn('"edit": "ask"', exported)
+
+    def test_product_designer_can_export_with_saved_flows_skill(self):
+        state = enrich_editor_state({"agents": []}, self.root)
+        skill = SkillDefinition.from_mapping(next(item for item in state["skill_templates"] if item["id"] == "product-flows"))
+        save_skill(self.root, skill, expected_revision=state["skill_catalog_revision"], create=True)
+        template = next(a for a in state["agent_templates"] if a["role"] == "product-designer")
+        agent = replace(AgentRoleProfile.from_mapping(template), skills=(skill.path,))
+        save_agent_profile(self.root, agent, mode="create")
+        preset = default_preset("feature")
+        save_preset(self.root, replace(preset, steps=tuple(
+            replace(step, agent_id=agent.role) if step.name == "plan" else step
+            for step in preset.steps
+        )))
+        integration = ProjectIntegration(self.root)
+        integration.apply(confirmed=True)
+        self.assertTrue(integration.check()["ready"])
+        for guide in (".agents/skills/factoria-feature/SKILL.md", ".opencode/commands/factoria-feature.md"):
+            content = (self.root / guide).read_text(encoding="utf-8")
+            self.assertIn(agent.instructions, content)
+            self.assertIn(f"Consultar `{skill.path}`", content)
+
+    def test_integration_planner_and_diagnostics_export_to_workflow_guides(self):
+        state = enrich_editor_state({"agents": []}, self.root)
+        skill_ids = ("api-migration", "sql-diagnostics", "production-diagnostics")
+        templates = {item["id"]: item for item in state["skill_templates"]}
+        for identifier in skill_ids:
+            skill = SkillDefinition.from_mapping(templates[identifier])
+            save_skill(
+                self.root, skill, expected_revision=state["skill_catalog_revision"], create=True
+            )
+            state = enrich_editor_state({"agents": []}, self.root)
+        planner = next(a for a in state["agent_templates"] if a["role"] == "integration-planner")
+        paths = tuple(templates[identifier]["path"] for identifier in skill_ids)
+        save_agent_profile(
+            self.root, replace(AgentRoleProfile.from_mapping(planner), skills=paths), mode="create"
+        )
+        preset = default_preset("feature")
+        steps = tuple(
+            replace(step, agent_id=planner["role"]) if step.name == "plan" else step
+            for step in preset.steps
+        )
+        save_preset(self.root, replace(preset, steps=steps))
+
+        integration = ProjectIntegration(self.root)
+        integration.apply(confirmed=True)
+        self.assertTrue(integration.check()["ready"])
+        for guide in (
+            ".agents/skills/factoria-feature/SKILL.md",
+            ".opencode/commands/factoria-feature.md",
+        ):
+            content = (self.root / guide).read_text(encoding="utf-8")
+            self.assertIn(planner["instructions"], content)
+            for path in paths:
+                self.assertIn(f"Consultar `{path}`", content)
 
     def test_wrong_stage_and_duplicate_cannot_overwrite_catalog(self):
         designer = visual_agent_templates()[0]
