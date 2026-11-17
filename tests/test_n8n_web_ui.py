@@ -3,8 +3,8 @@ from __future__ import annotations
 import unittest
 from importlib.resources import files
 
-from factoria.web_app import FactoriaWebHandler
-from factoria.web_app_n8n import FactoriaN8NHandler
+from factoria.web.server import FactoriaWebHandler
+from factoria.web.main_shell import FactoriaN8NHandler
 
 
 class N8NWebUiTests(unittest.TestCase):

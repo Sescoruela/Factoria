@@ -12,14 +12,14 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
-from factoria.application.agent_profiles import (
+from factoria.application.projects.agent_profiles import (
     AgentCatalogConflict, AgentRoleProfile, agent_catalog_revision,
     agent_catalog_snapshot, load_agent_profiles, save_agent_profile,
 )
-from factoria.application.project_integration import ProjectIntegration
-from factoria.ui_workspace import UiWorkspaceSettings
-from factoria.web_app import FactoriaHTTPServer
-from factoria.web_app_n8n import FactoriaN8NHandler
+from factoria.application.projects.project_integration import ProjectIntegration
+from factoria.ui.workspace import UiWorkspaceSettings
+from factoria.web.server import FactoriaHTTPServer
+from factoria.web.main_shell import FactoriaN8NHandler
 
 
 class AgentCatalogTests(unittest.TestCase):
@@ -103,7 +103,7 @@ class AgentCatalogTests(unittest.TestCase):
         target = save_agent_profile(self.root, self.agent)
         before = target.read_bytes()
         files = set(target.parent.iterdir())
-        with patch('factoria.application.agent_profiles.os.replace', side_effect=OSError('Disk unavailable')):
+        with patch('factoria.application.projects.agent_profiles.os.replace', side_effect=OSError('Disk unavailable')):
             with self.assertRaises(OSError):
                 save_agent_profile(self.root, replace(self.agent, name='Cambio'))
         self.assertEqual(target.read_bytes(), before)
@@ -166,7 +166,7 @@ class AgentCatalogTests(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as caught:
                 request('/api/agent-role/create', payload, False)
             self.assertEqual(caught.exception.code, 403)
-            with patch('factoria.web_app._state', return_value={'selected_project': {'path': str(self.root)}}):
+            with patch('factoria.web.server._state', return_value={'selected_project': {'path': str(self.root)}}):
                 result = request('/api/agent-role/create', payload)
                 self.assertEqual(len(result['state']['agent_roles']), 6)
                 payload['revision'] = result['state']['agent_catalog_revision']

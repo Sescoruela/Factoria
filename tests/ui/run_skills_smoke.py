@@ -10,9 +10,9 @@ import threading
 from pathlib import Path
 from unittest.mock import patch
 
-from factoria.ui_workspace import UiWorkspaceSettings
-from factoria.web_app import FactoriaHTTPServer, FactoriaWebHandler
-from factoria.web_app_n8n import FactoriaN8NHandler
+from factoria.ui.workspace import UiWorkspaceSettings
+from factoria.web.server import FactoriaHTTPServer, FactoriaWebHandler
+from factoria.web.main_shell import FactoriaN8NHandler
 
 
 def main() -> int:

@@ -9,8 +9,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from factoria.application.native_workflow import NativeWorkflow
-from factoria.application.project_integration import ProjectIntegration
+from factoria.application.workflows.native_workflow import NativeWorkflow
+from factoria.application.projects.project_integration import ProjectIntegration
 
 spec = importlib.util.spec_from_file_location('acceptance_lab', Path(__file__).resolve().parents[1] / 'tools/acceptance_lab.py')
 lab = importlib.util.module_from_spec(spec)

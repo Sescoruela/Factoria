@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from factoria.application.status import OperationalStatusService, _memory_version_warning
+from factoria.application.workflows.status import OperationalStatusService, _memory_version_warning
 from factoria.domain.models import CheckResult
 from factoria.adapters.base import ToolCapability
 from factoria.entrypoint import _primary_command
@@ -94,11 +94,11 @@ class OperationalStatusTests(unittest.TestCase):
             self.assertTrue(any("Security gate" in item for item in report.warnings))
 
     def test_patch_memory_version_difference_does_not_warn(self) -> None:
-        with patch("factoria.application.status._installed_version", return_value="0.2.9"):
+        with patch("factoria.application.workflows.status._installed_version", return_value="0.2.9"):
             self.assertIsNone(_memory_version_warning("0.2.0"))
 
     def test_minor_memory_version_difference_warns(self) -> None:
-        with patch("factoria.application.status._installed_version", return_value="0.3.0"):
+        with patch("factoria.application.workflows.status._installed_version", return_value="0.3.0"):
             warning = _memory_version_warning("0.2.9")
         self.assertIsNotNone(warning)
         self.assertIn("minor version differs", warning)

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from factoria.application.impact import ImpactAnalyzer
+from factoria.application.workflows.impact import ImpactAnalyzer
 from factoria.domain.models import (
     ContractMemory,
     ExternalDependency,

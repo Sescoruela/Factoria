@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from factoria.project_cli import run_project_cli
+from factoria.commands.project import run_project_cli
 
 
 class MemoryGraphTests(unittest.TestCase):

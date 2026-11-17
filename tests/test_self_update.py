@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from factoria.application.self_update import UpdateError, UpdateService
+from factoria.application.environment.self_update import UpdateError, UpdateService
 from factoria.versioning import SemVer, VersionError
 
 

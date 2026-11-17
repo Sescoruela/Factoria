@@ -6,7 +6,7 @@ import unittest
 from datetime import date
 from pathlib import Path
 
-from factoria.application.memory_bootstrap import (
+from factoria.application.projects.memory_bootstrap import (
     MemoryBootstrapService,
     RepositoryBootstrapAnalyzer,
 )

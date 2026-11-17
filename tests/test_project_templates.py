@@ -16,20 +16,20 @@ from unittest.mock import patch
 import urllib.request
 import urllib.error
 
-from factoria.application.project_templates import (
+from factoria.application.projects.project_templates import (
     export_template, validate_template, preview_template, apply_template, read_template, TemplateConflict,
 )
-from factoria.application.skill_catalog import SkillDefinition, save_skill, skill_catalog_revision
-from factoria.application.agent_profiles import load_agent_profiles, AgentRoleProfile, save_agent_profile
-from factoria.application.workflow_presets import load_catalog
-from factoria.application.project_integration import ProjectIntegration
-from factoria.application.native_workflow import NativeWorkflow
+from factoria.application.projects.skill_catalog import SkillDefinition, save_skill, skill_catalog_revision
+from factoria.application.projects.agent_profiles import load_agent_profiles, AgentRoleProfile, save_agent_profile
+from factoria.application.projects.workflow_presets import load_catalog
+from factoria.application.projects.project_integration import ProjectIntegration
+from factoria.application.workflows.native_workflow import NativeWorkflow
 from factoria.memory.loader import load_project_memory
 from factoria.memory.filesystem import write_initial_memory
-from factoria.project_cli import run_project_cli
-from factoria.ui_workspace import UiWorkspaceSettings
-from factoria.web_app import FactoriaHTTPServer, FactoriaWebHandler
-from factoria.web_app_n8n import FactoriaN8NHandler
+from factoria.commands.project import run_project_cli
+from factoria.ui.workspace import UiWorkspaceSettings
+from factoria.web.server import FactoriaHTTPServer, FactoriaWebHandler
+from factoria.web.main_shell import FactoriaN8NHandler
 from tools.acceptance_lab import prepare_project
 
 
@@ -160,7 +160,7 @@ class ProjectTemplateTests(unittest.TestCase):
         self.assertEqual(set(data), {'schema_version', 'name', 'skills', 'agents', 'workflows'})
 
     def test_write_failure_rolls_back_and_keeps_recovery_record(self):
-        import factoria.application.project_templates as module
+        import factoria.application.projects.project_templates as module
         original = module.os.link
         calls = 0
         def fail_later(source, target):
@@ -176,7 +176,7 @@ class ProjectTemplateTests(unittest.TestCase):
     def test_failure_restores_existing_catalog_bytes(self):
         save_agent_profile(self.target, AgentRoleProfile('destination', 'equilibrado', base_role='implementer', name='Own'), mode='create')
         before = self.sources()
-        import factoria.application.project_templates as module
+        import factoria.application.projects.project_templates as module
         original = module.os.link
         def fail_workflows(source, target):
             if Path(target).name == 'workflows.json':raise OSError('disk full')
@@ -185,7 +185,7 @@ class ProjectTemplateTests(unittest.TestCase):
         self.assertEqual(self.sources(), before)
 
     def test_failure_preserves_later_external_edit_with_recovery_notice(self):
-        import factoria.application.project_templates as module
+        import factoria.application.projects.project_templates as module
         original = module.os.link
         def external_edit(source, target):
             if Path(target).name == 'agents.json':

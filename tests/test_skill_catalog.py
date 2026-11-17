@@ -12,14 +12,14 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
-from factoria.application.agent_profiles import AgentRoleProfile, save_agent_profile
-from factoria.application.project_integration import ProjectIntegration
-from factoria.application.skill_catalog import (
+from factoria.application.projects.agent_profiles import AgentRoleProfile, save_agent_profile
+from factoria.application.projects.project_integration import ProjectIntegration
+from factoria.application.projects.skill_catalog import (
     SkillCatalogConflict, SkillDefinition, save_skill, skill_catalog_revision, skill_catalog_snapshot,
 )
-from factoria.ui_workspace import UiWorkspaceSettings
-from factoria.web_app import FactoriaHTTPServer
-from factoria.web_app_n8n import FactoriaN8NHandler
+from factoria.ui.workspace import UiWorkspaceSettings
+from factoria.web.server import FactoriaHTTPServer
+from factoria.web.main_shell import FactoriaN8NHandler
 
 
 class SkillCatalogTests(unittest.TestCase):
@@ -100,7 +100,7 @@ class SkillCatalogTests(unittest.TestCase):
         path = self.create()
         before = path.read_bytes()
         files = set(path.parent.iterdir())
-        with patch('factoria.application.skill_catalog.os.replace', side_effect=OSError('disk failure')):
+        with patch('factoria.application.projects.skill_catalog.os.replace', side_effect=OSError('disk failure')):
             with self.assertRaises(OSError):
                 save_skill(self.root, replace(self.skill, content='New'), expected_revision=skill_catalog_revision(self.root))
         self.assertEqual(path.read_bytes(), before)
@@ -112,7 +112,7 @@ class SkillCatalogTests(unittest.TestCase):
         def competing_create(source, destination):
             target.write_text('Preserve foreign content', encoding='utf-8')
             return real_link(source, destination)
-        with patch('factoria.application.skill_catalog.os.link', side_effect=competing_create):
+        with patch('factoria.application.projects.skill_catalog.os.link', side_effect=competing_create):
             with self.assertRaises(SkillCatalogConflict):
                 self.create()
         self.assertEqual(target.read_text(), 'Preserve foreign content')
@@ -185,7 +185,7 @@ class SkillCatalogTests(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as caught:
                 request('/api/skill/create', payload, False)
             self.assertEqual(caught.exception.code, 403)
-            with patch('factoria.web_app._state', return_value={'selected_project': {'path': str(self.root)}}):
+            with patch('factoria.web.server._state', return_value={'selected_project': {'path': str(self.root)}}):
                 result = request('/api/skill/create', payload)
                 self.assertEqual(result['state']['skills'][0]['content'], self.skill.content)
                 with self.assertRaises(urllib.error.HTTPError) as caught:

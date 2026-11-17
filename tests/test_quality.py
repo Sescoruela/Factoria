@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from factoria.application.quality import (
+from factoria.application.workflows.quality import (
     CheckPlanner,
     CheckSpec,
     ReviewAction,

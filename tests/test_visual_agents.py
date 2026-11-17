@@ -6,12 +6,12 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
-from factoria.application.agent_profiles import load_agent_profiles, save_agent_profile
-from factoria.application.skill_catalog import SkillDefinition, save_skill
-from factoria.application.agent_profiles import AgentRoleProfile
-from factoria.application.project_integration import ProjectIntegration
-from factoria.application.visual_agents import visual_agent_templates
-from factoria.application.workflow_presets import default_preset, save_preset, validate_assignments
+from factoria.application.projects.agent_profiles import load_agent_profiles, save_agent_profile
+from factoria.application.projects.skill_catalog import SkillDefinition, save_skill
+from factoria.application.projects.agent_profiles import AgentRoleProfile
+from factoria.application.projects.project_integration import ProjectIntegration
+from factoria.application.projects.visual_agents import visual_agent_templates
+from factoria.application.projects.workflow_presets import default_preset, save_preset, validate_assignments
 from factoria.web.editor_state import enrich_editor_state
 
 

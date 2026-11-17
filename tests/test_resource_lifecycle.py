@@ -14,18 +14,18 @@ import urllib.request
 import urllib.error
 
 from tools.acceptance_lab import prepare_project
-from factoria.application.resource_lifecycle import preview_resource, apply_resource, resource_inventory, ResourceConflict
-from factoria.application.resource_archive import archive_records
-from factoria.application.skill_catalog import SkillDefinition, save_skill, skill_catalog_revision, skill_catalog_snapshot
-from factoria.application.agent_profiles import load_agent_profiles, save_agent_profile, AgentRoleProfile
-from factoria.application.workflow_presets import load_catalog, save_preset, default_preset
-from factoria.application.native_workflow import NativeWorkflow
-from factoria.application.project_integration import ProjectIntegration
-from factoria.application.project_templates import export_template, preview_template
-from factoria.project_cli import run_project_cli
-from factoria.ui_workspace import UiWorkspaceSettings
-from factoria.web_app import FactoriaWebHandler, FactoriaHTTPServer
-from factoria.web_app_n8n import FactoriaN8NHandler
+from factoria.application.projects.resource_lifecycle import preview_resource, apply_resource, resource_inventory, ResourceConflict
+from factoria.application.projects.resource_archive import archive_records
+from factoria.application.projects.skill_catalog import SkillDefinition, save_skill, skill_catalog_revision, skill_catalog_snapshot
+from factoria.application.projects.agent_profiles import load_agent_profiles, save_agent_profile, AgentRoleProfile
+from factoria.application.projects.workflow_presets import load_catalog, save_preset, default_preset
+from factoria.application.workflows.native_workflow import NativeWorkflow
+from factoria.application.projects.project_integration import ProjectIntegration
+from factoria.application.projects.project_templates import export_template, preview_template
+from factoria.commands.project import run_project_cli
+from factoria.ui.workspace import UiWorkspaceSettings
+from factoria.web.server import FactoriaWebHandler, FactoriaHTTPServer
+from factoria.web.main_shell import FactoriaN8NHandler
 
 
 class ResourceLifecycleTests(unittest.TestCase):
@@ -117,7 +117,7 @@ class ResourceLifecycleTests(unittest.TestCase):
         with self.assertRaises(ValueError):save_preset(self.root,preset,create=True)
 
     def test_snapshot_and_execution_history_preserved_after_archive(self):
-        from factoria.application.history import LocalExecutionHistoryStore
+        from factoria.application.workflows.history import LocalExecutionHistoryStore
         native=NativeWorkflow(self.root)
         previous=native.start('fix-lab','Previous cancelled flow','codex')
         native.lifecycle(previous['flow_id'],'cancel',confirmed=True)
@@ -147,7 +147,7 @@ class ResourceLifecycleTests(unittest.TestCase):
         with self.assertRaises(PermissionError):self.operate('archive','skill','copy')
 
     def test_failed_finalize_restores_source_and_preserves_failed_record(self):
-        import factoria.application.resource_lifecycle as module
+        import factoria.application.projects.resource_lifecycle as module
         self.operate('duplicate','skill','lab-rules',new_id='copy')
         original=module._write;failed=False
         def failing(path,content,**kwargs):
@@ -177,7 +177,7 @@ class ResourceLifecycleTests(unittest.TestCase):
         # Restore only the agent, leaving it unreferenced initially.
         record_id=next(key for key,r in archive_records(self.root).items() if r['kind']=='agent')
         self.operate('restore','agent',archive_id=record_id)
-        import factoria.application.resource_lifecycle as module
+        import factoria.application.projects.resource_lifecycle as module
         original=module._write; changed=False
         def external(path,content,**kwargs):
             nonlocal changed

@@ -9,20 +9,23 @@ principalmente con Codex/OpenCode, que consumen la configuración generada.
 - `domain/`: entidades y reglas puras de flujo, permisos, feature y fix.
 - `config/`: configuración global, organización, proyecto y resolución de políticas.
 - `memory/`: detección, carga, renderizado, actualización y envejecimiento de memoria.
-- `application/`: servicios de flujo, verificación, revisión, Git, historial y actualización.
-- `application/skill_catalog.py`: skills Markdown versionables, creación exclusiva, guardado atómico y revisiones de catálogo.
-- `application/project_integration.py`: compilación de configuración compartida a assets por herramienta.
-- `application/project_relations.py`: lectura acotada y parcial de relaciones guardadas, reachability de recursos y vigencia de integración. Usa validadores puros de perfiles/etapas, configuración capturada y decodificación de skills sin reabrir sus fuentes.
-- `application/resource_lifecycle.py`, `resource_archive.py`: duplicación, impacto de referencias, archivo reversible y restauración; reservas compartidas por editores/plantillas y registros versionables en `.factoria/archive/`.
-- `application/project_templates.py`: bundles JSON v1 cerrados, preview ligado a catálogos/proyecto/contenido, importación conservadora y copia de recuperación en Git; sin copiar memoria ni políticas.
+- `application/projects/`: integración por proyecto, catálogos, memoria de proyecto y recuperación de configuración.
+- `application/workflows/`: ejecución, verificación, revisión, persistencia e historial de flujos.
+- `application/environment/`: detección de herramientas, configuración local y actualización.
+- `application/governance.py` y `application/policy_runtime.py`: políticas compartidas por los servicios.
+- `application/projects/skill_catalog.py`: skills Markdown versionables, creación exclusiva, guardado atómico y revisiones de catálogo.
+- `application/projects/project_integration.py`: compilación de configuración compartida a assets por herramienta.
+- `application/projects/project_relations.py`: lectura acotada y parcial de relaciones guardadas, reachability de recursos y vigencia de integración. Usa validadores puros de perfiles/etapas, configuración capturada y decodificación de skills sin reabrir sus fuentes.
+- `application/projects/resource_lifecycle.py`, `resource_archive.py`: duplicación, impacto de referencias, archivo reversible y restauración; reservas compartidas por editores/plantillas y registros versionables en `.factoria/archive/`.
+- `application/projects/project_templates.py`: bundles JSON v1 cerrados, preview ligado a catálogos/proyecto/contenido, importación conservadora y copia de recuperación en Git; sin copiar memoria ni políticas.
 - `orchestration/workflows.py`: cada etapa conserva su rol de seguridad y puede seleccionar un agente del catálogo con `agent_id`.
-- `application/native_workflow.py`: seguimiento directo sin llamadas LLM, con snapshots y evidencia.
-- `application/agent_profiles.py`, `workflow_presets.py`: configuración versionable con lectura de formatos locales anteriores. El catálogo de agentes admite identificadores propios y un rol base. Los catálogos de agentes y workflows usan escritura atómica y revisión optimista para la edición web. Los workflows propios tienen identificador estable y un tipo base fix/feature; el seguimiento nativo congela ambos junto con la definición.
+- `application/workflows/native_workflow.py`: seguimiento directo sin llamadas LLM, con snapshots y evidencia.
+- `application/projects/agent_profiles.py`, `workflow_presets.py`: configuración versionable con lectura de formatos locales anteriores. El catálogo de agentes admite identificadores propios y un rol base. Los catálogos de agentes y workflows usan escritura atómica y revisión optimista para la edición web. Los workflows propios tienen identificador estable y un tipo base fix/feature; el seguimiento nativo congela ambos junto con la definición.
 - `adapters/`, `orchestration/`: ejecución opcional de agentes externos detrás de contratos neutrales.
 - `plugins/`: descubrimiento, compatibilidad, validación y ejecución de extensiones.
-- `entrypoint.py`, `project_cli.py`: entrada y comandos CLI.
-- `web_app.py`, `web_app_n8n.py`: servidor HTTP local, autenticación y selección de vista.
-- `web/`: HTML y assets, endpoints de edición y proyecto, y composición del estado de los editores.
+- `entrypoint.py`, `cli.py` y `commands/`: arranque, despacho y adaptadores CLI.
+- `ui/`: selección del espacio de trabajo, interfaz de terminal y escritorio.
+- `web/`: servidor HTTP local, autenticación, vistas, assets y endpoints de edición.
 - `tools/release_artifacts.py`, `distribution_smoke.py`: herramientas de desarrollo para integridad y pruebas aisladas de paquetes; fuera del runtime del producto.
 
 ## Persistencia
@@ -53,7 +56,7 @@ H12: no se inyectan parches Python en HTML. Assets JS/CSS y servicios compartido
 de estado/API descritos en [frontend](../frontend.md). La vista n8n es principal;
 la clásica es compatibilidad.
 
-H13: `application/config_schema.py` aplica gates de versión; `config_recovery.py`
+H13: `application/projects/config_schema.py` aplica gates de versión; `config_recovery.py`
 previsualiza/migra/checkpoint/restaura con copias locales en metadatos Git y journal
 recuperable. El panel `configuration.js` y CLI comparten el servicio autenticado y
 con políticas. Snapshots/memoria/historial quedan fuera del inventario. [Guía](../configuration-recovery.md).

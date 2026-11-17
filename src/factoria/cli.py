@@ -7,16 +7,16 @@ import sys
 import uuid
 from pathlib import Path
 
-from factoria.application.agent_flow_runtime import LiveAgentFlowError, build_live_runner
-from factoria.application.artifacts import FlowArtifactStore
-from factoria.application.flow_service import FlowService
+from factoria.application.workflows.agent_flow_runtime import LiveAgentFlowError, build_live_runner
+from factoria.application.workflows.artifacts import FlowArtifactStore
+from factoria.application.workflows.flow_service import FlowService
 from factoria.application.governance import ExecutionGovernor, GovernedAction
-from factoria.application.history import LocalExecutionHistoryStore
-from factoria.application.memory_flows import MemoryInitFlow, MemoryUpdateFlow
+from factoria.application.workflows.history import LocalExecutionHistoryStore
+from factoria.application.projects.memory_flows import MemoryInitFlow, MemoryUpdateFlow
 from factoria.application.policy_runtime import build_execution_context
-from factoria.application.setup import SetupError, SetupService
-from factoria.application.state_store import LocalFlowStateStore
-from factoria.cli_lifecycle import (
+from factoria.application.environment.setup import SetupError, SetupService
+from factoria.application.workflows.state_store import LocalFlowStateStore
+from factoria.commands.lifecycle import (
     archive_terminal,
     register_lifecycle_commands,
     run_commit,

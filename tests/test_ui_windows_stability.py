@@ -5,8 +5,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from factoria.ui_app import ManagedTerminalUI
-from factoria.ui_workspace import UiWorkspaceSettings, discover_projects
+from factoria.ui.desktop import ManagedTerminalUI
+from factoria.ui.workspace import UiWorkspaceSettings, discover_projects
 
 
 class UiWorkspaceTests(unittest.TestCase):
@@ -74,7 +74,7 @@ class ManagedTerminalUiTests(unittest.TestCase):
             ui = ManagedTerminalUI(root, output_fn=output.append, command_runner=lambda _args: 0)
             ui.workspace_settings = UiWorkspaceSettings(projects_root=root, last_project=None)
 
-            with patch("factoria.ui_app.shutil.which", return_value=None):
+            with patch("factoria.ui.desktop.shutil.which", return_value=None):
                 ui._render_dashboard()
 
             rendered = "\n".join(output)

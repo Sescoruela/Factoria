@@ -4,9 +4,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from factoria.application.artifacts import FlowArtifactStore
-from factoria.application.flow_service import FlowService
-from factoria.application.state_store import LocalFlowStateStore
+from factoria.application.workflows.artifacts import FlowArtifactStore
+from factoria.application.workflows.flow_service import FlowService
+from factoria.application.workflows.state_store import LocalFlowStateStore
 from factoria.domain.flow import FlowState
 
 

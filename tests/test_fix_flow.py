@@ -1,6 +1,6 @@
 import unittest
 
-from factoria.application.fix_flow import FixFlowError, FixRun
+from factoria.application.workflows.fix_flow import FixFlowError, FixRun
 from factoria.domain.fix import (
     ChangeScope,
     FindingSeverity,

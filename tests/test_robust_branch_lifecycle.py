@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from factoria.application.branch_lifecycle import BranchLifecycleError, GitBranchLifecycle
-from factoria.robust_lifecycle_cli import build_parser
+from factoria.application.workflows.branch_lifecycle import BranchLifecycleError, GitBranchLifecycle
+from factoria.commands.recovery import build_parser
 
 
 def git(root: Path, *args: str) -> str:

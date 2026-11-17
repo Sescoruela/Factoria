@@ -1,13 +1,5 @@
-from __future__ import annotations
+"""Compatibility imports for the main web interface."""
 
-from factoria.web_app import FactoriaWebHandler, serve_web_ui
+from factoria.web.main_shell import FactoriaN8NHandler, run_web_ui
 
-
-class FactoriaN8NHandler(FactoriaWebHandler):
-    """Serve the main shell using the same local API and asset handler."""
-
-    root_shell = "index_n8n.html"
-
-
-def run_web_ui(*, open_browser: bool = True) -> int:
-    return serve_web_ui(FactoriaN8NHandler, open_browser=open_browser)
+__all__ = ["FactoriaN8NHandler", "run_web_ui"]

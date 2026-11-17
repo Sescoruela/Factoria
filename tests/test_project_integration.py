@@ -10,19 +10,19 @@ from datetime import date
 from pathlib import Path
 from unittest.mock import patch
 
-from factoria.application.agent_profiles import AgentRoleProfile, load_agent_profiles, save_agent_profile
-from factoria.application.artifacts import FlowArtifactStore
-from factoria.application.flow_service import FlowService
-from factoria.application.history import LocalExecutionHistoryStore
-from factoria.application.memory_flows import MemoryUpdateFlow, MemoryUpdateProposal
-from factoria.application.native_workflow import NativeWorkflow
-from factoria.application.project_integration import ProjectIntegration, START, END
-from factoria.application.state_store import LocalFlowStateStore
-from factoria.application.workflow_presets import default_preset, load_preset, save_preset
+from factoria.application.projects.agent_profiles import AgentRoleProfile, load_agent_profiles, save_agent_profile
+from factoria.application.workflows.artifacts import FlowArtifactStore
+from factoria.application.workflows.flow_service import FlowService
+from factoria.application.workflows.history import LocalExecutionHistoryStore
+from factoria.application.projects.memory_flows import MemoryUpdateFlow, MemoryUpdateProposal
+from factoria.application.workflows.native_workflow import NativeWorkflow
+from factoria.application.projects.project_integration import ProjectIntegration, START, END
+from factoria.application.workflows.state_store import LocalFlowStateStore
+from factoria.application.projects.workflow_presets import default_preset, load_preset, save_preset
 from factoria.domain.models import ConfirmedCommand, MemoryMetadata, ProjectKind, ProjectMemory
 from factoria.memory.filesystem import write_initial_memory
 from factoria.memory.loader import load_project_memory
-from factoria.project_cli import run_project_cli
+from factoria.commands.project import run_project_cli
 
 
 APPROVED = json.dumps({'result': 'approved', 'acceptance_criteria_met': True,
@@ -74,8 +74,8 @@ class IntegrationTests(ProjectFixture):
         import threading
         import urllib.error
         import urllib.request
-        from factoria.web_app import FactoriaHTTPServer
-        from factoria.web_app_n8n import FactoriaN8NHandler
+        from factoria.web.server import FactoriaHTTPServer
+        from factoria.web.main_shell import FactoriaN8NHandler
         save_agent_profile(self.root, AgentRoleProfile('reviewer', 'rapido'))
         server = FactoriaHTTPServer(('127.0.0.1', 0), FactoriaN8NHandler)
         server.factoria_token = 'fixture-token'
@@ -371,7 +371,7 @@ class NativeWorkflowTests(ProjectFixture):
         self.assertIn('Original custom rules', restored['agent']['skill_contents']['custom-rules.md'])
 
     def test_skill_edit_keeps_the_running_agent_content_snapshot(self):
-        from factoria.application.skill_catalog import SkillDefinition, save_skill, skill_catalog_revision
+        from factoria.application.projects.skill_catalog import SkillDefinition, save_skill, skill_catalog_revision
         skill = SkillDefinition('exploration', 'Exploration', content='Original exploration instructions')
         save_skill(self.root, skill, expected_revision=skill_catalog_revision(self.root), create=True)
         save_agent_profile(self.root, AgentRoleProfile('explorer', 'equilibrado', skills=(skill.path,)))
@@ -550,7 +550,7 @@ class NativeWorkflowTests(ProjectFixture):
     def test_renamed_destination_with_unicode_is_the_scanned_path(self):
         self.git('mv', 'app.py', 'cálculo nuevo.py')
         self.assertIn('cálculo nuevo.py', __import__('factoria.security', fromlist=['SecretScanner']).SecretScanner.changed_paths(self.root))
-        from factoria.application.git_lifecycle import GitLifecycle
+        from factoria.application.workflows.git_lifecycle import GitLifecycle
         self.assertIn('cálculo nuevo.py', tuple(c.path for c in GitLifecycle(self.root).changes()))
 
     def test_verification_attempt_limit_is_persisted(self):

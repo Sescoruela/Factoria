@@ -9,17 +9,17 @@ import urllib.request
 from pathlib import Path
 from unittest.mock import patch
 
-from factoria.application.tool_presence import assert_ui_command_allowed
-from factoria.ui_agent_tools import AgentAwareTerminalUI
-from factoria.ui_cli import TerminalUI
-from factoria.ui_workspace import UiWorkspaceSettings
-from factoria.web_app import FactoriaHTTPServer, _agent_payload, _set_default_tool
-from factoria.web_app_n8n import FactoriaN8NHandler
+from factoria.application.environment.tool_presence import assert_ui_command_allowed
+from factoria.ui.agent_tools import AgentAwareTerminalUI
+from factoria.ui.terminal import TerminalUI
+from factoria.ui.workspace import UiWorkspaceSettings
+from factoria.web.server import FactoriaHTTPServer, _agent_payload, _set_default_tool
+from factoria.web.main_shell import FactoriaN8NHandler
 
 
 class ExternalToolStartupTests(unittest.TestCase):
     def test_repeated_platform_refresh_never_starts_a_process(self):
-        with patch('subprocess.run', side_effect=AssertionError('Unexpected process startup')), patch('factoria.web_app._apply_agent_paths', return_value={}):
+        with patch('subprocess.run', side_effect=AssertionError('Unexpected process startup')), patch('factoria.web.server._apply_agent_paths', return_value={}):
             for _ in range(4):
                 payload = _agent_payload()
                 self.assertEqual([p['name'] for p in payload], ['codex', 'opencode'])
@@ -51,7 +51,7 @@ class ExternalToolStartupTests(unittest.TestCase):
     def test_passive_tui_dashboard_never_probes_cli(self):
         with tempfile.TemporaryDirectory() as temp:
             ui = AgentAwareTerminalUI(Path(temp), output_fn=lambda _: None)
-            with patch('factoria.ui_project_flow.ProjectFlowTerminalUI._render_dashboard'), patch('subprocess.run', side_effect=AssertionError('No process')):
+            with patch('factoria.ui.project_flow.ProjectFlowTerminalUI._render_dashboard'), patch('subprocess.run', side_effect=AssertionError('No process')):
                 ui._render_dashboard()
 
 
@@ -61,7 +61,7 @@ class ExternalToolHttpTests(unittest.TestCase):
         self.home = Path(self.temp.name)
         self.home_patch = patch('pathlib.Path.home', return_value=self.home)
         self.home_patch.start()
-        self.settings_patch = patch('factoria.ui_workspace.UiWorkspaceSettings.load', return_value=UiWorkspaceSettings())
+        self.settings_patch = patch('factoria.ui.workspace.UiWorkspaceSettings.load', return_value=UiWorkspaceSettings())
         self.settings_patch.start()
         self.server = FactoriaHTTPServer(('127.0.0.1', 0), FactoriaN8NHandler)
         self.server.factoria_token = 'fixture-token'

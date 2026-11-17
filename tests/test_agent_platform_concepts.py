@@ -4,14 +4,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from factoria.application.agent_flow_runtime import LiveAgentFlowRunner
-from factoria.application.agent_profiles import (
+from factoria.application.workflows.agent_flow_runtime import LiveAgentFlowRunner
+from factoria.application.projects.agent_profiles import (
     AgentRoleProfile,
     load_agent_profiles,
     save_agent_profile,
 )
-from factoria.application.runtime_state import LiveFlowSession, RuntimeStage
-from factoria.application.workflow_presets import (
+from factoria.application.workflows.runtime_state import LiveFlowSession, RuntimeStage
+from factoria.application.projects.workflow_presets import (
     VisualWorkflowPreset,
     VisualWorkflowStep,
     preset_to_workflow,

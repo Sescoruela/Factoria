@@ -11,18 +11,18 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
-from factoria.application.agent_flow_runtime import LiveAgentFlowRunner
-from factoria.application.agent_profiles import AgentCatalogConflict, AgentRoleProfile, save_agent_profile
-from factoria.application.artifacts import FlowArtifactStore
-from factoria.application.project_integration import ProjectIntegration, project_definition
-from factoria.application.runtime_state import LiveFlowSession, RuntimeStage
-from factoria.application.workflow_presets import (
+from factoria.application.workflows.agent_flow_runtime import LiveAgentFlowRunner
+from factoria.application.projects.agent_profiles import AgentCatalogConflict, AgentRoleProfile, save_agent_profile
+from factoria.application.workflows.artifacts import FlowArtifactStore
+from factoria.application.projects.project_integration import ProjectIntegration, project_definition
+from factoria.application.workflows.runtime_state import LiveFlowSession, RuntimeStage
+from factoria.application.projects.workflow_presets import (
     WorkflowCatalogConflict, default_preset, load_preset, preset_to_workflow, save_preset,
     validate_preset, workflow_catalog_revision, workflow_snapshot, workflow_from_snapshot,
 )
 from factoria.orchestration.models import AgentRole
-from factoria.ui_workspace import UiWorkspaceSettings
-from factoria.web_app import FactoriaHTTPServer, FactoriaWebHandler, _workflow_payload
+from factoria.ui.workspace import UiWorkspaceSettings
+from factoria.web.server import FactoriaHTTPServer, FactoriaWebHandler, _workflow_payload
 
 
 def assigned(kind='feature', stage='review', identifier='api-reviewer'):
@@ -109,7 +109,7 @@ class WorkflowAgentAssignmentTests(unittest.TestCase):
             payload = json.loads(workflow_file.read_text(encoding='utf-8'))
             payload['feature'] = assigned().to_mapping()
             workflow_file.write_text(json.dumps(payload), encoding='utf-8')
-        with patch('factoria.application.agent_profiles.os.fsync', side_effect=assign_during_write):
+        with patch('factoria.application.projects.agent_profiles.os.fsync', side_effect=assign_during_write):
             with self.assertRaises(AgentCatalogConflict):
                 save_agent_profile(self.root, replace(self.agent, base_role='implementer'))
         self.assertEqual(agent_file.read_bytes(), before)
@@ -180,7 +180,7 @@ class WorkflowAgentAssignmentTests(unittest.TestCase):
                                              data=json.dumps(payload).encode(), headers={'X-Factoria-Token': 'fixture-token'})
                 with urllib.request.urlopen(req, timeout=3) as response:
                     return json.load(response)
-            with patch('factoria.web_app._state', side_effect=lambda: {'workflows': _workflow_payload(self.root)}):
+            with patch('factoria.web.server._state', side_effect=lambda: {'workflows': _workflow_payload(self.root)}):
                 response = request(assigned())
                 self.assertIn(self.agent.role, [a['role'] for a in response['state']['workflows']['feature']['agents']])
                 before = (self.root / '.factoria/workflows.json').read_bytes()

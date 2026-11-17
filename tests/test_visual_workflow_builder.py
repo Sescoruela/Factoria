@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from factoria.application.workflow_presets import (
+from factoria.application.projects.workflow_presets import (
     VisualWorkflowPreset,
     VisualWorkflowStep,
     default_preset,
@@ -12,7 +12,7 @@ from factoria.application.workflow_presets import (
     save_preset,
     validate_preset,
 )
-from factoria.web_app import _apply_workflow_defaults
+from factoria.web.server import _apply_workflow_defaults
 
 
 class VisualWorkflowPresetTests(unittest.TestCase):

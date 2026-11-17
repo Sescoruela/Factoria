@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from factoria.application.agent_profiles import (
+from factoria.application.projects.agent_profiles import (
     AgentCatalogConflict,
     AgentRoleProfile,
     save_agent_profile,
 )
-from factoria.application.project_integration import ProjectIntegration
-from factoria.application.skill_catalog import SkillCatalogConflict, SkillDefinition, save_skill
+from factoria.application.projects.project_integration import ProjectIntegration
+from factoria.application.projects.skill_catalog import (
+    SkillCatalogConflict,
+    SkillDefinition,
+    save_skill,
+)
 
 
 EDITOR_ROUTES = frozenset(

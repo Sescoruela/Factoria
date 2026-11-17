@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from factoria.adapters.base import AgentRequest
 from factoria.adapters.codex import CodexAdapter
-from factoria.application.agent_flow_runtime import (
+from factoria.application.workflows.agent_flow_runtime import (
     LiveAgentFlowError,
     LiveAgentFlowRunner,
     _model_router_from_environment,

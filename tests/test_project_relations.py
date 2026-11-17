@@ -13,16 +13,16 @@ import urllib.request
 import urllib.error
 
 from tools.acceptance_lab import prepare_project
-from factoria.application.project_relations import project_relations
-from factoria.application.project_integration import ProjectIntegration
-from factoria.application.agent_profiles import save_agent_profile, load_agent_profiles, AgentRoleProfile
-from factoria.application.skill_catalog import SkillDefinition, save_skill, skill_catalog_revision
-from factoria.application.resource_lifecycle import preview_resource, apply_resource
-from factoria.application.workflow_presets import save_preset, default_preset
-from factoria.project_cli import run_project_cli
-from factoria.ui_workspace import UiWorkspaceSettings
-from factoria.web_app import FactoriaHTTPServer, FactoriaWebHandler
-from factoria.web_app_n8n import FactoriaN8NHandler
+from factoria.application.projects.project_relations import project_relations
+from factoria.application.projects.project_integration import ProjectIntegration
+from factoria.application.projects.agent_profiles import save_agent_profile, load_agent_profiles, AgentRoleProfile
+from factoria.application.projects.skill_catalog import SkillDefinition, save_skill, skill_catalog_revision
+from factoria.application.projects.resource_lifecycle import preview_resource, apply_resource
+from factoria.application.projects.workflow_presets import save_preset, default_preset
+from factoria.commands.project import run_project_cli
+from factoria.ui.workspace import UiWorkspaceSettings
+from factoria.web.server import FactoriaHTTPServer, FactoriaWebHandler
+from factoria.web.main_shell import FactoriaN8NHandler
 
 
 class ProjectRelationsTests(unittest.TestCase):
@@ -122,7 +122,7 @@ class ProjectRelationsTests(unittest.TestCase):
         self.assertNotIn('PRIVATE DATA',json.dumps(graph));self.assertEqual(outside.read_bytes(),before)
 
     def test_source_changes_are_reported_inconsistent_and_never_written(self):
-        import factoria.application.project_relations as module
+        import factoria.application.projects.project_relations as module
         original=module._capture;calls=0
         def changing(root):
             nonlocal calls

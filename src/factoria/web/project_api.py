@@ -29,7 +29,7 @@ def handle_project_post(self, path: str) -> None:
         if project is None or data.get("project_path") != str(project):
             self._json({"error": "El proyecto cambió; volver a revisar"}, 409)
             return
-        from factoria.application.config_recovery import (
+        from factoria.application.projects.config_recovery import (
             config_status,
             preview_config,
             apply_config,
@@ -58,7 +58,7 @@ def handle_project_post(self, path: str) -> None:
         if project is None or data.get("project_path") != str(project):
             self._json({"error": "El proyecto cambió; vuelve a cargar las relaciones"}, 409)
             return
-        from factoria.application.project_relations import project_relations
+        from factoria.application.projects.project_relations import project_relations
 
         self._json({"ok": True, **project_relations(project)})
         return
@@ -74,7 +74,7 @@ def handle_project_post(self, path: str) -> None:
         raise ValueError("Tamaño de plantilla no válido o superior al permitido")
     data = self._body()
     if path in {"/api/resource/list", "/api/resource/preview", "/api/resource/apply"}:
-        from factoria.application.resource_lifecycle import (
+        from factoria.application.projects.resource_lifecycle import (
             resource_inventory,
             preview_resource,
             apply_resource,
@@ -102,7 +102,7 @@ def handle_project_post(self, path: str) -> None:
             self._json({"error": str(exc)}, 409)
         return
     if path in {"/api/template/export", "/api/template/preview", "/api/template/apply"}:
-        from factoria.application.project_templates import (
+        from factoria.application.projects.project_templates import (
             export_template,
             preview_template,
             apply_template,

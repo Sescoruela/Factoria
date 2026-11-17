@@ -1,26 +1,31 @@
 # Refactor transversal — 07/11/2026
 
-La entrega separa el formato mecánico de la reorganización de responsabilidades.
-No cambia los comandos, esquemas persistidos, autorizaciones ni el arranque externo
-de proveedores. H05/H06/H11 mantienen sus comprobaciones pendientes y Actions
-permanece deshabilitado.
+La entrega del 07/11 separó el formato mecánico de la reorganización de responsabilidades.
+La del 17/11 agrupó los módulos por responsabilidad y compartió la capa HTTP de ambas
+vistas. Ambas conservaron los comandos, esquemas persistidos, autorizaciones y el
+arranque externo de proveedores. El [estado del proyecto](project-status.md) recoge
+las comprobaciones de aceptación pendientes.
 
-## Estructura resultante
+## Estructura actual
 
 | Responsabilidad | Ubicación |
 | --- | --- |
 | Rutas contenidas en el proyecto, symlinks y unidades Windows | `factoria/project_paths.py` |
 | Staging y publicación de bytes, creación exclusiva y sincronización | `factoria/storage.py` |
 | Parseo del marcador de esquema | `factoria/config/schema.py` |
-| Bloqueo de escritura por esquema/recuperación pendiente | `application/config_schema.py` |
-| Bloqueos compartidos y su orden | `application/resource_locks.py` |
-| Serialización de recursos, hashes, revisión y detección de secretos | `application/resource_support.py` |
+| Bloqueo de escritura por esquema/recuperación pendiente | `application/projects/config_schema.py` |
+| Bloqueos compartidos y su orden | `application/projects/resource_locks.py` |
+| Serialización de recursos, hashes, revisión y detección de secretos | `application/projects/resource_support.py` |
 | Contrato `MemoryChange` | `domain/models.py` |
-| Parser y acciones CLI independientes | `project_cli.py` |
+| Parser y acciones CLI independientes | `commands/project.py` |
 | Endpoints de editores | `web/editor_api.py` |
 | Endpoints de recursos, plantillas, relaciones y recuperación | `web/project_api.py` |
 | Composición de estado | `web/editor_state.py` |
-| Arranque del servidor local y autenticación | `web_app.py`, reutilizado por ambos shells |
+| Arranque del servidor local y autenticación | `web/server.py`, reutilizado por ambos shells |
+| Catálogos, recursos, memoria y configuración de proyectos | `application/projects/` |
+| Ejecución, revisión, persistencia e historial | `application/workflows/` |
+| Detección, configuración local y actualización | `application/environment/` |
+| Adaptadores de comandos, terminal y escritorio | `commands/` y `ui/` |
 | Consulta compartida de borradores/guardados | `web/editor-state.js` |
 
 Configuración y memoria ya no importan servicios de aplicación. Las comprobaciones
@@ -64,7 +69,7 @@ Para aplicar formato: `ruff format src tools packaging` y
 referencias indefinidas y variables usadas antes de asignarse; no es un análisis de
 tipos completo ni una auditoría de seguridad.
 
-## Evidencia
+## Evidencia de la entrega del 07/11/2026
 
 - Baseline: 398 unittest y 25/25 Chromium correctos.
 - Pasada solo de formato: 398 unittest y 25/25 Chromium correctos; AST sin cambios.
@@ -81,3 +86,13 @@ Resumen con versiones y hashes en
 Navegador local: Chromium headless 153.0.8010.0 temporal con Playwright 1.62.1.
 Sin CI remoto, Windows, auditoría visual/accesibilidad ni aceptación nueva de LLM.
 No se presenta un refactor como prueba de cierre del MVP o como una release publicada.
+
+## Verificación de la estructura del 17/11/2026
+
+- Paquete wheel instalado en un entorno local aislado con Python 3.12.
+- 418 pruebas de Python y 33 casos de Playwright con Chromium correctos, incluidos
+  los de autenticación de ambas vistas y guardado concurrente de recursos.
+- Ruff y Prettier correctos. La prueba de arquitectura busca dependencias de la
+  aplicación hacia las interfaces y comprueba los imports antiguos que se conservan.
+- Ejecutable Linux de PyInstaller comprobado con `--version`, `project --help`
+  y peticiones HTTP a la vista, sus assets y la API autenticada.

@@ -11,16 +11,16 @@ from unittest.mock import patch
 import urllib.request
 import urllib.error
 
-from factoria.application import config_recovery as recovery
-from factoria.application.config_schema import schema_version
-from factoria.application.agent_profiles import AgentRoleProfile, save_agent_profile, load_agent_profiles, agent_catalog_revision
-from factoria.application.skill_catalog import SkillDefinition, save_skill, skill_catalog_revision
-from factoria.application.workflow_presets import default_preset, save_preset
-from factoria.application.project_integration import ProjectIntegration
-from factoria.project_cli import run_project_cli
-from factoria.ui_workspace import UiWorkspaceSettings
-from factoria.web_app import FactoriaHTTPServer, FactoriaWebHandler
-from factoria.web_app_n8n import FactoriaN8NHandler
+from factoria.application.projects import config_recovery as recovery
+from factoria.application.projects.config_schema import schema_version
+from factoria.application.projects.agent_profiles import AgentRoleProfile, save_agent_profile, load_agent_profiles, agent_catalog_revision
+from factoria.application.projects.skill_catalog import SkillDefinition, save_skill, skill_catalog_revision
+from factoria.application.projects.workflow_presets import default_preset, save_preset
+from factoria.application.projects.project_integration import ProjectIntegration
+from factoria.commands.project import run_project_cli
+from factoria.ui.workspace import UiWorkspaceSettings
+from factoria.web.server import FactoriaHTTPServer, FactoriaWebHandler
+from factoria.web.main_shell import FactoriaN8NHandler
 
 
 class ConfigRecoveryTests(unittest.TestCase):
@@ -100,8 +100,8 @@ class ConfigRecoveryTests(unittest.TestCase):
         with patch.object(recovery,'_write',side_effect=fail):
             with self.assertRaisesRegex(ValueError,'interrumpida'):recovery.apply_config(self.root,'migrate',token=plan['token'],confirmed=True)
         pending=recovery.pending_recoveries(self.root);self.assertEqual(len(pending),1)
-        from factoria.application.project_templates import apply_template
-        from factoria.application.resource_lifecycle import apply_resource
+        from factoria.application.projects.project_templates import apply_template
+        from factoria.application.projects.resource_lifecycle import apply_resource
         for call in (lambda:apply_template(self.root,{},expected_token='',confirmed=True),lambda:apply_resource(self.root,{},token='',confirmed=True),lambda:save_agent_profile(self.root,AgentRoleProfile('reviewer','rapido')),lambda:ProjectIntegration(self.root).apply(confirmed=True),lambda:save_skill(self.root,SkillDefinition('test','Test','','hello'),expected_revision=skill_catalog_revision(self.root),create=True)):
             with self.assertRaisesRegex(ValueError,'pendiente'):call()
         self.apply('restore',pending[0]);self.assertEqual(self.files(),before);self.assertEqual(recovery.pending_recoveries(self.root),[])
@@ -187,7 +187,7 @@ class ConfigRecoveryTests(unittest.TestCase):
     def test_real_native_snapshot_and_memory_survive_migration_and_restore(self):
         import sys
         from tools.acceptance_lab import prepare_project
-        from factoria.application.native_workflow import NativeWorkflow
+        from factoria.application.workflows.native_workflow import NativeWorkflow
         self.root=Path(self.temp.name)/'native-project'
         prepare_project(self.root,'chatgpt-checkout','feature',sys.executable)
         flow=NativeWorkflow(self.root).start('feature-lab','Conservar snapshot','codex')

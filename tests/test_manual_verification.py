@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from factoria.application.manual_verification import (
+from factoria.application.workflows.manual_verification import (
     inspect_manual_verification,
     record_manual_verification,
 )

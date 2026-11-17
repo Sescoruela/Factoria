@@ -6,9 +6,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from factoria.ui_app import ManagedTerminalUI
-from factoria.ui_workspace import UiWorkspaceSettings, discover_projects, project_root
-from factoria.web_app import _save_selected_project, _selected_project
+from factoria.ui.desktop import ManagedTerminalUI
+from factoria.ui.workspace import UiWorkspaceSettings, discover_projects, project_root
+from factoria.web.server import _save_selected_project, _selected_project
 
 
 class ProjectDiscoveryTests(unittest.TestCase):

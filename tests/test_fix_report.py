@@ -1,7 +1,7 @@
 import unittest
 
-from factoria.application.fix_flow import FixRun
-from factoria.application.reporting import FixReportRenderer
+from factoria.application.workflows.fix_flow import FixRun
+from factoria.application.workflows.reporting import FixReportRenderer
 from factoria.domain.fix import (
     ChangeScope,
     FixTask,

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from factoria.application.execution import (
+from factoria.application.workflows.execution import (
     CommandExecution,
     ExecutionMode,
     SafeCheckExecutor,

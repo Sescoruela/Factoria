@@ -13,10 +13,10 @@ Configurar y mantener agentes, instrucciones, skills, flujos, políticas y memor
 - **config**: `src/factoria/config/`
 - **plugins**: `src/factoria/plugins/`
 - **memory**: `src/factoria/memory/`
-- **application**: `src/factoria/application/`
+- **application**: servicios de proyectos, ejecución de workflows y entorno local en `src/factoria/application/`.
 - **adapters**: `src/factoria/adapters/`
 - **orchestration**: `src/factoria/orchestration/`
-- **interfaces**: `src/factoria/entrypoint.py`, `src/factoria/project_cli.py`, `src/factoria/web_app_n8n.py`
+- **interfaces**: `src/factoria/entrypoint.py` y paquetes `src/factoria/commands/`, `src/factoria/ui/` y `src/factoria/web/`.
 
 ## Comandos confirmados
 - **test**: `python -m unittest discover -s tests`

@@ -7,7 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from factoria.ui_agent_tools import AgentAwareTerminalUI
+from factoria.ui.agent_tools import AgentAwareTerminalUI
 
 
 class AgentToolUiTests(unittest.TestCase):
@@ -17,7 +17,7 @@ class AgentToolUiTests(unittest.TestCase):
             output: list[str] = []
             ui = AgentAwareTerminalUI(root, output_fn=output.append, command_runner=lambda _args: 0)
             with patch.object(AgentAwareTerminalUI.__mro__[1], "_render_dashboard", return_value=None), patch(
-                "factoria.ui_agent_tools.tool_presence", return_value=[{"name": "codex", "available": True}, {"name": "opencode", "available": False}]
+                "factoria.ui.agent_tools.tool_presence", return_value=[{"name": "codex", "available": True}, {"name": "opencode", "available": False}]
             ):
                 ui._render_dashboard()
 
@@ -32,7 +32,7 @@ class AgentToolUiTests(unittest.TestCase):
             answers = iter(['1', 's'])
             ui = AgentAwareTerminalUI(root, input_fn=lambda _: next(answers), output_fn=lambda _: None,
                                       command_runner=lambda _: self.fail('No UI CLI initialization'))
-            with patch('pathlib.Path.home', return_value=root), patch('factoria.ui_agent_tools.SetupService.inspect_tools', side_effect=AssertionError('No probe')):
+            with patch('pathlib.Path.home', return_value=root), patch('factoria.ui.agent_tools.SetupService.inspect_tools', side_effect=AssertionError('No probe')):
                 ui._configure_agents()
             self.assertIn('default_tool = "codex"', (root / '.factoria/config.toml').read_text())
 
@@ -51,8 +51,8 @@ class AgentToolUiTests(unittest.TestCase):
             status = SimpleNamespace(name="codex", passed=True, available=True, checks=())
             original_path = os.environ.get("PATH", "")
             try:
-                with patch("factoria.ui_agent_tools._save_agent_paths"), patch(
-                    "factoria.ui_agent_tools.SetupService.inspect_tools", return_value=(status,)
+                with patch("factoria.ui.agent_tools._save_agent_paths"), patch(
+                    "factoria.ui.agent_tools.SetupService.inspect_tools", return_value=(status,)
                 ):
                     ui._configure_agent_path()
                 self.assertEqual(ui.agent_paths["codex"], str(executable.resolve()))

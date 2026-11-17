@@ -6,7 +6,7 @@ import urllib.error
 import urllib.request
 from importlib.resources import files
 
-from factoria.web_app import FactoriaHTTPServer, FactoriaWebHandler, _run_factoria_command
+from factoria.web.server import FactoriaHTTPServer, FactoriaWebHandler, _run_factoria_command
 
 
 class WebAssetTests(unittest.TestCase):

@@ -5,9 +5,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from factoria.application.artifacts import FlowWorkspace
-from factoria.application.flow_service import FlowExecution
-from factoria.application.runtime_state import (
+from factoria.application.workflows.artifacts import FlowWorkspace
+from factoria.application.workflows.flow_service import FlowExecution
+from factoria.application.workflows.runtime_state import (
     LiveFlowSession,
     RuntimeStage,
     RuntimeStateError,

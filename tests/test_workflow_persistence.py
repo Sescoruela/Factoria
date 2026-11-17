@@ -12,12 +12,12 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
-from factoria.application.workflow_presets import (
+from factoria.application.projects.workflow_presets import (
     WorkflowCatalogConflict, default_preset, load_preset, save_preset,
     workflow_catalog_revision, workflow_catalog_snapshot,
 )
-from factoria.ui_workspace import UiWorkspaceSettings
-from factoria.web_app import FactoriaHTTPServer, FactoriaWebHandler, _workflow_payload
+from factoria.ui.workspace import UiWorkspaceSettings
+from factoria.web.server import FactoriaHTTPServer, FactoriaWebHandler, _workflow_payload
 
 
 def with_profile(preset, stage, profile):
@@ -60,7 +60,7 @@ class WorkflowPersistenceTests(unittest.TestCase):
         path = save_preset(self.root, default_preset('feature'))
         before = path.read_bytes()
         files = set(path.parent.iterdir())
-        with patch('factoria.application.workflow_presets.os.replace', side_effect=OSError('disk failure')):
+        with patch('factoria.application.projects.workflow_presets.os.replace', side_effect=OSError('disk failure')):
             with self.assertRaises(OSError):
                 save_preset(self.root, with_profile(default_preset('feature'), 'implement', 'rapido'))
         self.assertEqual(before, path.read_bytes())
@@ -73,7 +73,7 @@ class WorkflowPersistenceTests(unittest.TestCase):
         def external_edit(fd):
             real_fsync(fd)
             path.write_text(external, encoding='utf-8')
-        with patch('factoria.application.workflow_presets.os.fsync', side_effect=external_edit):
+        with patch('factoria.application.projects.workflow_presets.os.fsync', side_effect=external_edit):
             with self.assertRaises(WorkflowCatalogConflict):
                 save_preset(self.root, with_profile(default_preset('fix'), 'implement', 'potente'))
         self.assertEqual(path.read_text(encoding='utf-8'), external)
@@ -134,7 +134,7 @@ class WorkflowPersistenceTests(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as caught:
                 request(payload, False)
             self.assertEqual(caught.exception.code, 403)
-            with patch('factoria.web_app._state', return_value={}):
+            with patch('factoria.web.server._state', return_value={}):
                 self.assertTrue(request(payload)['ok'])
                 before = (self.root / '.factoria/workflows.json').read_bytes()
                 with self.assertRaises(urllib.error.HTTPError) as caught:

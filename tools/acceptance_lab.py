@@ -11,12 +11,16 @@ from datetime import date
 from importlib.metadata import version
 from pathlib import Path
 
-from factoria.application.agent_profiles import AgentRoleProfile, save_agent_profile
-from factoria.application.history import LocalExecutionHistoryStore
-from factoria.application.native_workflow import NativeWorkflow
-from factoria.application.project_integration import ProjectIntegration
-from factoria.application.skill_catalog import SkillDefinition, save_skill, skill_catalog_revision
-from factoria.application.workflow_presets import default_preset, save_preset
+from factoria.application.projects.agent_profiles import AgentRoleProfile, save_agent_profile
+from factoria.application.workflows.history import LocalExecutionHistoryStore
+from factoria.application.workflows.native_workflow import NativeWorkflow
+from factoria.application.projects.project_integration import ProjectIntegration
+from factoria.application.projects.skill_catalog import (
+    SkillDefinition,
+    save_skill,
+    skill_catalog_revision,
+)
+from factoria.application.projects.workflow_presets import default_preset, save_preset
 from factoria.domain.models import ConfirmedCommand, MemoryMetadata, ProjectKind, ProjectMemory
 from factoria.memory.filesystem import write_initial_memory
 

@@ -6,7 +6,7 @@ from dataclasses import replace
 from datetime import date
 from pathlib import Path
 
-from factoria.application.memory_flows import MemoryChange, MemoryUpdateFlow
+from factoria.application.projects.memory_flows import MemoryChange, MemoryUpdateFlow
 from factoria.domain.models import MemoryMetadata, ProjectKind, ProjectMemory
 
 

@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from factoria.ui_cli import TerminalUI, _slug, build_parser
+from factoria.ui.terminal import TerminalUI, _slug, build_parser
 
 
 class TerminalUiTests(unittest.TestCase):

@@ -1,16 +1,16 @@
 """Shared editor-state composition for both HTTP shells."""
 
-from factoria.application.agent_profiles import agent_catalog_snapshot
-from factoria.application.engineering_templates import (
+from factoria.application.projects.agent_profiles import agent_catalog_snapshot
+from factoria.application.projects.engineering_templates import (
     API_MIGRATION,
     INTEGRATION_PLANNER,
     PRODUCTION_DIAGNOSTICS,
     SQL_DIAGNOSTICS,
 )
-from factoria.application.product_design import PRODUCT_DESIGNER, SKILL_TEMPLATES
-from factoria.application.skill_catalog import skill_catalog_snapshot
-from factoria.application.project_integration import ProjectIntegration
-from factoria.application.visual_agents import visual_agent_templates
+from factoria.application.projects.product_design import PRODUCT_DESIGNER, SKILL_TEMPLATES
+from factoria.application.projects.skill_catalog import skill_catalog_snapshot
+from factoria.application.projects.project_integration import ProjectIntegration
+from factoria.application.projects.visual_agents import visual_agent_templates
 
 
 def enrich_editor_state(payload: dict, project) -> dict[str, object]:

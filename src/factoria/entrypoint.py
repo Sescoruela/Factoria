@@ -4,7 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from factoria.application.self_update import UpdateError, UpdateService
+from factoria.application.environment.self_update import UpdateError, UpdateService
 from factoria.package_version import PackageVersionError, installed_semver
 from factoria.versioning import SemVer
 
@@ -68,45 +68,45 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if not argv:
-        from factoria.web_app_n8n import run_web_ui
+        from factoria.web.main_shell import run_web_ui
 
         return run_web_ui()
 
     command = _primary_command(argv)
     if command in {"project", "native"}:
-        from factoria.project_cli import run_project_cli
+        from factoria.commands.project import run_project_cli
 
         return run_project_cli(argv)
     if command in {"ui", "web"}:
-        from factoria.web_app_n8n import run_web_ui
+        from factoria.web.main_shell import run_web_ui
 
         return run_web_ui()
     if command == "tui":
-        from factoria.ui_agent_tools import run_agent_aware_ui_cli
+        from factoria.ui.agent_tools import run_agent_aware_ui_cli
 
         return run_agent_aware_ui_cli(["ui"])
     if command == "onboarding":
-        from factoria.ui_agent_tools import run_agent_aware_ui_cli
+        from factoria.ui.agent_tools import run_agent_aware_ui_cli
 
         return run_agent_aware_ui_cli(argv)
     if command == "memoria-init":
-        from factoria.memory_bootstrap_cli import run_memory_init_cli
+        from factoria.commands.memory_bootstrap import run_memory_init_cli
 
         return run_memory_init_cli(argv)
     if command == "status":
-        from factoria.status_cli import run_status_cli
+        from factoria.commands.status import run_status_cli
 
         return run_status_cli(argv)
     if command == "plugins":
-        from factoria.plugins_cli import run_plugins_cli
+        from factoria.commands.plugins import run_plugins_cli
 
         return run_plugins_cli(argv)
     if command == "security":
-        from factoria.security_cli import run_security_cli
+        from factoria.commands.security import run_security_cli
 
         return run_security_cli(argv)
     if command in {"resume", "cancel"}:
-        from factoria.robust_lifecycle_cli import run_robust_lifecycle_cli
+        from factoria.commands.recovery import run_robust_lifecycle_cli
 
         return run_robust_lifecycle_cli(argv)
     if argv[0] not in {"update", "rollback"}:

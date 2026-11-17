@@ -1,14 +1,14 @@
 """Application-layer orchestration for Factoria."""
 
-from .agent_flow_runtime import (
+from factoria.application.workflows.agent_flow_runtime import (
     LiveAgentFlowError,
     LiveAgentFlowRunner,
     LiveFlowSession,
     build_live_runner,
     default_live_orchestrator,
 )
-from .artifacts import FlowArtifactStore, FlowWorkspace
-from .execution import (
+from factoria.application.workflows.artifacts import FlowArtifactStore, FlowWorkspace
+from factoria.application.workflows.execution import (
     CommandExecution,
     ExecutionMode,
     SafeCheckExecutor,
@@ -16,11 +16,15 @@ from .execution import (
     SafeCheckSummary,
     SubprocessCommandRunner,
 )
-from .feature_flow import FeatureFlowError, FeatureRun
-from .fix_flow import FixFlowError, FixRun
-from .flow_service import FlowExecution, FlowService
-from .memory_flows import MemoryInitFlow, MemoryUpdateFlow, MemoryUpdateProposal
-from .quality import (
+from factoria.application.workflows.feature_flow import FeatureFlowError, FeatureRun
+from factoria.application.workflows.fix_flow import FixFlowError, FixRun
+from factoria.application.workflows.flow_service import FlowExecution, FlowService
+from factoria.application.projects.memory_flows import (
+    MemoryInitFlow,
+    MemoryUpdateFlow,
+    MemoryUpdateProposal,
+)
+from factoria.application.workflows.quality import (
     CheckPlan,
     CheckPlanner,
     CheckSpec,
@@ -30,7 +34,7 @@ from .quality import (
     VerificationDecision,
     VerificationGate,
 )
-from .reporting import FixReportRenderer
+from factoria.application.workflows.reporting import FixReportRenderer
 
 __all__ = [
     "CheckPlan",

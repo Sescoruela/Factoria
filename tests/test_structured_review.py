@@ -6,10 +6,10 @@ import unittest
 from pathlib import Path
 
 from factoria.adapters.base import AgentResult
-from factoria.application.agent_flow_runtime import LiveAgentFlowRunner, LiveFlowSession
-from factoria.application.artifacts import FlowArtifactStore
-from factoria.application.review_runtime import ReviewParseError, parse_structured_review
-from factoria.application.runtime_state import RuntimeStage
+from factoria.application.workflows.agent_flow_runtime import LiveAgentFlowRunner, LiveFlowSession
+from factoria.application.workflows.artifacts import FlowArtifactStore
+from factoria.application.workflows.review_runtime import ReviewParseError, parse_structured_review
+from factoria.application.workflows.runtime_state import RuntimeStage
 from factoria.domain.models import ProjectMemory
 from factoria.orchestration import AgentRole, AgentWorkflowPlanner, ModelProfile
 from factoria.orchestration.models import AgentAttemptTrace, AgentStageTrace

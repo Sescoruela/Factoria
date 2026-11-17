@@ -6,7 +6,7 @@ from pathlib import Path
 
 from factoria.adapters.base import AgentRequest, AgentResult, ToolCapability
 from factoria.adapters.capability_matrix import load_builtin_capability_matrix
-from factoria.application.setup import SetupError, SetupService
+from factoria.application.environment.setup import SetupError, SetupService
 from factoria.config.loader import load_global_config
 from factoria.domain.models import CheckResult
 from factoria.domain.permissions import PermissionProfile

@@ -7,11 +7,11 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from factoria.application.artifacts import FlowArtifactStore
-from factoria.application.final_report import parse_agent_metrics, render_final_report
-from factoria.application.flow_service import FlowService
-from factoria.application.history import LocalExecutionHistoryStore
-from factoria.application.state_store import LocalFlowStateStore
+from factoria.application.workflows.artifacts import FlowArtifactStore
+from factoria.application.workflows.final_report import parse_agent_metrics, render_final_report
+from factoria.application.workflows.flow_service import FlowService
+from factoria.application.workflows.history import LocalExecutionHistoryStore
+from factoria.application.workflows.state_store import LocalFlowStateStore
 
 
 def git(root: Path, *args: str) -> str:

@@ -1,6 +1,6 @@
 import unittest
 
-from factoria.application.feature_flow import FeatureFlowError, FeatureRun
+from factoria.application.workflows.feature_flow import FeatureFlowError, FeatureRun
 from factoria.domain.feature import AcceptanceCriterion, FeatureOutcome, FeaturePlan, FeatureTask, FeaturePhase
 from factoria.domain.fix import FindingSeverity, ReviewFinding, ReviewResult, VerificationResult
 

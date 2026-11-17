@@ -6,8 +6,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from factoria.ui_project_flow import ProjectFlowTerminalUI
-from factoria.ui_workspace import UiWorkspaceSettings
+from factoria.ui.project_flow import ProjectFlowTerminalUI
+from factoria.ui.workspace import UiWorkspaceSettings
 
 
 class ProjectPostCreateFlowTests(unittest.TestCase):
@@ -49,9 +49,9 @@ class ProjectPostCreateFlowTests(unittest.TestCase):
             ui.workspace_settings = UiWorkspaceSettings(projects_root=projects_root, last_project=None)
 
             completed = subprocess.CompletedProcess(args=["git"], returncode=0, stdout="", stderr="")
-            with patch("factoria.ui_project_flow.shutil.which", return_value="git"), patch(
-                "factoria.ui_project_flow.subprocess.run", return_value=completed
-            ), patch("factoria.ui_project_flow.UiWorkspaceSettings.save", autospec=True):
+            with patch("factoria.ui.project_flow.shutil.which", return_value="git"), patch(
+                "factoria.ui.project_flow.subprocess.run", return_value=completed
+            ), patch("factoria.ui.project_flow.UiWorkspaceSettings.save", autospec=True):
                 created = ui._create_project_and_prepare()
 
             self.assertTrue(created)
@@ -81,9 +81,9 @@ class ProjectPostCreateFlowTests(unittest.TestCase):
             ui.workspace_settings = UiWorkspaceSettings(projects_root=projects_root, last_project=None)
 
             completed = subprocess.CompletedProcess(args=["git"], returncode=0, stdout="", stderr="")
-            with patch("factoria.ui_project_flow.shutil.which", return_value="git"), patch(
-                "factoria.ui_project_flow.subprocess.run", return_value=completed
-            ), patch("factoria.ui_project_flow.UiWorkspaceSettings.save", autospec=True):
+            with patch("factoria.ui.project_flow.shutil.which", return_value="git"), patch(
+                "factoria.ui.project_flow.subprocess.run", return_value=completed
+            ), patch("factoria.ui.project_flow.UiWorkspaceSettings.save", autospec=True):
                 created = ui._create_project_and_prepare()
 
             self.assertTrue(created)
