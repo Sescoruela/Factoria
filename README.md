@@ -61,6 +61,7 @@ Usa el laboratorio o ejemplos anonimizados. [Issues](https://github.com/Sescorue
 
 - [Manual de uso y resolución de problemas](docs/manual-de-uso.md)
 - [Integración con Codex, OpenCode y ChatGPT](docs/direct-project-integration.md)
+- [Memoria en grafo y recuperación de contexto](docs/memory-graph.md)
 - [Referencia del CLI](docs/cli.md)
 - [Protocolo de pruebas externas](docs/acceptance/h05-protocol.md)
 - [Proceso de compilación y distribución](docs/release-process.md)

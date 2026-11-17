@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -24,6 +25,15 @@ def build_project_parser() -> argparse.ArgumentParser:
     project.add_parser("check", help="Check freshness and ownership without calling an LLM")
     project.add_parser("workflows", help="List configured workflow identifiers and base types")
     project.add_parser("relations", help="Read-only workflow, stage, agent and skill relationships")
+    graph = project.add_parser(
+        "memory-graph", help="Build or query the local project memory graph"
+    ).add_subparsers(dest="graph_action", required=True)
+    graph.add_parser("build", help="Index the project memory in local Git metadata")
+    recall = graph.add_parser("recall", help="Find relevant nodes and their neighbors")
+    recall.add_argument("query")
+    recall.add_argument("--limit", type=int, default=8)
+    export = graph.add_parser("export", help="Print the graph topology")
+    export.add_argument("--format", choices=("json", "mermaid"), default="json")
     configuration = project.add_parser(
         "config", help="Inspect, migrate and recover saved configuration"
     ).add_subparsers(dest="config_action", required=True)
@@ -78,6 +88,42 @@ def build_project_parser() -> argparse.ArgumentParser:
         if name == "cancel":
             command.add_argument("--yes", action="store_true")
     return parser
+
+
+def _run_memory_graph(args, root: Path) -> int:
+    from factoria.application.governance import ExecutionGovernor, GovernedAction
+    from factoria.application.policy_runtime import build_execution_context
+    from factoria.memory.graph import build_memory_graph, graph_mermaid, read_memory_graph
+    from factoria.project_paths import project_path
+
+    context = build_execution_context(root)
+    governor = ExecutionGovernor()
+    governor.assert_allowed(GovernedAction.READ, context)
+    git_dir = Path(
+        subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "--absolute-git-dir"],
+            text=True,
+            encoding="utf-8",
+        ).strip()
+    ).resolve()
+    relative = "factoria/memory-graph.sqlite3"
+    database = project_path(git_dir, relative)
+    for suffix in ("-journal", "-wal", "-shm"):
+        project_path(git_dir, relative + suffix)
+    if args.graph_action == "build":
+        if args.read_only:
+            raise PermissionError("Modo solo lectura: generación del grafo bloqueada")
+        governor.assert_allowed(GovernedAction.WRITE, context)
+        result = build_memory_graph(root, database)
+    else:
+        result = read_memory_graph(
+            database, query=getattr(args, "query", None), limit=getattr(args, "limit", 8)
+        )
+    if getattr(args, "format", None) == "mermaid":
+        print(graph_mermaid(result))
+    else:
+        print(json.dumps(result, ensure_ascii=True, separators=(",", ":")))
+    return 0
 
 
 def _run_config(args, root: Path) -> int:
@@ -274,12 +320,13 @@ def run_project_cli(argv: list[str]) -> int:
         if args.command == "project":
             handlers = {
                 "config": _run_config,
+                "memory-graph": _run_memory_graph,
                 "relations": _run_relations,
                 "resources": _run_resources,
                 "templates": _run_templates,
             }
             return handlers.get(args.action, _run_integration)(args, root)
         return _run_native(args, root)
-    except (ValueError, OSError, RuntimeError, subprocess.CalledProcessError) as exc:
+    except (ValueError, OSError, RuntimeError, sqlite3.Error, subprocess.CalledProcessError) as exc:
         print(json.dumps({"error": str(exc)}, ensure_ascii=True), file=sys.stderr)
         return 1

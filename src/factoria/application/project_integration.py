@@ -122,6 +122,10 @@ Si la integración está desactualizada, pedir regenerarla; no usar instruccione
 1. Leer `AGENTS.md`, aplicar la skill compartida `{CONTEXT_GUIDE}` durante todo
    el flujo y consultar solo la memoria relevante de `docs/memoria/`. Si el
    contexto portable ya incluye la skill, usar esa copia.
+   Si necesitas recuperar contexto de sesiones anteriores, consulta el índice
+   local con `factoria --read-only project memory-graph recall "<tema>" --limit 5`.
+   Si falta el índice o el comando, consulta directamente la memoria versionada.
+   Comprueba las fuentes citadas antes de basar un cambio en el resultado.
 2. Ejecutar `factoria native --compact start {kind} --tool <codex|opencode> --task "<petición>"`.
    Requiere una rama de trabajo y árbol limpio. Pedir crear/cambiar rama si procede.
    Este comando prepara el seguimiento local; NO inicia otro LLM.

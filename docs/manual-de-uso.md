@@ -103,6 +103,10 @@ Economía de contexto se incorpora al preparar la integración. Las guías indic
 consultar el contexto relevante y usar `native --compact`. La salida compacta
 conserva los datos del flujo. El consumo real depende de la sesión.
 
+Si quieres recuperar contexto entre sesiones, genera el [grafo de memoria](memory-graph.md)
+con `factoria project memory-graph build`. Puedes consultar decisiones y módulos
+relacionados con `factoria project memory-graph recall "tema"`.
+
 ## 4. Seguir el flujo
 
 La sesión ejecuta `factoria native` y recibe la etapa y el archivo de evidencia.

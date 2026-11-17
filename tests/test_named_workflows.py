@@ -137,6 +137,7 @@ class NamedWorkflowTests(unittest.TestCase):
                 f'.opencode/commands/factoria-{identifier}.md',
             ):
                 self.assertIn(context_path, plan.files[path])
+                self.assertIn("project memory-graph recall", plan.files[path])
                 self.assertIn(f'factoria native --compact start {identifier} --tool', plan.files[path])
         bundle = plan.files['.factoria/generated/chatgpt-context.md']
         self.assertEqual(bundle.count(plan.files[context_path]), 1)
