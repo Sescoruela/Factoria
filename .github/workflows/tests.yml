@@ -1,8 +1,6 @@
 name: Tests
 
 on:
-  push:
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -14,6 +12,10 @@ concurrency:
 
 jobs:
   unittest:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.actor == 'Sescoruela' &&
+      github.triggering_actor == 'Sescoruela'
     name: ${{ matrix.os }} / Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10

@@ -1,10 +1,6 @@
 name: Browser smoke
 
-# Repository Actions remain disabled until the user explicitly re-enables them.
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -16,6 +12,10 @@ concurrency:
 
 jobs:
   chromium:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.actor == 'Sescoruela' &&
+      github.triggering_actor == 'Sescoruela'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

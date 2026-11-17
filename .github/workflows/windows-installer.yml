@@ -1,22 +1,6 @@
 name: Windows installer
 
 on:
-  push:
-    paths:
-      - "src/**"
-      - "packaging/windows/**"
-      - "pyproject.toml"
-      - "tools/release_artifacts.py"
-      - "tools/acceptance_lab.py"
-      - ".github/workflows/windows-installer.yml"
-  pull_request:
-    paths:
-      - "src/**"
-      - "packaging/windows/**"
-      - "pyproject.toml"
-      - "tools/release_artifacts.py"
-      - "tools/acceptance_lab.py"
-      - ".github/workflows/windows-installer.yml"
   workflow_dispatch:
 
 permissions:
@@ -28,6 +12,10 @@ concurrency:
 
 jobs:
   build-installer:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.actor == 'Sescoruela' &&
+      github.triggering_actor == 'Sescoruela'
     name: Build Windows installer
     runs-on: windows-latest
     timeout-minutes: 20

@@ -53,8 +53,8 @@ Las reglas obligatorias no se ignoran automáticamente aunque el código actual 
 - Estructura, límites de capas y desarrollo: `docs/code-refactor.md`. Comprobar Ruff y Prettier además de las pruebas; conservar los contratos compartidos de rutas, bloqueos y staging.
 - Capa visual y navegación: `docs/interface-refresh.md`; `interface.css/js` compartidos por ambas vistas. Conservar teclado, menú móvil, contexto real y borradores.
 - Frontend: `docs/frontend.md`; lógica en assets, servicios de edición compartidos y vista principal n8n.
-- Smoke real y evidencia local/CI pendiente: `docs/browser-smoke.md`. Node/Playwright solo son dependencias de desarrollo; no reactivar Actions para ejecutar la suite.
+- Smoke real y evidencia local/CI pendiente: `docs/browser-smoke.md`. Node/Playwright solo son dependencias de desarrollo.
 - No confundir las pruebas deterministas con aceptación en una sesión real de Codex/OpenCode.
 - Estado vigente y límites: `docs/project-status.md`. Código 0.3.0 preparado; no hay release publicada ni aceptación externa completa.
-- GitHub Actions está deshabilitado por petición del usuario hasta nuevo aviso; no reactivarlo como parte de una tarea.
+- GitHub Actions está habilitado con lanzamiento exclusivamente manual. Los workflows de este repositorio comprueban que tanto el actor original como quien solicita la ejecución sean `Sescoruela`.
 - Al cerrar hitos, actualizar guías, evidencia fechada, checklist, roadmap e issues. H05/H06 permanecen abiertos; no trasladar estados antiguos al presente.
