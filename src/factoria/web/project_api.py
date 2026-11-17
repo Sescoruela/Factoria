@@ -4,9 +4,6 @@ Authentication stays at the server boundary; each feature retains its project an
 revision checks. No shell-specific handler imports or provider startup.
 """
 
-from factoria.ui_workspace import UiWorkspaceSettings
-from factoria.web_app import _selected_project
-
 PROJECT_RESOURCE_ROUTES = frozenset(
     {
         "/api/config/status",
@@ -28,7 +25,7 @@ def handle_project_post(self, path: str) -> None:
         if not 0 <= int(self.headers.get("Content-Length", "0")) <= 16384:
             raise ValueError("Solicitud demasiado grande")
         data = self._body()
-        project = _selected_project(UiWorkspaceSettings.load())
+        project = self._active_project()
         if project is None or data.get("project_path") != str(project):
             self._json({"error": "El proyecto cambió; volver a revisar"}, 409)
             return
@@ -57,7 +54,7 @@ def handle_project_post(self, path: str) -> None:
         if not 0 <= int(self.headers.get("Content-Length", "0")) <= 16384:
             raise ValueError("Solicitud demasiado grande")
         data = self._body()
-        project = _selected_project(UiWorkspaceSettings.load())
+        project = self._active_project()
         if project is None or data.get("project_path") != str(project):
             self._json({"error": "El proyecto cambió; vuelve a cargar las relaciones"}, 409)
             return
@@ -84,7 +81,7 @@ def handle_project_post(self, path: str) -> None:
             ResourceConflict,
         )
 
-        project = _selected_project(UiWorkspaceSettings.load())
+        project = self._active_project()
         if project is None or data.get("project_path") != str(project):
             self._json({"error": "El proyecto cambió; vuelve a revisar impacto"}, 409)
             return
@@ -112,7 +109,7 @@ def handle_project_post(self, path: str) -> None:
             TemplateConflict,
         )
 
-        project = _selected_project(UiWorkspaceSettings.load())
+        project = self._active_project()
         if project is None or data.get("project_path") != str(project):
             self._json({"error": "El proyecto seleccionado cambió; vuelve a previsualizar"}, 409)
             return

@@ -20,7 +20,9 @@ principalmente con Codex/OpenCode, que consumen la configuración generada.
 - `application/agent_profiles.py`, `workflow_presets.py`: configuración versionable con lectura de formatos locales anteriores. El catálogo de agentes admite identificadores propios y un rol base. Los catálogos de agentes y workflows usan escritura atómica y revisión optimista para la edición web. Los workflows propios tienen identificador estable y un tipo base fix/feature; el seguimiento nativo congela ambos junto con la definición.
 - `adapters/`, `orchestration/`: ejecución opcional de agentes externos detrás de contratos neutrales.
 - `plugins/`: descubrimiento, compatibilidad, validación y ejecución de extensiones.
-- `entrypoint.py`, `project_cli.py`, `web_app_n8n.py`, `web_editor_api.py`, `web_editor_state.py`: CLI, API y web local.
+- `entrypoint.py`, `project_cli.py`: entrada y comandos CLI.
+- `web_app.py`, `web_app_n8n.py`: servidor HTTP local, autenticación y selección de vista.
+- `web/`: HTML y assets, endpoints de edición y proyecto, y composición del estado de los editores.
 - `tools/release_artifacts.py`, `distribution_smoke.py`: herramientas de desarrollo para integridad y pruebas aisladas de paquetes; fuera del runtime del producto.
 
 ## Persistencia
@@ -62,8 +64,9 @@ Rutas/bytes son contratos neutros (`project_paths.py`, `storage.py`). El parseo 
 esquemas vive en config; el gate de escrituras/recuperación, en application.
 `MemoryChange` es un contrato de domain y memoria ya no importa application.
 `resource_support.py` y `resource_locks.py` reemplazan imports de utilidades privadas
-de plantillas. CLI separa parser/acciones; `web_project_api.py` separa recursos del
-transporte del servidor y ambos shells comparten el arranque. El frontend consulta
+de plantillas. CLI separa parser y acciones. Los endpoints de `web/editor_api.py` y
+`web/project_api.py` usan el contexto del manejador HTTP y llaman a los servicios
+de aplicación. Ambas vistas comparten el arranque y las respuestas HTTP. El frontend consulta
 borradores en `editor-state.js`. [Estructura completa](../code-refactor.md).
 
 La presentación común `web/interface.css/js` organiza navegación/estados del resumen

@@ -17,9 +17,9 @@ permanece deshabilitado.
 | Serialización de recursos, hashes, revisión y detección de secretos | `application/resource_support.py` |
 | Contrato `MemoryChange` | `domain/models.py` |
 | Parser y acciones CLI independientes | `project_cli.py` |
-| Endpoints de editores | `web_editor_api.py` |
-| Endpoints de recursos, plantillas, relaciones y recuperación | `web_project_api.py` |
-| Composición de estado | `web_editor_state.py` |
+| Endpoints de editores | `web/editor_api.py` |
+| Endpoints de recursos, plantillas, relaciones y recuperación | `web/project_api.py` |
+| Composición de estado | `web/editor_state.py` |
 | Arranque del servidor local y autenticación | `web_app.py`, reutilizado por ambos shells |
 | Consulta compartida de borradores/guardados | `web/editor-state.js` |
 

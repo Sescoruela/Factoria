@@ -36,9 +36,14 @@ class WebServerTests(unittest.TestCase):
         self.thread.join(timeout=2)
 
     def test_index_is_public_but_api_requires_session_token(self) -> None:
-        with urllib.request.urlopen(self.base + "/", timeout=3) as response:
-            self.assertEqual(response.status, 200)
-            self.assertIn(b"Factoria", response.read())
+        for route, asset in (("/", "index.html"), ("/editors", "index_n8n.html")):
+            with self.subTest(route=route):
+                expected = files("factoria.web").joinpath(asset).read_bytes()
+                with urllib.request.urlopen(self.base + route, timeout=3) as response:
+                    self.assertEqual(response.status, 200)
+                    self.assertEqual(response.headers["X-Frame-Options"], "DENY")
+                    self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
+                    self.assertEqual(response.read(), expected)
 
         with self.assertRaises(urllib.error.HTTPError) as caught:
             urllib.request.urlopen(self.base + "/api/state", timeout=3)

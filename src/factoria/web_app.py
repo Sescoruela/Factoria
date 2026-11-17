@@ -30,6 +30,9 @@ from factoria.application.workflow_presets import (
 from factoria.config.loader import load_global_config
 from factoria.ui_agent_tools import _apply_agent_paths, _load_agent_paths, _save_agent_paths
 from factoria.ui_workspace import UiWorkspaceSettings, discover_projects, project_root
+from factoria.web.editor_api import EDITOR_ROUTES, handle_editor_post
+from factoria.web.editor_state import enrich_editor_state
+from factoria.web.project_api import PROJECT_RESOURCE_ROUTES, handle_project_post
 
 _HOST = "127.0.0.1"
 _ALLOWED_COMMANDS = {
@@ -135,13 +138,6 @@ def _state() -> dict[str, object]:
         "jobs": _job_summaries(),
         "workflows": _workflow_payload(root),
     }
-
-
-def _editor_state() -> dict[str, object]:
-    """Return the same complete editor state after every shared API mutation."""
-    from factoria.web_editor_state import enrich_editor_state
-
-    return enrich_editor_state(_state(), _selected_project(UiWorkspaceSettings.load()))
 
 
 def _set_projects_root(path: str) -> Path:
@@ -299,6 +295,13 @@ def _job(job_id: str) -> dict[str, object] | None:
 
 class FactoriaWebHandler(BaseHTTPRequestHandler):
     server_version = "FactoriaWeb/0.3"
+    root_shell = "index.html"
+
+    def _active_project(self) -> Path | None:
+        return _selected_project(UiWorkspaceSettings.load())
+
+    def _editor_state(self) -> dict[str, object]:
+        return enrich_editor_state(_state(), self._active_project())
 
     @property
     def token(self) -> str:
@@ -362,12 +365,8 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
         if path in {"/", "/editors"}:
-            if path == "/editors":
-                from factoria.web_shell import main_shell_html
-
-                html = main_shell_html().encode("utf-8")
-            else:
-                html = files("factoria.web").joinpath("index.html").read_bytes()
+            shell = "index_n8n.html" if path == "/editors" else self.root_shell
+            html = files("factoria.web").joinpath(shell).read_bytes()
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
@@ -381,7 +380,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             self._json({"error": "unauthorized"}, 403)
             return
         if path == "/api/state":
-            self._json(_editor_state())
+            self._json(self._editor_state())
             return
         if path.startswith("/api/job/"):
             job_id = path.rsplit("/", 1)[-1]
@@ -389,7 +388,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             if item is None:
                 self._json({"error": "job not found"}, 404)
                 return
-            self._json({"job": item, "state": _editor_state()})
+            self._json({"job": item, "state": self._editor_state()})
             return
         self.send_error(404)
 
@@ -398,21 +397,10 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             self._json({"error": "unauthorized"}, 403)
             return
         path = urlparse(self.path).path
-        if path in {
-            "/api/skill/create",
-            "/api/skill/save",
-            "/api/agent-role/create",
-            "/api/agent-role/save",
-            "/api/project/prepare",
-        }:
-            # Reuse the existing authenticated editors in the /editors shell.
-            from factoria.web_editor_api import handle_editor_post
-
-            handle_editor_post(self)
+        if path in EDITOR_ROUTES:
+            handle_editor_post(self, path)
             return
         try:
-            from factoria.web_project_api import PROJECT_RESOURCE_ROUTES, handle_project_post
-
             if path in PROJECT_RESOURCE_ROUTES:
                 handle_project_post(self, path)
                 return
@@ -429,28 +417,27 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             data = self._body()
             if path == "/api/projects/root":
                 target = _set_projects_root(str(data.get("path", "")))
-                self._json({"ok": True, "path": str(target), "state": _editor_state()})
+                self._json({"ok": True, "path": str(target), "state": self._editor_state()})
                 return
             if path == "/api/project/select":
                 target = Path(str(data.get("path", ""))).expanduser().resolve()
                 _save_selected_project(target)
-                self._json({"ok": True, "state": _editor_state()})
+                self._json({"ok": True, "state": self._editor_state()})
                 return
             if path == "/api/project/create":
                 target = _create_project(str(data.get("name", "")), str(data.get("purpose", "")))
-                self._json({"ok": True, "path": str(target), "state": _editor_state()})
+                self._json({"ok": True, "path": str(target), "state": self._editor_state()})
                 return
             if path == "/api/agent/default":
                 written = _set_default_tool(str(data.get("tool", "")))
-                self._json({"ok": True, "config": str(written), "state": _editor_state()})
+                self._json({"ok": True, "config": str(written), "state": self._editor_state()})
                 return
             if path == "/api/agent/path":
                 configured = _set_agent_path(str(data.get("tool", "")), str(data.get("path", "")))
-                self._json({"ok": True, "path": str(configured), "state": _editor_state()})
+                self._json({"ok": True, "path": str(configured), "state": self._editor_state()})
                 return
             if path in {"/api/workflow/save", "/api/workflow/create"}:
-                settings = UiWorkspaceSettings.load()
-                project = _selected_project(settings)
+                project = self._active_project()
                 if project is None:
                     raise ValueError("Selecciona primero un proyecto")
                 if data.get("project_path") != str(project):
@@ -466,24 +453,22 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
                     expected_revision=data["revision"],
                     create=path.endswith("/create"),
                 )
-                self._json({"ok": True, "path": str(saved), "state": _editor_state()})
+                self._json({"ok": True, "path": str(saved), "state": self._editor_state()})
                 return
             if path == "/api/job/start":
                 raw = data.get("args", [])
                 if not isinstance(raw, list) or not all(isinstance(item, str) for item in raw):
                     raise ValueError("args debe ser una lista de strings")
-                settings = UiWorkspaceSettings.load()
-                job = _start_async_job(list(raw), _selected_project(settings))
-                self._json({"ok": True, "job": job, "state": _editor_state()}, 202)
+                job = _start_async_job(list(raw), self._active_project())
+                self._json({"ok": True, "job": job, "state": self._editor_state()}, 202)
                 return
             if path == "/api/command":
                 raw = data.get("args", [])
                 if not isinstance(raw, list) or not all(isinstance(item, str) for item in raw):
                     raise ValueError("args debe ser una lista de strings")
-                settings = UiWorkspaceSettings.load()
-                code, output = _run_factoria_command(list(raw), _selected_project(settings))
+                code, output = _run_factoria_command(list(raw), self._active_project())
                 self._json(
-                    {"ok": code == 0, "code": code, "output": output, "state": _editor_state()}
+                    {"ok": code == 0, "code": code, "output": output, "state": self._editor_state()}
                 )
                 return
             raise ValueError("Acción no soportada")

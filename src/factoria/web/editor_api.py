@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from urllib.parse import urlparse
-
 from factoria.application.agent_profiles import (
     AgentCatalogConflict,
     AgentRoleProfile,
@@ -11,19 +9,24 @@ from factoria.application.agent_profiles import (
 )
 from factoria.application.project_integration import ProjectIntegration
 from factoria.application.skill_catalog import SkillCatalogConflict, SkillDefinition, save_skill
-from factoria.ui_workspace import UiWorkspaceSettings
-from factoria.web_app import _selected_project, _editor_state as _extended_state
 
 
-def handle_editor_post(self) -> bool:
-    path = urlparse(self.path).path
+EDITOR_ROUTES = frozenset(
+    {
+        "/api/skill/create",
+        "/api/skill/save",
+        "/api/agent-role/create",
+        "/api/agent-role/save",
+        "/api/project/prepare",
+    }
+)
+
+
+def handle_editor_post(self, path: str) -> None:
     if path in {"/api/skill/create", "/api/skill/save"}:
-        if not self._authorized():
-            self._json({"error": "unauthorized"}, 403)
-            return True
         try:
             data = self._body()
-            project = _selected_project(UiWorkspaceSettings.load())
+            project = self._active_project()
             if project is None:
                 raise ValueError("Selecciona primero un proyecto")
             if data.get("project_path") != str(project):
@@ -36,19 +39,16 @@ def handle_editor_post(self) -> bool:
                 expected_revision=data["revision"],
                 create=path.endswith("/create"),
             )
-            self._json({"ok": True, "path": str(saved), "state": _extended_state()})
+            self._json({"ok": True, "path": str(saved), "state": self._editor_state()})
         except SkillCatalogConflict as exc:
             self._json({"ok": False, "error": str(exc)}, 409)
         except (ValueError, OSError) as exc:
             self._json({"ok": False, "error": str(exc)}, 400)
-        return True
+        return
     if path == "/api/project/prepare":
-        if not self._authorized():
-            self._json({"error": "unauthorized"}, 403)
-            return True
         try:
             data = self._body()
-            project = _selected_project(UiWorkspaceSettings.load())
+            project = self._active_project()
             if project is None:
                 raise ValueError("Selecciona primero un proyecto")
             service = ProjectIntegration(project)
@@ -60,19 +60,16 @@ def handle_editor_post(self) -> bool:
                     "applied": confirmed,
                     "changed": list(plan.changed),
                     "conflicts": list(plan.conflicts),
-                    "state": _extended_state(),
+                    "state": self._editor_state(),
                 }
             )
         except Exception as exc:
             self._json({"ok": False, "error": str(exc)}, 400)
-        return True
+        return
     if path in {"/api/agent-role/save", "/api/agent-role/create"}:
-        if not self._authorized():
-            self._json({"error": "unauthorized"}, 403)
-            return True
         try:
             data = self._body()
-            project = _selected_project(UiWorkspaceSettings.load())
+            project = self._active_project()
             if project is None:
                 raise ValueError("Selecciona primero un proyecto")
             if data.get("project_path") != str(project):
@@ -88,10 +85,8 @@ def handle_editor_post(self) -> bool:
                 expected_revision=data["revision"],
                 mode="create" if path.endswith("/create") else "update",
             )
-            self._json({"ok": True, "path": str(saved), "state": _extended_state()})
+            self._json({"ok": True, "path": str(saved), "state": self._editor_state()})
         except AgentCatalogConflict as exc:
             self._json({"ok": False, "error": str(exc)}, 409)
         except Exception as exc:
             self._json({"ok": False, "error": f"{type(exc).__name__}: {exc}"}, 400)
-        return True
-    return False

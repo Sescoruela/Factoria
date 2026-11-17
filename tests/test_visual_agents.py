@@ -12,7 +12,7 @@ from factoria.application.agent_profiles import AgentRoleProfile
 from factoria.application.project_integration import ProjectIntegration
 from factoria.application.visual_agents import visual_agent_templates
 from factoria.application.workflow_presets import default_preset, save_preset, validate_assignments
-from factoria.web_editor_state import enrich_editor_state
+from factoria.web.editor_state import enrich_editor_state
 
 
 class VisualAgentTests(unittest.TestCase):

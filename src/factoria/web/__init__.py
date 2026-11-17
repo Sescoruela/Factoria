@@ -1,1 +1,1 @@
-"""Static assets for the local Factoria web UI."""
+"""Assets, routes and editor state for the local Factoria web UI."""
