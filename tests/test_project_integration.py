@@ -277,6 +277,49 @@ class IntegrationTests(ProjectFixture):
             integration.check()['opencode_agents'],
         )
 
+    def test_exports_custom_agents_and_skills_even_without_workflow_assignment(self):
+        import tomllib
+        from factoria.application.projects.skill_catalog import SkillDefinition, save_skill, skill_catalog_revision
+
+        skill = SkillDefinition('api-rules', 'API rules', 'Rules: check "compatibility"', 'Review all API contracts.')
+        collision = SkillDefinition('collision', 'Same name as a workflow', content='Independent instructions.')
+        long_id = SkillDefinition('a' * 61 + '--x', 'Long ID', content='Long identifiers are portable.')
+        for item in (skill, collision, long_id):
+            save_skill(self.root, item, expected_revision=skill_catalog_revision(self.root), create=True)
+        save_preset(self.root, replace(default_preset('fix'), id='skill-collision', name='Custom workflow'), create=True)
+        agent = AgentRoleProfile(
+            'api-reviewer', 'potente', skills=(skill.path,), base_role='reviewer',
+            name='API reviewer', instructions='Review endpoints.',
+        )
+        save_agent_profile(self.root, agent, mode='create')
+        integration = ProjectIntegration(self.root)
+        integration.apply(confirmed=True)
+
+        native_skill = self.root / '.agents/skills/factoria-skill-api-rules/SKILL.md'
+        self.assertIn('name: factoria-skill-api-rules', native_skill.read_text(encoding='utf-8'))
+        self.assertIn(skill.content, native_skill.read_text(encoding='utf-8'))
+        workflow = self.root / '.agents/skills/factoria-skill-collision/SKILL.md'
+        self.assertIn('Custom workflow', workflow.read_text(encoding='utf-8'))
+        names = {file.parent.name: file.read_text(encoding='utf-8')
+                 for file in (self.root / '.agents/skills').glob('factoria-*/SKILL.md')}
+        self.assertEqual(sum(collision.content in text for text in names.values()), 1)
+        self.assertTrue(all(len(name) <= 64 for name in names))
+        self.assertEqual(sum(long_id.content in text for text in names.values()), 1)
+
+        opencode = self.root / '.opencode/agents/factoria-api-reviewer.md'
+        self.assertIn('mode: subagent', opencode.read_text(encoding='utf-8'))
+        self.assertIn('factoria-skill-api-rules', opencode.read_text(encoding='utf-8'))
+        codex = tomllib.loads((self.root / '.codex/agents/factoria-api-reviewer.toml').read_text(encoding='utf-8'))
+        self.assertEqual(codex['name'], 'factoria-api-reviewer')
+        self.assertIn('factoria-skill-api-rules', codex['developer_instructions'])
+        self.git('add', '-A')
+        self.assertEqual(self.git('status', '--porcelain'), '')
+
+        save_skill(self.root, replace(skill, content='Recheck all API contracts.'), expected_revision=skill_catalog_revision(self.root))
+        integration.apply(confirmed=True)
+        self.assertIn('Recheck all API contracts.', native_skill.read_text(encoding='utf-8'))
+        self.assertTrue(integration.check()['ready'])
+
     def test_preserves_handwritten_agents_bytes_outside_managed_block(self):
         original = 'Normas propias\r\nTexto con acentos: revisión.\r\n'
         (self.root / 'AGENTS.md').write_bytes(original.encode())

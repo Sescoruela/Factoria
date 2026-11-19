@@ -39,8 +39,15 @@ la propuesta con `factoria memoria-init --prepare` y aplicarla con
 Se generan:
 
 - `.agents/skills/factoria-fix/SKILL.md` y `factoria-feature/SKILL.md`, descubribles por ambas herramientas.
+- Un `SKILL.md` en `.agents/skills/` para cada skill activa del catálogo,
+  aunque todavía no esté asignada a un agente. Consulta
+  `.factoria/generated/skills.md` para el nombre invocable.
 - `.opencode/commands/factoria-fix.md` y `factoria-feature.md`, selección explícita en OpenCode.
-- `.opencode/agents/factoria-<identificador>.md`, agentes básicos y propios con lectura permitida y edición solicitada solo para implementación.
+- `.opencode/agents/factoria-<identificador>.md` y
+  `.codex/agents/factoria-<identificador>.toml` para todos los agentes básicos
+  y personalizados. OpenCode permite lectura y solicita aprobación de edición
+  para implementación. Los subagentes de Codex heredan los permisos de la
+  sesión que los lanza.
 - `.factoria/generated/<identificador>.md`, instrucciones por workflow, incluidos fix/feature y los propios.
 - `.factoria/generated/workflows.md`, catálogo e instrucciones de selección explícita.
 - `.factoria/generated/chatgpt-context.md`, contexto portable para sesiones sin checkout.

@@ -86,6 +86,14 @@ con `factoria native finish <id>` tras el commit y con el árbol limpio.
    tarea, elige Codex u OpenCode y copia la petición. Abre la herramienta
    elegida en el repositorio y pega la petición en tu rama de trabajo.
 
+### Usar tus propios agentes y skills
+
+Después de crear o editar un agente o una skill, abre **Integración → Ver
+cambios** y prepara ambas herramientas. Factoría genera los archivos nativos
+en esta copia local aunque todavía no hayas asignado el recurso a un workflow.
+Consulta los nombres invocables en `.factoria/generated/agents.md` y
+`.factoria/generated/skills.md`.
+
 ### Completar la memoria con OpenCode o Codex
 
 En **Inicio**, abre **Analizar memoria con OpenCode o Codex**. Copia el encargo

@@ -10,6 +10,7 @@ _RULES = (
     b"/.agents/skills/factoria-*/",
     b"/.opencode/commands/factoria-*.md",
     b"/.opencode/agents/factoria-*.md",
+    b"/.codex/agents/factoria-*.toml",
 )
 _EXCLUDE_LOCK = Lock()
 

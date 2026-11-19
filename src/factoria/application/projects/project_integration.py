@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -35,6 +36,8 @@ END = "<!-- factoria:integration:end -->"
 MANIFEST = ".factoria/integration-manifest.json"
 CONTEXT_GUIDE = ".factoria/generated/policies/context-economy.md"
 _OPENCODE_AGENT_DIR = ".opencode/agents/"
+_CODEX_AGENT_DIR = ".codex/agents/"
+_SKILL_DIR = ".agents/skills/"
 _MEMORY_DOCS = (
     "docs/memoria/arquitectura.md",
     "docs/memoria/flujos.md",
@@ -58,6 +61,27 @@ def _read(path: Path) -> str:
 
 def _json(value: object) -> str:
     return json.dumps(value, ensure_ascii=False, indent=2) + "\n"
+
+
+def _native_skill_ids(skills: list[dict], workflow_ids: tuple[str, ...]) -> dict[str, str]:
+    used = {f"factoria-{identifier}" for identifier in workflow_ids}
+    names = {}
+    for skill in skills:
+        identifier = skill["id"]
+        base = "factoria-skill-" + re.sub(r"-+", "-", identifier).rstrip("-")
+        name = base
+        if identifier != base.removeprefix("factoria-skill-") or len(name) > 64 or name in used:
+            suffix = _digest(identifier)[:12]
+            stem = base[:51].rstrip("-")
+            name = f"{stem}-{suffix}"
+            index = 1
+            while name in used:
+                tail = f"-{suffix}-{index}"
+                name = stem[: 64 - len(tail)].rstrip("-") + tail
+                index += 1
+        names[skill["path"]] = name
+        used.add(name)
+    return names
 
 
 def project_definition(root: Path) -> dict:
@@ -201,6 +225,8 @@ class ProjectIntegration:
 
     def plan(self) -> IntegrationPlan:
         definition = project_definition(self.root)
+        workflows = load_catalog(self.root)
+        native_skills = _native_skill_ids(definition["skills"], tuple(workflows))
         files = {
             ".factoria/agents.json": _json(
                 {
@@ -209,10 +235,7 @@ class ProjectIntegration:
                 }
             ),
             ".factoria/workflows.json": _json(
-                {
-                    identifier: preset.to_mapping()
-                    for identifier, preset in load_catalog(self.root).items()
-                }
+                {identifier: preset.to_mapping() for identifier, preset in workflows.items()}
             ),
         }
         # Source files are user-maintained; include them for migration, never own them.
@@ -225,13 +248,23 @@ class ProjectIntegration:
             catalog += f"## {agent['name'] or agent['role']} ({agent['role']})\n\n"
             catalog += f"Rol base: {agent['base_role'] or agent['role']} · perfil: {agent['profile']} · plataforma preferida: {agent['platform'] or 'sesión actual'}\n\n"
             opencode_id = f"factoria-{agent['role']}"
-            catalog += f"Subagente en OpenCode: `{opencode_id}` · archivo: `{_OPENCODE_AGENT_DIR}{opencode_id}.md`\n\n"
+            catalog += f"Subagente: `{opencode_id}` · OpenCode: `{_OPENCODE_AGENT_DIR}{opencode_id}.md` · Codex: `{_CODEX_AGENT_DIR}{opencode_id}.toml`\n\n"
             catalog += agent["description"] + "\n\n" + agent["instructions"] + "\n\n"
             catalog += "\n".join(f"Consultar `{skill}`." for skill in agent["skills"]) + "\n\n"
         files[".factoria/generated/agents.md"] = catalog
         skills_guide = "# Skills del proyecto\n\nConsultar las skills asignadas al agente antes de realizar su etapa.\n\n"
         for skill in definition["skills"]:
-            skills_guide += f"## {skill['name']} ({skill['id']})\n\nFuente: `{skill['path']}`\n\n{skill['description']}\n\n{skill['content']}\n\n"
+            name = native_skills[skill["path"]]
+            target = f"{_SKILL_DIR}{name}/SKILL.md"
+            description = skill["description"].strip() or skill["name"]
+            files[target] = (
+                f"---\nname: {name}\ndescription: "
+                + json.dumps(description, ensure_ascii=False)
+                + "\n---\n\n"
+                + skill["content"].rstrip()
+                + "\n"
+            )
+            skills_guide += f"## {skill['name']} ({skill['id']})\n\nFuente: `{skill['path']}`\nSkill en Codex y OpenCode: `{name}` · `{target}`\n\n{skill['description']}\n\n{skill['content']}\n\n"
         files[".factoria/generated/skills.md"] = skills_guide
         workflow_catalog = "# Workflows del proyecto\n\nSeleccionar explícitamente un identificador propio cuando se solicite. Si hay varias opciones compatibles y la intención es ambigua, preguntar antes de empezar; no inventar un flujo.\n\n"
         for kind, metadata in definition["workflow_definitions"].items():
@@ -265,6 +298,26 @@ class ProjectIntegration:
                 f"Petición del usuario: $ARGUMENTS\n\n" + guide
             )
         for role in definition["agents"]:
+            name = f"factoria-{role['role']}"
+            description = (
+                role["description"].strip()
+                or f"{role['name'] or role['role']} del proyecto Factoría"
+            )
+            base_role = role["base_role"] or role["role"]
+            instructions = (
+                role["instructions"].strip()
+                + "\n\nLeer AGENTS.md y seguir el flujo activo. No omitir sus controles.\n"
+                + "\n".join(
+                    f"Cargar la skill `{native_skills[path]}` o consultar `{path}`."
+                    if path in native_skills
+                    else f"Consultar `{path}`."
+                    for path in role["skills"]
+                )
+            ).strip()
+            if base_role != "implementer":
+                instructions += (
+                    "\nTrabajar en solo lectura y entregar los hallazgos al agente principal."
+                )
             permission = {
                 "*": "deny",
                 "read": "allow",
@@ -273,18 +326,24 @@ class ProjectIntegration:
                 "list": "allow",
                 "skill": "allow",
             }
-            if (role.get("base_role") or role["role"]) == "implementer":
+            if base_role == "implementer":
                 permission["edit"] = "ask"
-            files[f"{_OPENCODE_AGENT_DIR}factoria-{role['role']}.md"] = (
+            files[f"{_OPENCODE_AGENT_DIR}{name}.md"] = (
                 "---\ndescription: "
-                + role["role"]
-                + " del proyecto Factoría\nmode: subagent\npermission: "
+                + json.dumps(description, ensure_ascii=False)
+                + "\nmode: subagent\npermission: "
                 + json.dumps(permission)
                 + "\n---\n\n"
-                + role["instructions"]
-                + "\n\nLeer AGENTS.md y seguir el flujo activo. No omitir sus controles.\n"
-                + "\n".join(f"Consultar `{path}`." for path in role["skills"])
+                + instructions
                 + "\n"
+            )
+            files[f"{_CODEX_AGENT_DIR}{name}.toml"] = "".join(
+                f"{key} = {json.dumps(value, ensure_ascii=False)}\n"
+                for key, value in (
+                    ("name", name),
+                    ("description", description),
+                    ("developer_instructions", instructions),
+                )
             )
         block = (
             START
@@ -294,12 +353,12 @@ Consultar el catálogo de workflows en `.factoria/generated/workflows.md`.
 Si el usuario especifica un workflow propio, usar exactamente ese identificador y su skill `factoria-<identificador>`.
 Si hay varios workflows compatibles y la intención es ambigua, preguntar cuál usar antes de iniciar. No seleccionar uno propio por parecido de nombre.
 Consultar el catálogo de agentes en `.factoria/generated/agents.md` o los perfiles de `.factoria/agents.json`.
-En OpenCode, los subagentes de Factoría se definen en `.opencode/agents/factoria-*.md`.
+Los subagentes de Factoría se definen en `.opencode/agents/factoria-*.md` para OpenCode y en `.codex/agents/factoria-*.toml` para Codex.
 El nombre para invocarlos es el del archivo sin extensión, por ejemplo `factoria-reviewer`.
 Las listas `[flows]` de `.factoria/config.toml` sólo se refieren a workflows.
 Si faltan los archivos, ejecutar `factoria --read-only project check` y pedir que se prepare el proyecto.
 Si los archivos existen, comprobar que la sesión está abierta desde la raíz de esta copia antes de afirmar que OpenCode los ha cargado.
-Consultar el catálogo de skills en `.factoria/generated/skills.md` y los archivos asignados a cada agente.
+Consultar `.factoria/generated/skills.md` para conocer el nombre invocable de cada skill registrada y los archivos asignados a cada agente.
 Cada etapa usa el agente configurado en su campo agent_id; si está vacío, usa el agente básico del rol. Mantener sus controles obligatorios.
 Antes de cambiar código, resolver la selección y cualquier ambigüedad. Si procede usar un flujo básico, elegir según la intención:
 - Corrección, bug, fallo o regresión → skill `factoria-fix`.
@@ -354,7 +413,7 @@ Los permisos y aprobaciones de la herramienta siguen vigentes.
                 continue
             if current is not None and _digest(current) != owned.get(name):
                 conflicts.append(name)
-        # Do not leave discoverable skills/commands behind when a flow is disabled.
+        # Retire discovery files for disabled workflows and archived resources.
         for name, checksum in owned.items():
             if name in files:
                 continue
@@ -362,7 +421,8 @@ Los permisos y aprobaciones de la herramienta siguen vigentes.
                 name.startswith(".factoria/generated/")
                 or name.startswith(".agents/skills/factoria-")
                 or name.startswith(".opencode/commands/factoria-")
-                or name.startswith(".opencode/agents/factoria-")
+                or name.startswith(f"{_OPENCODE_AGENT_DIR}factoria-")
+                or name.startswith(f"{_CODEX_AGENT_DIR}factoria-")
             ):
                 raise ValueError("Ruta no gestionada en el manifiesto")
             path = project_path(self.root, name)
