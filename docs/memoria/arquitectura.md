@@ -25,7 +25,8 @@ principalmente con Codex/OpenCode, que consumen la configuración generada.
 - `plugins/`: descubrimiento, compatibilidad, validación y ejecución de extensiones.
 - `entrypoint.py`, `cli.py` y `commands/`: arranque, despacho y adaptadores CLI.
 - `ui/`: selección del espacio de trabajo, interfaz de terminal y escritorio.
-- `web/`: servidor HTTP local, autenticación, vistas, assets y endpoints de edición.
+- `web/frontend/`: vistas HTML, estilos y controladores JavaScript de la interfaz web.
+- `web/backend/`: servidor HTTP local, autenticación y adaptadores de la API.
 - `tools/release_artifacts.py`, `distribution_smoke.py`: herramientas de desarrollo para integridad y pruebas aisladas de paquetes; fuera del runtime del producto.
 
 ## Persistencia
@@ -67,11 +68,11 @@ Rutas/bytes son contratos neutros (`project_paths.py`, `storage.py`). El parseo 
 esquemas vive en config; el gate de escrituras/recuperación, en application.
 `MemoryChange` es un contrato de domain y memoria ya no importa application.
 `resource_support.py` y `resource_locks.py` reemplazan imports de utilidades privadas
-de plantillas. CLI separa parser y acciones. Los endpoints de `web/editor_api.py` y
-`web/project_api.py` usan el contexto del manejador HTTP y llaman a los servicios
+de plantillas. CLI separa parser y acciones. Los endpoints de `web/backend/editor_api.py` y
+`web/backend/project_api.py` usan el contexto del manejador HTTP y llaman a los servicios
 de aplicación. Ambas vistas comparten el arranque y las respuestas HTTP. El frontend consulta
 borradores en `editor-state.js`. [Estructura completa](../code-refactor.md).
 
-La presentación común `web/interface.css/js` organiza navegación/estados del resumen
+La presentación común `web/frontend/interface.css/js` organiza navegación/estados del resumen
 sin escribir configuración. Los mismos paneles y servicios gobiernan la edición.
 El hash de navegación se conserva al retirar el token de URL. [Interfaz](../interface-refresh.md).

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
-const assets = path.resolve(__dirname, '../../src/factoria/web');
+const assets = path.resolve(__dirname, '../../src/factoria/web/frontend');
 for (const shell of ['shell-main.js', 'shell-classic.js']) {
   const card = {innerHTML: ''};
   const context = vm.createContext({

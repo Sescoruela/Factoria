@@ -6,16 +6,16 @@ import urllib.error
 import urllib.request
 from importlib.resources import files
 
-from factoria.web.server import FactoriaHTTPServer, FactoriaWebHandler, _run_factoria_command
+from factoria.web.backend.server import FactoriaHTTPServer, FactoriaWebHandler, _run_factoria_command
 
 
 class WebAssetTests(unittest.TestCase):
     def test_packaged_index_exists(self) -> None:
-        html = files("factoria.web").joinpath("index.html").read_text(encoding="utf-8")
+        html = files("factoria.web.frontend").joinpath("index.html").read_text(encoding="utf-8")
         self.assertIn("Factoria", html)
-        self.assertIn("Resumen", html)
+        self.assertIn("Inicio", html)
         self.assertIn("/assets/shell-classic.js", html)
-        self.assertIn("/api/state", files("factoria.web").joinpath("shell-classic.js").read_text(encoding="utf-8"))
+        self.assertIn("/api/state", files("factoria.web.frontend").joinpath("shell-classic.js").read_text(encoding="utf-8"))
 
     def test_command_boundary_rejects_unknown_command(self) -> None:
         with self.assertRaises(ValueError):
@@ -38,7 +38,7 @@ class WebServerTests(unittest.TestCase):
     def test_index_is_public_but_api_requires_session_token(self) -> None:
         for route, asset in (("/", "index.html"), ("/editors", "index_n8n.html")):
             with self.subTest(route=route):
-                expected = files("factoria.web").joinpath(asset).read_bytes()
+                expected = files("factoria.web.frontend").joinpath(asset).read_bytes()
                 with urllib.request.urlopen(self.base + route, timeout=3) as response:
                     self.assertEqual(response.status, 200)
                     self.assertEqual(response.headers["X-Frame-Options"], "DENY")

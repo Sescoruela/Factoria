@@ -1,1 +1,1 @@
-"""Assets, routes and editor state for the local Factoria web UI."""
+"""Frontend and backend packages for the local Factoría web interface."""

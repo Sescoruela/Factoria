@@ -13,8 +13,8 @@ from unittest.mock import patch
 from urllib.parse import urlparse
 
 from factoria.ui.workspace import UiWorkspaceSettings
-from factoria.web.server import FactoriaHTTPServer, FactoriaWebHandler
-from factoria.web.main_shell import FactoriaN8NHandler
+from factoria.web.backend.server import FactoriaHTTPServer, FactoriaWebHandler
+from factoria.web.backend.main_shell import FactoriaN8NHandler
 
 TOKEN = "disposable-browser-fixture"
 

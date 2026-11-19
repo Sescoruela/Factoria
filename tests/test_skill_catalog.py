@@ -18,8 +18,8 @@ from factoria.application.projects.skill_catalog import (
     SkillCatalogConflict, SkillDefinition, save_skill, skill_catalog_revision, skill_catalog_snapshot,
 )
 from factoria.ui.workspace import UiWorkspaceSettings
-from factoria.web.server import FactoriaHTTPServer
-from factoria.web.main_shell import FactoriaN8NHandler
+from factoria.web.backend.server import FactoriaHTTPServer
+from factoria.web.backend.main_shell import FactoriaN8NHandler
 
 
 class SkillCatalogTests(unittest.TestCase):
@@ -185,7 +185,7 @@ class SkillCatalogTests(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as caught:
                 request('/api/skill/create', payload, False)
             self.assertEqual(caught.exception.code, 403)
-            with patch('factoria.web.server._state', return_value={'selected_project': {'path': str(self.root)}}):
+            with patch('factoria.web.backend.server._state', return_value={'selected_project': {'path': str(self.root)}}):
                 result = request('/api/skill/create', payload)
                 self.assertEqual(result['state']['skills'][0]['content'], self.skill.content)
                 with self.assertRaises(urllib.error.HTTPError) as caught:

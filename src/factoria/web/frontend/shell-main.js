@@ -1,13 +1,12 @@
-let workflowDraft = [];
-let draggedIndex = null;
-let workflowDirty = false;
-let workflowLoadedKind = null;
-
-function markWorkflowDirty() {
+let workflowDraft = [],
+  workflowDirty = false,
+  workflowLoadedKind = null,
+  drag = null;
+function markDirty() {
   workflowDirty = true;
   document.getElementById('workflowDirty').textContent = '• cambios sin guardar';
 }
-function clearWorkflowDirty() {
+function clearDirty() {
   workflowDirty = false;
   document.getElementById('workflowDirty').textContent = '';
 }
@@ -55,7 +54,7 @@ function renderAll() {
     workflowProject = null;
     workflowRevision = null;
     workflowDraft = [];
-    clearWorkflowDirty();
+    clearDirty();
   }
   window.renderWorkflowList?.();
   const p = state.selected_project;
@@ -76,12 +75,11 @@ function renderAll() {
     loadWorkflowBoard(false);
 }
 function renderProjects() {
-  const q = (document.getElementById('projectSearch')?.value || '').toLowerCase();
-  const el = document.getElementById('projectList');
+  const q = (document.getElementById('projectSearch').value || '').toLowerCase();
   const items = (state.projects || []).filter((p) =>
     (p.name + ' ' + p.path).toLowerCase().includes(q),
   );
-  el.innerHTML =
+  document.getElementById('projectList').innerHTML =
     items
       .map(
         (p) =>
@@ -101,7 +99,7 @@ function renderFlows() {
     jobs
       .map(
         (j) =>
-          `<div class="item"><strong>${esc(j.command)} · ${esc((j.args || []).slice(1).join(' '))}</strong><span class="pill ${j.status === 'completed' ? 'ok' : j.status === 'failed' ? 'bad' : 'warn'}">${esc(j.status)}</span>${j.status === 'running' ? '<div class="muted">El agente está trabajando. La web sigue disponible.</div>' : ''}${j.output ? `<pre>${esc(j.output)}</pre>` : ''}</div>`,
+          `<div class="item"><strong>${esc(j.command)} · ${esc((j.args || []).slice(1).join(' '))}</strong><span class="pill ${j.status === 'completed' ? 'ok' : j.status === 'failed' ? 'bad' : 'warn'}">${esc(j.status)}</span>${j.output ? `<pre>${esc(j.output)}</pre>` : ''}</div>`,
       )
       .join('') || '<div class="muted">Sin ejecuciones recientes.</div>';
   const flows = state.selected_project?.active_flows || [];
@@ -129,23 +127,62 @@ function renderSecurity() {
     ? `<div class="value">${s.finding_count || 0} hallazgo(s)</div>`
     : '<div class="muted">Selecciona un proyecto.</div>';
 }
-async function changeWorkflowKind() {
-  const target = document.getElementById('workflowKind').value;
-  if (!canLeaveWorkflow()) {
-    document.getElementById('workflowKind').value = workflowLoadedKind || 'feature';
-    return;
-  }
-  try {
-    state = await api('/api/state');
-    clearWorkflowDirty();
-    workflowCreating = false;
-    workflowLoadedKind = null;
-    window.renderWorkflowList?.(target);
-    loadWorkflowBoard(true);
-  } catch (e) {
-    document.getElementById('workflowKind').value = workflowLoadedKind || 'feature';
-    toast(e.message);
-  }
+async function saveProjectsRoot() {
+  if (!canLeaveWorkflow()) return;
+  const path = document.getElementById('projectsRootInput').value.trim();
+  if (!path) return;
+  state = (await api('/api/projects/root', 'POST', { path })).state;
+  clearDirty();
+  workflowCreating = false;
+  renderAll();
+  return true;
+}
+async function selectProject(path) {
+  if (!canLeaveWorkflow()) return;
+  state = (await api('/api/project/select', 'POST', { path })).state;
+  clearDirty();
+  workflowCreating = false;
+  renderAll();
+  window.returnToProjectOverview?.();
+  return true;
+}
+async function createProject() {
+  if (!canLeaveWorkflow()) return;
+  const name = document.getElementById('newName').value.trim();
+  if (!name) return toast('Escribe un nombre');
+  state = (
+    await api('/api/project/create', 'POST', {
+      name,
+      purpose: document.getElementById('newPurpose').value,
+    })
+  ).state;
+  clearDirty();
+  workflowCreating = false;
+  renderAll();
+  window.returnToProjectOverview?.();
+  return true;
+}
+async function setDefaultAgent(tool) {
+  state = (await api('/api/agent/default', 'POST', { tool })).state;
+  renderAll();
+}
+async function setAgentPath(tool) {
+  const path = prompt(`Ruta completa de ${tool}:`, '');
+  if (!path) return;
+  state = (await api('/api/agent/path', 'POST', { tool, path })).state;
+  renderAll();
+}
+function canonicalX(i) {
+  return 90 + i * 270;
+}
+function nodeY(i) {
+  return 64 + (i % 2) * 12;
+}
+function iconFor(n) {
+  return { explore: '01', plan: '02', implement: '03', review: '04', document: '05' }[n] || '·';
+}
+function requiredStep(kind, name) {
+  return workflowBaseKind(kind) === 'feature' || ['explore', 'implement', 'review'].includes(name);
 }
 function loadWorkflowBoard(force = false) {
   if (workflowDirty && !force) return;
@@ -166,104 +203,100 @@ function loadWorkflowBoard(force = false) {
     workflowRevision = null;
     return;
   }
-  workflowDraft = (source.steps || []).map((s, i) => ({ ...s }));
+  workflowDraft = (source.steps || []).map((s, i) => ({ ...s, x: canonicalX(i), y: nodeY(i) }));
   workflowRevision = source.revision;
   workflowProject = project;
   workflowLoadedKind = kind;
   workflowDraftKind = source.kind;
   window.loadWorkflowMetadata?.(source);
-  clearWorkflowDirty();
+  clearDirty();
   renderWorkflowBoard();
-}
-function isOptionalStep(kind, name) {
-  return workflowBaseKind(kind) === 'fix' && (name === 'plan' || name === 'document');
-}
-function titleForStep(name) {
-  return (
-    {
-      explore: 'Explorer',
-      plan: 'Planner',
-      implement: 'Implementer',
-      review: 'Reviewer',
-      document: 'Documenter',
-    }[name] || name
-  );
-}
-function descriptionForStep(name) {
-  return (
-    {
-      explore: 'Entiende código, contexto e impacto.',
-      plan: 'Diseña el plan y criterios de aceptación.',
-      implement: 'Realiza los cambios aprobados.',
-      review: 'Revisa diff, reglas, riesgos y verificación.',
-      document: 'Propone actualización de memoria/documentación.',
-    }[name] || ''
-  );
 }
 function renderWorkflowBoard() {
   const kind = document.getElementById('workflowKind').value;
-  const el = document.getElementById('workflowBoard');
-  if (!state.selected_project) {
-    el.innerHTML = '<div class="muted">Selecciona un proyecto para personalizar su flujo.</div>';
-    return;
-  }
-  el.innerHTML = workflowDraft
+  document.getElementById('workflowBoard').innerHTML = workflowDraft
     .map(
       (s, i) =>
-        `<div class="flow-card ${s.enabled === false ? 'muted' : ''}" draggable="true" data-index="${i}" ondragstart="dragStart(event,${i})" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropCard(event,${i})" ondragend="dragEnd(event)"><div class="drag-handle">⋮⋮</div><div><strong>${i + 1}. ${esc(titleForStep(s.name))}</strong><div class="muted">${esc(descriptionForStep(s.name))}</div><div class="flow-meta"><span class="pill">${esc(s.role)}</span>${isOptionalStep(kind, s.name) ? '<span class="pill warn">OPCIONAL</span>' : '<span class="pill ok">OBLIGATORIO</span>'}</div></div><div class="flow-controls"><label>Agente de la etapa<select class="stage-agent" onchange="setStepAgent(${i},this.value)"><option value="" ${!s.agent_id ? 'selected' : ''}>Predeterminado (${esc(s.role)})</option>${(
-          state.workflows?.[kind]?.agents ||
-          state.workflows?.[workflowOriginId]?.agents ||
-          []
-        )
-          .filter((a) => (a.base_role || a.role) === s.role)
-          .map(
-            (a) =>
-              `<option value="${a.role}" ${s.agent_id === a.role ? 'selected' : ''}>${esc(a.name || a.role)}</option>`,
-          )
-          .join(
-            '',
-          )}${s.agent_id && !(state.workflows?.[kind]?.agents || state.workflows?.[workflowOriginId]?.agents || []).some((a) => a.role === s.agent_id && (a.base_role || a.role) === s.role) ? `<option selected value="${esc(s.agent_id)}">${esc(s.agent_id)} · no disponible</option>` : ''}</select></label><select onchange="setStepTool(${i},this.value)"><option value="" ${!s.tool ? 'selected' : ''}>Agente predeterminado</option><option value="codex" ${s.tool === 'codex' ? 'selected' : ''}>Codex</option><option value="opencode" ${s.tool === 'opencode' ? 'selected' : ''}>OpenCode</option></select>${isOptionalStep(kind, s.name) ? `<label class="toggle"><input type="checkbox" ${s.enabled !== false ? 'checked' : ''} onchange="setStepEnabled(${i},this.checked)"> Etapa activa</label>` : '<div class="lock">Etapa obligatoria</div>'}</div></div>${i < workflowDraft.length - 1 ? '<div class="flow-arrow">↓</div>' : ''}`,
+        `<div class="node ${s.enabled ? '' : 'off'}" data-i="${i}" style="left:${s.x}px;top:${s.y}px" onpointerdown="startNodeDrag(event,${i})"><span class="port in"></span><span class="port out"></span><div class="node-header"><div class="node-icon">${iconFor(s.name)}</div><div><div class="node-title">${esc(s.name)}</div><div class="muted" style="font-size:12px">${esc(s.role)}</div></div></div><div class="node-body"><select onclick="event.stopPropagation()" onchange="setNodeTool(${i},this.value)"><option value="" ${!s.tool ? 'selected' : ''}>Agente predeterminado</option><option value="codex" ${s.tool === 'codex' ? 'selected' : ''}>Codex</option><option value="opencode" ${s.tool === 'opencode' ? 'selected' : ''}>OpenCode</option></select>${requiredStep(kind, s.name) ? '<div class="node-lock">Etapa obligatoria</div>' : `<label class="node-toggle" onclick="event.stopPropagation()"><input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleNode(${i},this.checked)"> etapa activa</label>`}<div class="node-meta"><span class="pill">${s.enabled ? 'activa' : 'apagada'}</span></div></div></div>`,
     )
     .join('');
+  drawConnections();
 }
-function dragStart(e, i) {
-  draggedIndex = i;
+function drawConnections() {
+  const enabled = workflowDraft.filter((x) => x.enabled).sort((a, b) => a.x - b.x);
+  const svg = document.getElementById('connections');
+  svg.innerHTML = '';
+  for (let i = 0; i < enabled.length - 1; i++) {
+    const a = enabled[i],
+      b = enabled[i + 1],
+      source = document.querySelector(`#workflowBoard .node[data-i="${workflowDraft.indexOf(a)}"]`),
+      target = document.querySelector(`#workflowBoard .node[data-i="${workflowDraft.indexOf(b)}"]`),
+      x1 = a.x + (source?.offsetWidth || 220),
+      y1 = a.y + (source?.offsetHeight || 190) / 2,
+      x2 = b.x,
+      y2 = b.y + (target?.offsetHeight || 190) / 2,
+      m = (x1 + x2) / 2;
+    svg.insertAdjacentHTML(
+      'beforeend',
+      `<path d="M ${x1} ${y1} C ${m} ${y1}, ${m} ${y2}, ${x2} ${y2}"/>`,
+    );
+  }
+}
+function startNodeDrag(e, i) {
+  if (e.target.closest('select,input,label,button')) return;
+  drag = { i, startX: e.clientX, origX: workflowDraft[i].x };
+  e.currentTarget.setPointerCapture(e.pointerId);
   e.currentTarget.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.onpointermove = moveNode;
+  e.currentTarget.onpointerup = endNodeDrag;
 }
-function dragOver(e) {
-  e.preventDefault();
-  e.currentTarget.classList.add('drag-over');
+function moveNode(e) {
+  if (!drag) return;
+  workflowDraft[drag.i].x = Math.max(35, drag.origX + (e.clientX - drag.startX));
+  e.currentTarget.style.left = workflowDraft[drag.i].x + 'px';
+  drawConnections();
+  markDirty();
 }
-function dragLeave(e) {
-  e.currentTarget.classList.remove('drag-over');
-}
-function dropCard(e, i) {
-  e.preventDefault();
-  if (draggedIndex === null || draggedIndex === i) return;
-  const [moved] = workflowDraft.splice(draggedIndex, 1);
-  workflowDraft.splice(i, 0, moved);
-  draggedIndex = null;
-  markWorkflowDirty();
-  renderWorkflowBoard();
-}
-function dragEnd(e) {
+function endNodeDrag(e) {
+  if (!drag) return;
   e.currentTarget.classList.remove('dragging');
-  document.querySelectorAll('.flow-card').forEach((x) => x.classList.remove('drag-over'));
-  draggedIndex = null;
-}
-function setStepAgent(i, v) {
-  workflowDraft[i].agent_id = v || null;
-  markWorkflowDirty();
-}
-function setStepTool(i, v) {
-  workflowDraft[i].tool = v || null;
-  markWorkflowDirty();
-}
-function setStepEnabled(i, v) {
-  workflowDraft[i].enabled = v;
-  markWorkflowDirty();
+  workflowDraft.sort((a, b) => a.x - b.x);
+  workflowDraft.forEach((s, i) => {
+    s.x = canonicalX(i);
+    s.y = nodeY(i);
+  });
+  drag = null;
   renderWorkflowBoard();
+}
+function setNodeTool(i, v) {
+  workflowDraft[i].tool = v || null;
+  markDirty();
+}
+function toggleNode(i, v) {
+  workflowDraft[i].enabled = v;
+  markDirty();
+  renderWorkflowBoard();
+}
+function fitCanvas() {
+  document.getElementById('workflowCanvas').scrollTo({ left: 0, top: 0, behavior: 'smooth' });
+}
+async function changeWorkflowKind() {
+  const target = document.getElementById('workflowKind').value;
+  if (!canLeaveWorkflow()) {
+    document.getElementById('workflowKind').value = workflowLoadedKind || 'feature';
+    return;
+  }
+  try {
+    state = await api('/api/state');
+    clearDirty();
+    workflowCreating = false;
+    workflowLoadedKind = null;
+    window.renderWorkflowList?.(target);
+    loadWorkflowBoard(true);
+  } catch (e) {
+    document.getElementById('workflowKind').value = workflowLoadedKind || 'feature';
+    toast(e.message);
+  }
 }
 async function saveWorkflow() {
   if (workflowSaving) return;
@@ -278,7 +311,7 @@ async function saveWorkflow() {
     id,
     name: id ? document.getElementById('workflowName').value.trim() : '',
     description: id ? document.getElementById('workflowDescription').value : '',
-    steps: structuredClone(workflowDraft),
+    steps: [...workflowDraft].sort((a, b) => a.x - b.x).map(({ x, y, ...s }) => s),
     project_path: workflowProject,
     revision: workflowRevision,
   };
@@ -291,7 +324,7 @@ async function saveWorkflow() {
       payload,
     );
     state = d.state;
-    clearWorkflowDirty();
+    clearDirty();
     workflowCreating = false;
     workflowLoadedKind = null;
     window.renderWorkflowList?.(id || kind);
@@ -312,7 +345,7 @@ async function resetWorkflowLocal() {
   const target = workflowCreating ? workflowOriginId || 'feature' : workflowLoadedKind;
   try {
     state = await api('/api/state');
-    clearWorkflowDirty();
+    clearDirty();
     workflowCreating = false;
     workflowLoadedKind = null;
     window.renderWorkflowList?.(target);
@@ -321,49 +354,6 @@ async function resetWorkflowLocal() {
   } catch (e) {
     toast(e.message);
   }
-}
-async function saveProjectsRoot() {
-  if (!canLeaveWorkflow()) return;
-  const path = document.getElementById('projectsRootInput').value.trim();
-  if (!path) return;
-  state = (await api('/api/projects/root', 'POST', { path })).state;
-  clearWorkflowDirty();
-  workflowCreating = false;
-  renderAll();
-  return true;
-}
-async function selectProject(path) {
-  if (!canLeaveWorkflow()) return;
-  state = (await api('/api/project/select', 'POST', { path })).state;
-  clearWorkflowDirty();
-  workflowCreating = false;
-  renderAll();
-  return true;
-}
-async function createProject() {
-  if (!canLeaveWorkflow()) return;
-  const name = document.getElementById('newName').value.trim();
-  if (!name) return toast('Escribe un nombre');
-  state = (
-    await api('/api/project/create', 'POST', {
-      name,
-      purpose: document.getElementById('newPurpose').value,
-    })
-  ).state;
-  clearWorkflowDirty();
-  workflowCreating = false;
-  renderAll();
-  return true;
-}
-async function setDefaultAgent(tool) {
-  state = (await api('/api/agent/default', 'POST', { tool })).state;
-  renderAll();
-}
-async function setAgentPath(tool) {
-  const path = prompt(`Ruta completa de ${tool}:`, '');
-  if (!path) return;
-  state = (await api('/api/agent/path', 'POST', { tool, path })).state;
-  renderAll();
 }
 async function runCommand(args) {
   try {
@@ -388,11 +378,7 @@ async function pollJob(id) {
     const d = await api('/api/job/' + id);
     state = d.state;
     renderAll();
-    if (['queued', 'running'].includes(d.job.status)) {
-      setTimeout(() => pollJob(id), 1500);
-    } else {
-      toast(d.job.status === 'completed' ? 'Flujo terminado' : 'Flujo terminado con error');
-    }
+    if (['queued', 'running'].includes(d.job.status)) setTimeout(() => pollJob(id), 1500);
   } catch (e) {
     toast(e.message);
   }
@@ -417,8 +403,10 @@ document.querySelectorAll('.nav button').forEach(
       b.classList.add('active');
       document.getElementById(b.dataset.page).classList.add('active');
       document.getElementById('title').textContent = b.textContent;
-      if (b.dataset.page === 'designer' && !workflowDirty) loadWorkflowBoard(true);
+      if (b.dataset.page === 'designer') loadWorkflowBoard(false);
     }),
 );
 refresh();
-setInterval(refresh, 5000);
+setInterval(() => {
+  if (!workflowDirty) refresh();
+}, 5000);

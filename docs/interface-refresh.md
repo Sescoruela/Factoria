@@ -1,13 +1,16 @@
 # Interfaz de trabajo — 07/11/2026
 
 La interfaz utiliza superficies claras, un acento verde discreto, tipografía de
-sistema y controles con una jerarquía constante. La navegación se agrupa por tareas:
-Proyecto, Configurar, Trabajar y Herramientas. Los iconos son SVG locales y las
-etapas usan números en lugar de emojis decorativos.
+sistema y controles con una jerarquía constante.
+
+Actualización del menú del 19/11/2026. **Inicio** y **Proyectos** tienen acceso
+directo. **Trabajo**, **Configurar proyecto** y **Herramientas** se despliegan al
+abrirlos. Al entrar por un enlace directo se abre el grupo de la sección. En
+móvil, el menú admite teclado y Escape devuelve el foco al botón **Menú**.
 
 ## Cambios de uso
 
-- **Resumen** muestra el proyecto, sus workflows reales y las comprobaciones previas.
+- **Inicio** muestra el siguiente paso del proyecto y un acceso a su configuración.
   Los accesos abren el workflow o panel correspondiente; los catálogos con errores
   se presentan como pendientes de revisión, no como catálogos vacíos correctos.
 - **Agentes y skills** separan lista y formulario en escritorio, señalan la selección
@@ -24,7 +27,7 @@ etapas usan números en lugar de emojis decorativos.
   completo, con autenticación existente y comprobación de borradores. Limpiar el
   token de la URL conserva ahora el fragmento de destino de esos enlaces.
 
-Los cambios viven en `web/interface.css` y `web/interface.js`, compartidos por ambas
+Los cambios viven en `web/frontend/interface.css` y `web/frontend/interface.js`, compartidos por ambas
 vistas. Se mantienen las políticas, revisiones, confirmaciones y guardados existentes.
 No se añaden librerías de runtime, fuentes externas ni arranque de proveedores.
 

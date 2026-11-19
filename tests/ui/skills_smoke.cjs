@@ -7,7 +7,7 @@ const pause=()=>new Promise(r=>setTimeout(r,20));
 async function until(fn){for(let i=0;i<300;i++){if(fn())return;await pause();}throw Error('Timed out: '+fn);}
 async function open(){
  const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e.message));
- const dom=await JSDOM.fromURL(fixture.url+'/?token=ui-test-token',{runScripts:'dangerously',resources:'usable',virtualConsole:vc,beforeParse(w){w.structuredClone=structuredClone;w.fetch=(url,opts)=>fetch(new URL(url,w.location.href),opts);w.confirm=()=>answer;}});
+ const dom=await JSDOM.fromURL(fixture.url+'/?token=ui-test-token',{runScripts:'dangerously',resources:'usable',virtualConsole:vc,beforeParse(w){w.matchMedia=()=>({matches:false});w.structuredClone=structuredClone;w.fetch=(url,opts)=>fetch(new URL(url,w.location.href),opts);w.confirm=()=>answer;}});
  await until(()=>typeof dom.window.saveSkill==='function'&&dom.window.eval('!!state.skill_catalog_revision'));
  return dom;
 }

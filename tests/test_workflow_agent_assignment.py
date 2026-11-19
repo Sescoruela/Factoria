@@ -22,7 +22,7 @@ from factoria.application.projects.workflow_presets import (
 )
 from factoria.orchestration.models import AgentRole
 from factoria.ui.workspace import UiWorkspaceSettings
-from factoria.web.server import FactoriaHTTPServer, FactoriaWebHandler, _workflow_payload
+from factoria.web.backend.server import FactoriaHTTPServer, FactoriaWebHandler, _workflow_payload
 
 
 def assigned(kind='feature', stage='review', identifier='api-reviewer'):
@@ -180,7 +180,7 @@ class WorkflowAgentAssignmentTests(unittest.TestCase):
                                              data=json.dumps(payload).encode(), headers={'X-Factoria-Token': 'fixture-token'})
                 with urllib.request.urlopen(req, timeout=3) as response:
                     return json.load(response)
-            with patch('factoria.web.server._state', side_effect=lambda: {'workflows': _workflow_payload(self.root)}):
+            with patch('factoria.web.backend.server._state', side_effect=lambda: {'workflows': _workflow_payload(self.root)}):
                 response = request(assigned())
                 self.assertIn(self.agent.role, [a['role'] for a in response['state']['workflows']['feature']['agents']])
                 before = (self.root / '.factoria/workflows.json').read_bytes()

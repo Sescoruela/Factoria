@@ -13,13 +13,13 @@ from factoria.application.environment.tool_presence import assert_ui_command_all
 from factoria.ui.agent_tools import AgentAwareTerminalUI
 from factoria.ui.terminal import TerminalUI
 from factoria.ui.workspace import UiWorkspaceSettings
-from factoria.web.server import FactoriaHTTPServer, _agent_payload, _set_default_tool
-from factoria.web.main_shell import FactoriaN8NHandler
+from factoria.web.backend.server import FactoriaHTTPServer, _agent_payload, _set_default_tool
+from factoria.web.backend.main_shell import FactoriaN8NHandler
 
 
 class ExternalToolStartupTests(unittest.TestCase):
     def test_repeated_platform_refresh_never_starts_a_process(self):
-        with patch('subprocess.run', side_effect=AssertionError('Unexpected process startup')), patch('factoria.web.server._apply_agent_paths', return_value={}):
+        with patch('subprocess.run', side_effect=AssertionError('Unexpected process startup')), patch('factoria.web.backend.server._apply_agent_paths', return_value={}):
             for _ in range(4):
                 payload = _agent_payload()
                 self.assertEqual([p['name'] for p in payload], ['codex', 'opencode'])

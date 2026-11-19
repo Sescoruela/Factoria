@@ -74,8 +74,8 @@ class IntegrationTests(ProjectFixture):
         import threading
         import urllib.error
         import urllib.request
-        from factoria.web.server import FactoriaHTTPServer
-        from factoria.web.main_shell import FactoriaN8NHandler
+        from factoria.web.backend.server import FactoriaHTTPServer
+        from factoria.web.backend.main_shell import FactoriaN8NHandler
         save_agent_profile(self.root, AgentRoleProfile('reviewer', 'rapido'))
         server = FactoriaHTTPServer(('127.0.0.1', 0), FactoriaN8NHandler)
         server.factoria_token = 'fixture-token'
@@ -99,6 +99,19 @@ class IntegrationTests(ProjectFixture):
             ):
                 self.assertFalse(request({'confirmed': False})['applied'])
                 self.assertFalse(ProjectIntegration(self.root).check()['ready'])
+                guided = {'project_path': str(self.root)}
+                preview = request(guided)
+                with self.assertRaises(urllib.error.HTTPError) as error:
+                    request({'project_path': str(self.root.parent), 'confirmed': True,
+                             'revision': preview['revision']})
+                self.assertEqual(error.exception.code, 409)
+                save_agent_profile(self.root, AgentRoleProfile('reviewer', 'equilibrado'))
+                with self.assertRaises(urllib.error.HTTPError) as error:
+                    request({**guided, 'confirmed': True, 'revision': preview['revision']})
+                self.assertEqual(error.exception.code, 400)
+                self.assertFalse(ProjectIntegration(self.root).check()['ready'])
+                preview = request(guided)
+                self.assertTrue(request({**guided, 'confirmed': True, 'revision': preview['revision']})['applied'])
                 self.assertTrue(request({'confirmed': True})['applied'])
                 self.assertTrue(ProjectIntegration(self.root).check()['ready'])
         finally:

@@ -30,9 +30,9 @@ from factoria.application.projects.workflow_presets import (
 from factoria.config.loader import load_global_config
 from factoria.ui.agent_tools import _apply_agent_paths, _load_agent_paths, _save_agent_paths
 from factoria.ui.workspace import UiWorkspaceSettings, discover_projects, project_root
-from factoria.web.editor_api import EDITOR_ROUTES, handle_editor_post
-from factoria.web.editor_state import enrich_editor_state
-from factoria.web.project_api import PROJECT_RESOURCE_ROUTES, handle_project_post
+from factoria.web.backend.editor_api import EDITOR_ROUTES, handle_editor_post
+from factoria.web.backend.editor_state import enrich_editor_state
+from factoria.web.backend.project_api import PROJECT_RESOURCE_ROUTES, handle_project_post
 
 _HOST = "127.0.0.1"
 _ALLOWED_COMMANDS = {
@@ -49,6 +49,7 @@ _ALLOWED_COMMANDS = {
 _ASYNC_COMMANDS: set[str] = set()  # Provider execution belongs to the external tool session.
 _JOBS: dict[str, dict[str, object]] = {}
 _JOBS_LOCK = threading.Lock()
+_COMMAND_LOCK = threading.Lock()
 
 
 def _is_git_project(path: Path | None) -> bool:
@@ -272,7 +273,8 @@ def _run_factoria_command(args: list[str], project: Path | None) -> tuple[int, s
     if project is not None and "--project" not in argv:
         argv = ["--project", str(project), *argv]
     buffer = io.StringIO()
-    with contextlib.redirect_stdout(buffer), contextlib.redirect_stderr(buffer):
+    # Standard streams are process-wide even though requests run in separate threads.
+    with _COMMAND_LOCK, contextlib.redirect_stdout(buffer), contextlib.redirect_stderr(buffer):
         try:
             code = int(main(argv) or 0)
         except SystemExit as exc:
@@ -346,12 +348,13 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             "/assets/resources.js",
             "/assets/shell-common.js",
             "/assets/interface.js",
+            "/assets/project-start.js",
             "/assets/interface.css",
             "/assets/editor-state.js",
             "/assets/relations.js",
             "/assets/shell-main.css",
         }:
-            body = files("factoria.web").joinpath(path.rsplit("/", 1)[-1]).read_bytes()
+            body = files("factoria.web.frontend").joinpath(path.rsplit("/", 1)[-1]).read_bytes()
             self.send_response(HTTPStatus.OK)
             self.send_header(
                 "Content-Type",
@@ -366,7 +369,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             return
         if path in {"/", "/editors"}:
             shell = "index_n8n.html" if path == "/editors" else self.root_shell
-            html = files("factoria.web").joinpath(shell).read_bytes()
+            html = files("factoria.web.frontend").joinpath(shell).read_bytes()
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
@@ -466,7 +469,15 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
                 raw = data.get("args", [])
                 if not isinstance(raw, list) or not all(isinstance(item, str) for item in raw):
                     raise ValueError("args debe ser una lista de strings")
-                code, output = _run_factoria_command(list(raw), self._active_project())
+                project = self._active_project()
+                if "project_path" in data and (
+                    project is None or data["project_path"] != str(project)
+                ):
+                    self._json(
+                        {"error": "El proyecto seleccionado cambió. Vuelve a revisarlo."}, 409
+                    )
+                    return
+                code, output = _run_factoria_command(list(raw), project)
                 self._json(
                     {"ok": code == 0, "code": code, "output": output, "state": self._editor_state()}
                 )

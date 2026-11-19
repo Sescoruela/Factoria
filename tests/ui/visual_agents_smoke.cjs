@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const {execFileSync} = require('node:child_process');
 const root = path.resolve(__dirname, '../..');
 const templates = JSON.parse(execFileSync(process.env.FACTORIA_TEST_PYTHON || 'python', ['-c',
-  'import json; from factoria.application.visual_agents import visual_agent_templates; print(json.dumps([a.to_mapping() for a in visual_agent_templates()]))'],
+  'import json; from factoria.application.projects.visual_agents import visual_agent_templates; print(json.dumps([a.to_mapping() for a in visual_agent_templates()]))'],
   {cwd: root, env: {...process.env, PYTHONPATH: path.join(root, 'src')}, encoding: 'utf8'}));
 const dom = new JSDOM('<main class="main"><nav class="nav"><button data-page="agents">Plataformas</button><button data-page="designer">Flujos</button></nav><div id="title"></div><section id="agents"><div class="card"><div class="label"></div><div id="agentList"></div></div></section><section id="designer"><div class="workflow-note"></div><select id="workflowKind"><option value="feature">feature</option></select><div id="workflowBoard"></div></section></main>', {runScripts: 'dangerously', url: 'http://localhost/'});
 const w = dom.window, d = w.document;
@@ -25,7 +25,7 @@ w.api = async (url, method, body) => {
   writes.push({url, body});
   return {state: {...w.state, agent_catalog_revision: 'r2', agent_roles: [...w.state.agent_roles, body]}};
 };
-w.eval(fs.readFileSync(path.join(root, 'src/factoria/web/agents.js'), 'utf8'));
+w.eval(fs.readFileSync(path.join(root, 'src/factoria/web/frontend/agents.js'), 'utf8'));
 (async () => {
   assert.equal(d.querySelectorAll('#agentTemplatePicker option').length, 3);
   w.newVisualAgentRole();

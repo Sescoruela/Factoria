@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from factoria.web.server import FactoriaWebHandler, serve_web_ui
+from factoria.web.backend.server import FactoriaWebHandler, serve_web_ui
 
 
 class FactoriaN8NHandler(FactoriaWebHandler):

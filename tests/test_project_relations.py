@@ -21,8 +21,8 @@ from factoria.application.projects.resource_lifecycle import preview_resource, a
 from factoria.application.projects.workflow_presets import save_preset, default_preset
 from factoria.commands.project import run_project_cli
 from factoria.ui.workspace import UiWorkspaceSettings
-from factoria.web.server import FactoriaHTTPServer, FactoriaWebHandler
-from factoria.web.main_shell import FactoriaN8NHandler
+from factoria.web.backend.server import FactoriaHTTPServer, FactoriaWebHandler
+from factoria.web.backend.main_shell import FactoriaN8NHandler
 
 
 class ProjectRelationsTests(unittest.TestCase):

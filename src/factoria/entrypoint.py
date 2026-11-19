@@ -68,7 +68,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if not argv:
-        from factoria.web.main_shell import run_web_ui
+        from factoria.web.backend.main_shell import run_web_ui
 
         return run_web_ui()
 
@@ -78,7 +78,7 @@ def main(argv: list[str] | None = None) -> int:
 
         return run_project_cli(argv)
     if command in {"ui", "web"}:
-        from factoria.web.main_shell import run_web_ui
+        from factoria.web.backend.main_shell import run_web_ui
 
         return run_web_ui()
     if command == "tui":

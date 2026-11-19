@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from factoria.ui.desktop import ManagedTerminalUI
 from factoria.ui.workspace import UiWorkspaceSettings, discover_projects, project_root
-from factoria.web.server import _save_selected_project, _selected_project
+from factoria.web.backend.server import _save_selected_project, _selected_project
 
 
 class ProjectDiscoveryTests(unittest.TestCase):

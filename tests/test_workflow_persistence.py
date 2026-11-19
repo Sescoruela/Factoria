@@ -17,7 +17,7 @@ from factoria.application.projects.workflow_presets import (
     workflow_catalog_revision, workflow_catalog_snapshot,
 )
 from factoria.ui.workspace import UiWorkspaceSettings
-from factoria.web.server import FactoriaHTTPServer, FactoriaWebHandler, _workflow_payload
+from factoria.web.backend.server import FactoriaHTTPServer, FactoriaWebHandler, _workflow_payload
 
 
 def with_profile(preset, stage, profile):
@@ -134,7 +134,7 @@ class WorkflowPersistenceTests(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as caught:
                 request(payload, False)
             self.assertEqual(caught.exception.code, 403)
-            with patch('factoria.web.server._state', return_value={}):
+            with patch('factoria.web.backend.server._state', return_value={}):
                 self.assertTrue(request(payload)['ok'])
                 before = (self.root / '.factoria/workflows.json').read_bytes()
                 with self.assertRaises(urllib.error.HTTPError) as caught:

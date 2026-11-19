@@ -18,8 +18,8 @@ from factoria.application.projects.agent_profiles import (
 )
 from factoria.application.projects.project_integration import ProjectIntegration
 from factoria.ui.workspace import UiWorkspaceSettings
-from factoria.web.server import FactoriaHTTPServer
-from factoria.web.main_shell import FactoriaN8NHandler
+from factoria.web.backend.server import FactoriaHTTPServer
+from factoria.web.backend.main_shell import FactoriaN8NHandler
 
 
 class AgentCatalogTests(unittest.TestCase):
@@ -166,7 +166,7 @@ class AgentCatalogTests(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as caught:
                 request('/api/agent-role/create', payload, False)
             self.assertEqual(caught.exception.code, 403)
-            with patch('factoria.web.server._state', return_value={'selected_project': {'path': str(self.root)}}):
+            with patch('factoria.web.backend.server._state', return_value={'selected_project': {'path': str(self.root)}}):
                 result = request('/api/agent-role/create', payload)
                 self.assertEqual(len(result['state']['agent_roles']), 6)
                 payload['revision'] = result['state']['agent_catalog_revision']

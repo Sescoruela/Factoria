@@ -173,6 +173,10 @@ class IntegrationPlan:
     changed: tuple[str, ...]
     conflicts: tuple[str, ...]
 
+    @property
+    def revision(self) -> str:
+        return _digest(_json((self.files, self.changed, self.conflicts)))
+
 
 class ProjectIntegration:
     def __init__(self, root: Path):
@@ -363,7 +367,9 @@ Los permisos y aprobaciones de la herramienta siguen vigentes.
             changed.append(MANIFEST)
         return IntegrationPlan(files, tuple(changed), tuple(conflicts))
 
-    def apply(self, *, confirmed: bool = False) -> IntegrationPlan:
+    def apply(
+        self, *, confirmed: bool = False, expected_revision: str | None = None
+    ) -> IntegrationPlan:
         from factoria.application.projects.resource_support import catalog_locks as _locks
 
         with _locks():
@@ -376,6 +382,8 @@ Los permisos y aprobaciones de la herramienta siguen vigentes.
                 GovernedAction.WRITE, build_execution_context(self.root)
             )
             plan = self.plan()
+            if expected_revision is not None and plan.revision != expected_revision:
+                raise ValueError("La preparación cambió. Vuelve a revisar los archivos.")
             if plan.conflicts:
                 raise ValueError(
                     "Archivos modificados por el usuario; resolver antes de regenerar: "
@@ -397,6 +405,11 @@ Los permisos y aprobaciones de la herramienta siguen vigentes.
             "ready": not plan.changed and not plan.conflicts,
             "changed": list(plan.changed),
             "conflicts": list(plan.conflicts),
+            "enabled_workflows": [
+                path.split("/")[2].removeprefix("factoria-")
+                for path in plan.files
+                if path.startswith(".agents/skills/factoria-") and path.endswith("/SKILL.md")
+            ],
             "tools": ["codex", "opencode"],
             "chatgpt": "Requiere acceso al repositorio o adjuntar el contexto portable; sin herramientas solo propuestas.",
         }

@@ -1,6 +1,7 @@
 /* Real Chromium + real local API. Only the failed-save response is injected. */
 const {test: base, expect} = require('playwright/test');
 const fs = require('node:fs');
+const {execFileSync} = require('node:child_process');
 const path = require('node:path');
 const token = 'disposable-browser-fixture';
 
@@ -41,7 +42,16 @@ async function open(page, lab, shell, classicRoot = false) {
 }
 
 async function nav(page, name) {
-  await page.locator(`.nav [data-page="${name}"]`).click();
+  const button = page.locator(`.nav [data-page="${name}"]`);
+  const menu = page.locator('#navToggle');
+  if (await menu.isVisible() && await menu.getAttribute('aria-expanded') === 'false') {
+    await menu.click();
+  }
+  const group = await button.evaluate(element => element.closest('.nav-links')?.id);
+  if (group && !await button.isVisible()) {
+    await page.locator(`button[aria-controls="${group}"]`).click();
+  }
+  await button.click();
   await expect(page.locator(`#${name}`)).toHaveClass(/active/);
 }
 
@@ -330,7 +340,8 @@ test('overview lists actual resources and opens the selected workflow', async ({
   await open(page,lab,'main');
   await create(page,'skill');await create(page,'agent');await create(page,'workflow');
   await nav(page,'dashboard');
-  await expect(page.locator('#title')).toHaveText('Resumen');
+  await expect(page.locator('#title')).toHaveText('Inicio');
+  await page.getByText('Configuración del proyecto', {exact: true}).click();
   await expect(page.locator('#dashboardGrid .workflow-row')).toHaveCount(3);
   await expect(page.locator('#dashboardGrid')).toContainText('1 skill');
   await page.locator('.workflow-row').filter({hasText:'Workflow inicial'}).click();
@@ -348,6 +359,11 @@ test('mobile menu supports keyboard navigation and projects fit the viewport', a
   await expect(page.getByRole('link',{name:'Ir al contenido'})).toBeFocused();
   await menu.focus();await page.keyboard.press('Enter');
   await expect(menu).toHaveAttribute('aria-expanded','true');
+  await page.getByRole('button', {name: 'Herramientas', exact: true}).focus();
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveAttribute('aria-expanded', 'false');
+  await expect(menu).toBeFocused();
+  await menu.click();
   await page.getByRole('navigation',{name:'Navegación principal'}).getByRole('button',{name:'Proyectos',exact:true}).click();
   await expect(page.locator('#projects')).toHaveClass(/active/);
   await expect(menu).toHaveAttribute('aria-expanded','false');
@@ -372,11 +388,13 @@ test('empty workspace offers project selection without claiming resources', asyn
   await expect(page.locator('#dashboardGrid .workflow-row')).toHaveCount(0);
   await page.getByRole('button',{name:'Elegir proyecto',exact:true}).click();
   await page.locator('#projectList .item').filter({hasText:empty.project}).getByRole('button',{name:'Abrir',exact:true}).click();
-  await nav(page,'dashboard');await expect(page.locator('#dashboardGrid .workflow-row')).toHaveCount(2);
+  await expect(page.locator('#dashboard')).toHaveClass(/active/);
+  await expect(page.getByRole('button', {name: 'Revisar memoria inicial'})).toBeVisible();
 });
 
 test('classic overview opens the full skill editor in the same authenticated server', async ({page,lab})=>{
   await open(page,lab,'classic',true);
+  await page.getByText('Configuración del proyecto', {exact: true}).click();
   await page.locator('#dashboardGrid [data-open-page="skills"]').click();
   await page.waitForURL('**/editors*');
   await expect(page.locator('#skills')).toHaveClass(/active/);
@@ -396,4 +414,87 @@ test('workflow connections meet the visible node ports after resizing the layout
   });
   expect(Math.abs(geometry.sourceY-geometry.lineSourceY)).toBeLessThan(2);
   expect(Math.abs(geometry.targetY-geometry.lineTargetY)).toBeLessThan(2);
+});
+
+
+test('guided start reviews and prepares a fresh repository, copies a task and searches memory', async ({page, context, lab}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await open(page, lab, 'main');
+  const overview = page.locator('#dashboardGrid');
+  await overview.getByRole('button', {name: 'Revisar memoria inicial'}).click();
+  await expect(overview.getByText('Crea el primer commit', {exact: false})).toBeVisible();
+  execFileSync('git', ['-C', lab.project, '-c', 'user.name=Factoría', '-c',
+    'user.email=fixture@example.invalid', 'commit', '--allow-empty', '-m', 'Initial commit']);
+  await overview.getByRole('button', {name: 'Revisar memoria inicial'}).click();
+  await expect(overview.getByText('Tecnologías propuestas', {exact: false})).toBeVisible();
+  expect(fs.existsSync(path.join(lab.project, 'AGENTS.md'))).toBe(false);
+  await overview.getByRole('button', {name: 'Guardar memoria'}).click();
+  await expect(overview.getByRole('button', {name: 'Ver archivos que cambiarán'})).toBeVisible();
+  await overview.getByRole('button', {name: 'Ver archivos que cambiarán'}).click();
+  await expect(overview.getByText('.factoria/integration-manifest.json', {exact: true})).toBeVisible();
+  expect(fs.existsSync(path.join(lab.project, '.factoria/integration-manifest.json'))).toBe(false);
+  await overview.getByRole('button', {name: 'Aplicar los cambios revisados'}).click();
+  await expect(overview.getByRole('button', {name: 'Añadir una funcionalidad'})).toBeVisible();
+  await overview.getByRole('button', {name: 'Añadir una funcionalidad'}).click();
+  const description = overview.getByLabel('Describe la tarea');
+  await description.fill('Añade turnos de 30 minutos');
+  await expect(overview.getByLabel('Petición para pegar')).toHaveValue('$factoria-feature Añade turnos de 30 minutos');
+  await overview.getByLabel('Herramienta').selectOption('opencode');
+  await overview.getByRole('button', {name: 'Copiar petición'}).click();
+  await expect(overview.getByText('Petición copiada.')).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('/factoria-feature Añade turnos de 30 minutos');
+  const navigation = page.getByRole('navigation', {name: 'Navegación principal'});
+  await navigation.getByRole('button', {name: 'Configurar proyecto'}).click();
+  await navigation.getByRole('button', {name: 'Memoria del proyecto'}).click();
+  await expect(overview.locator('#projectMemoryGraph')).toHaveAttribute('open', '');
+  await overview.getByRole('button', {name: 'Generar índice'}).click();
+  await expect(overview.getByText(/Índice actualizado/)).toBeVisible();
+  await overview.getByLabel('Qué buscar en la memoria').fill('Proyecto');
+  await overview.getByRole('button', {name: 'Buscar en la memoria'}).click();
+  await expect(overview.locator('#guideGraphResult')).toContainText('AGENTS.md');
+});
+
+test('guided start identifies a conflicting file and preserves it', async ({page, lab}) => {
+  const relative = '.agents/skills/factoria-fix/SKILL.md';
+  const target = path.join(lab.project, relative);
+  fs.mkdirSync(path.dirname(target), {recursive: true});
+  fs.writeFileSync(target, '# Guía del proyecto\n');
+  await open(page, lab, 'main');
+  const guide = page.locator('.project-guide');
+  await expect(guide.getByRole('heading', {name: 'Revisar qué impide continuar'})).toBeVisible();
+  await expect(guide.getByText(relative, {exact: true})).toBeVisible();
+  await expect(guide.getByRole('button', {name: 'Volver a comprobar'})).toBeVisible();
+  expect(fs.readFileSync(target, 'utf8')).toBe('# Guía del proyecto\n');
+});
+
+
+test('navigation shows five main entries and opens the matching group for a direct link', async ({page, lab}) => {
+  await open(page, lab, 'main');
+  const menu = page.getByRole('navigation', {name: 'Navegación principal'});
+  await expect(menu.locator(':scope > button, :scope > div > button')).toHaveText([
+    'Inicio', 'Proyectos', 'Trabajo', 'Configurar proyecto', 'Herramientas',
+  ]);
+  await expect(menu.getByRole('button', {name: 'Ejecuciones', includeHidden: true})).toBeHidden();
+  const work = menu.getByRole('button', {name: 'Trabajo', exact: true});
+  await work.click();
+  await menu.getByRole('button', {name: 'Ejecuciones', exact: true}).click();
+  await expect(page.locator('#title')).toHaveText('Ejecuciones');
+  await expect(work).toHaveAttribute('aria-expanded', 'true');
+
+  await page.goto(lab.url + '/?token=' + token + '#page=configuration');
+  const tools = menu.getByRole('button', {name: 'Herramientas', exact: true});
+  await expect(tools).toHaveAttribute('aria-expanded', 'true');
+  await expect(menu.getByRole('button', {name: 'Copias y recuperación'})).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('#title')).toHaveText('Copias y recuperación');
+});
+
+test('the grouped classic menu opens the full project editors', async ({page, lab}) => {
+  await open(page, lab, 'classic', true);
+  const menu = page.getByRole('navigation', {name: 'Navegación principal'});
+  await menu.getByRole('button', {name: 'Configurar proyecto', exact: true}).click();
+  await menu.getByRole('button', {name: 'Preparar proyecto', exact: true}).click();
+  await page.waitForURL('**/editors#page=integration');
+  await expect(page.locator('#integration')).toHaveClass(/active/);
+  await expect(menu.getByRole('button', {name: 'Configurar proyecto'})).toHaveAttribute('aria-expanded', 'true');
+  await expect(menu.getByRole('button', {name: 'Preparar proyecto'})).toHaveAttribute('aria-current', 'page');
 });

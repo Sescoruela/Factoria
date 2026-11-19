@@ -151,12 +151,15 @@ def _print_proposal(root: Path, proposal) -> None:
 
 def _git_head(root: Path) -> str:
     result = subprocess.run(
-        ["git", "-C", str(root), "rev-parse", "HEAD"],
-        check=True,
+        ["git", "-C", str(root), "rev-parse", "--verify", "--quiet", "HEAD"],
+        check=False,
         capture_output=True,
         text=True,
         encoding="utf-8",
     )
+    if result.returncode == 1:
+        raise ValueError("Crea el primer commit del repositorio y vuelve a revisar la memoria.")
+    result.check_returncode()
     return result.stdout.strip()
 
 

@@ -28,8 +28,8 @@ from factoria.memory.loader import load_project_memory
 from factoria.memory.filesystem import write_initial_memory
 from factoria.commands.project import run_project_cli
 from factoria.ui.workspace import UiWorkspaceSettings
-from factoria.web.server import FactoriaHTTPServer, FactoriaWebHandler
-from factoria.web.main_shell import FactoriaN8NHandler
+from factoria.web.backend.server import FactoriaHTTPServer, FactoriaWebHandler
+from factoria.web.backend.main_shell import FactoriaN8NHandler
 from tools.acceptance_lab import prepare_project
 
 

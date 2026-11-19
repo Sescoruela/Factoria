@@ -18,7 +18,7 @@ from factoria.application.projects.workflow_presets import (
     workflow_snapshot,
 )
 from importlib.resources import files
-UI_PATCH = files("factoria.web").joinpath("agents.js").read_text(encoding="utf-8")
+UI_PATCH = files("factoria.web.frontend").joinpath("agents.js").read_text(encoding="utf-8")
 
 
 class AgentPlatformConceptTests(unittest.TestCase):

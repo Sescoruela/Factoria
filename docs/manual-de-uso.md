@@ -69,19 +69,25 @@ con `factoria native finish <id>` tras el commit y con el árbol limpio.
 
 ## 3. Configurar un proyecto propio
 
-1. En **Proyectos**, selecciona el repositorio e inicializa su memoria si hace
-   falta. Registra los comandos de prueba que conozcas y hayas comprobado.
-2. En **Skills**, crea una skill o guarda una desde **Plantilla de skill**.
-3. En **Agentes**, crea un agente o elige una plantilla. Añade las skills que
-   necesite y guarda.
-4. En el diseñador de workflows, selecciona `fix` o `feature`. Asigna un agente
-   compatible a cada etapa que quieras personalizar. Para una variante, crea
-   un workflow a partir del tipo base y asígnale un identificador propio.
-5. En **Integración**, revisa la vista previa y pulsa **Preparar ambas herramientas**.
-   Revisa el diff y guarda en Git la configuración y los archivos generados.
-6. Abre una sesión con acceso al proyecto y usa una rama de trabajo limpia.
-   Pide la corrección o funcionalidad. Si tienes varias variantes, indica el
-   identificador explícitamente.
+1. En **Inicio**, pulsa **Elegir proyecto** y abre el repositorio. Si es la
+   primera vez, revisa la memoria inicial antes de guardarla.
+2. En **Preparar proyecto**, revisa los archivos y aplica los cambios. Si
+   Factoría muestra un conflicto, revisa los archivos indicados y vuelve a
+   comprobar el proyecto. Revisa el diff y guarda en Git la preparación.
+3. Elige **Corregir un problema** o **Añadir una funcionalidad**. Describe la
+   tarea, elige Codex u OpenCode y copia la petición. Abre la herramienta
+   elegida en el repositorio y pega la petición en tu rama de trabajo.
+
+El menú lateral agrupa las opciones que usarás después de preparar el proyecto.
+
+| Menú | Qué puedes encontrar |
+| --- | --- |
+| **Trabajo** | Ejecuciones e historial |
+| **Configurar proyecto** | Preparación para Codex y OpenCode, workflows, agentes, skills, memoria, relaciones, plantillas y archivo de recursos |
+| **Herramientas** | Configuración de Codex y OpenCode, copias y recuperación, seguridad y consola |
+
+Para consultar la memoria, abre **Configurar proyecto → Memoria del proyecto**.
+Si cambian sus documentos Markdown, pulsa **Generar índice** otra vez.
 
 La misma preparación está disponible en la terminal del proyecto.
 

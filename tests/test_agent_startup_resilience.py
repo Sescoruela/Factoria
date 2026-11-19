@@ -10,7 +10,7 @@ from unittest.mock import patch
 from factoria.adapters.codex_discovery import discover_codex
 from factoria.adapters.opencode import _opencode_timeout_seconds
 from factoria.application.environment.tool_presence import tool_presence
-from factoria.web.server import _JOBS, _JOBS_LOCK, _job, _start_async_job
+from factoria.web.backend.server import _JOBS, _JOBS_LOCK, _job, _start_async_job
 
 
 class CodexDiscoveryTests(unittest.TestCase):
@@ -103,7 +103,7 @@ class WebAgentJobTests(unittest.TestCase):
             _JOBS.clear()
 
     def test_agent_launch_requests_are_rejected_without_starting_worker(self) -> None:
-        with patch('factoria.web.server.threading.Thread') as thread:
+        with patch('factoria.web.backend.server.threading.Thread') as thread:
             for command in ('feature', 'fix', 'resume'):
                 with self.subTest(command=command), self.assertRaisesRegex(ValueError, 'fuera'):
                     _start_async_job([command, 'demo'], None)

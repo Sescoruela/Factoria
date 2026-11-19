@@ -18,15 +18,15 @@ las comprobaciones de aceptación pendientes.
 | Serialización de recursos, hashes, revisión y detección de secretos | `application/projects/resource_support.py` |
 | Contrato `MemoryChange` | `domain/models.py` |
 | Parser y acciones CLI independientes | `commands/project.py` |
-| Endpoints de editores | `web/editor_api.py` |
-| Endpoints de recursos, plantillas, relaciones y recuperación | `web/project_api.py` |
-| Composición de estado | `web/editor_state.py` |
-| Arranque del servidor local y autenticación | `web/server.py`, reutilizado por ambos shells |
+| Endpoints de editores | `web/backend/editor_api.py` |
+| Endpoints de recursos, plantillas, relaciones y recuperación | `web/backend/project_api.py` |
+| Composición de estado | `web/backend/editor_state.py` |
+| Arranque del servidor local y autenticación | `web/backend/server.py`, reutilizado por ambos shells |
 | Catálogos, recursos, memoria y configuración de proyectos | `application/projects/` |
 | Ejecución, revisión, persistencia e historial | `application/workflows/` |
 | Detección, configuración local y actualización | `application/environment/` |
 | Adaptadores de comandos, terminal y escritorio | `commands/` y `ui/` |
-| Consulta compartida de borradores/guardados | `web/editor-state.js` |
+| Consulta compartida de borradores/guardados | `web/frontend/editor-state.js` |
 
 Configuración y memoria ya no importan servicios de aplicación. Las comprobaciones
 arquitectónicas impiden volver a introducir esas dependencias. Los imports antiguos

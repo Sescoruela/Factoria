@@ -53,8 +53,8 @@ class ArchitectureBoundaryTests(unittest.TestCase):
     def test_legacy_interfaces_resolve_to_the_canonical_implementations(self):
         from factoria.commands.project import run_project_cli
         from factoria.project_cli import run_project_cli as old_project_cli
-        from factoria.web.main_shell import FactoriaN8NHandler
-        from factoria.web.server import FactoriaWebHandler
+        from factoria.web.backend.main_shell import FactoriaN8NHandler
+        from factoria.web.backend.server import FactoriaWebHandler
         from factoria.web_app import FactoriaWebHandler as old_web_handler
         from factoria.web_app_n8n import FactoriaN8NHandler as old_main_handler
 

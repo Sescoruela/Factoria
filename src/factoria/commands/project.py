@@ -91,34 +91,16 @@ def build_project_parser() -> argparse.ArgumentParser:
 
 
 def _run_memory_graph(args, root: Path) -> int:
-    from factoria.application.governance import ExecutionGovernor, GovernedAction
-    from factoria.application.policy_runtime import build_execution_context
-    from factoria.memory.graph import build_memory_graph, graph_mermaid, read_memory_graph
-    from factoria.project_paths import project_path
+    from factoria.application.projects.memory_graph import project_memory_graph
+    from factoria.memory.graph import graph_mermaid
 
-    context = build_execution_context(root)
-    governor = ExecutionGovernor()
-    governor.assert_allowed(GovernedAction.READ, context)
-    git_dir = Path(
-        subprocess.check_output(
-            ["git", "-C", str(root), "rev-parse", "--absolute-git-dir"],
-            text=True,
-            encoding="utf-8",
-        ).strip()
-    ).resolve()
-    relative = "factoria/memory-graph.sqlite3"
-    database = project_path(git_dir, relative)
-    for suffix in ("-journal", "-wal", "-shm"):
-        project_path(git_dir, relative + suffix)
-    if args.graph_action == "build":
-        if args.read_only:
-            raise PermissionError("Modo solo lectura: generación del grafo bloqueada")
-        governor.assert_allowed(GovernedAction.WRITE, context)
-        result = build_memory_graph(root, database)
-    else:
-        result = read_memory_graph(
-            database, query=getattr(args, "query", None), limit=getattr(args, "limit", 8)
-        )
+    result = project_memory_graph(
+        root,
+        rebuild=args.graph_action == "build",
+        query=getattr(args, "query", None),
+        limit=getattr(args, "limit", 8),
+        read_only=args.read_only,
+    )
     if getattr(args, "format", None) == "mermaid":
         print(graph_mermaid(result))
     else:

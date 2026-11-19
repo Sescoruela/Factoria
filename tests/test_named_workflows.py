@@ -16,7 +16,7 @@ from factoria.application.projects.workflow_presets import (
     WorkflowCatalogConflict, default_preset, load_catalog, load_preset, save_preset, workflow_catalog_revision,
 )
 from factoria.ui.workspace import UiWorkspaceSettings
-from factoria.web.server import FactoriaHTTPServer, FactoriaWebHandler, _workflow_payload
+from factoria.web.backend.server import FactoriaHTTPServer, FactoriaWebHandler, _workflow_payload
 
 
 def named(identifier='fix-api', kind='fix', name='Corrección de API'):
@@ -187,7 +187,7 @@ class NamedWorkflowTests(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as caught:
                 request('/api/workflow/create', payload, False)
             self.assertEqual(caught.exception.code, 403)
-            with patch('factoria.web.server._state', side_effect=lambda: {'workflows': _workflow_payload(self.root)}):
+            with patch('factoria.web.backend.server._state', side_effect=lambda: {'workflows': _workflow_payload(self.root)}):
                 result = request('/api/workflow/create', payload)
                 self.assertIn('fix-api', result['state']['workflows'])
                 with self.assertRaises(urllib.error.HTTPError) as caught:

@@ -19,8 +19,8 @@ from factoria.application.projects.workflow_presets import default_preset, save_
 from factoria.application.projects.project_integration import ProjectIntegration
 from factoria.commands.project import run_project_cli
 from factoria.ui.workspace import UiWorkspaceSettings
-from factoria.web.server import FactoriaHTTPServer, FactoriaWebHandler
-from factoria.web.main_shell import FactoriaN8NHandler
+from factoria.web.backend.server import FactoriaHTTPServer, FactoriaWebHandler
+from factoria.web.backend.main_shell import FactoriaN8NHandler
 
 
 class ConfigRecoveryTests(unittest.TestCase):

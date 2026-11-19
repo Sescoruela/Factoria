@@ -24,8 +24,8 @@ from factoria.application.projects.project_integration import ProjectIntegration
 from factoria.application.projects.project_templates import export_template, preview_template
 from factoria.commands.project import run_project_cli
 from factoria.ui.workspace import UiWorkspaceSettings
-from factoria.web.server import FactoriaWebHandler, FactoriaHTTPServer
-from factoria.web.main_shell import FactoriaN8NHandler
+from factoria.web.backend.server import FactoriaWebHandler, FactoriaHTTPServer
+from factoria.web.backend.main_shell import FactoriaN8NHandler
 
 
 class ResourceLifecycleTests(unittest.TestCase):

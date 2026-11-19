@@ -20,7 +20,7 @@ where = ["src"]
 [tool.setuptools.package-data]
 "factoria" = ["release.toml"]
 "factoria.adapters" = ["capabilities.toml"]
-"factoria.web" = ["*.html", "*.js", "*.css"]
+"factoria.web.frontend" = ["*.html", "*.js", "*.css"]
 
 [project.optional-dependencies]
 dev = ["ruff==0.14.4"]

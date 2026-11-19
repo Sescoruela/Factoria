@@ -3,8 +3,8 @@ from __future__ import annotations
 import unittest
 from importlib.resources import files
 
-from factoria.web.server import FactoriaWebHandler
-from factoria.web.main_shell import FactoriaN8NHandler
+from factoria.web.backend.server import FactoriaWebHandler
+from factoria.web.backend.main_shell import FactoriaN8NHandler
 
 
 class N8NWebUiTests(unittest.TestCase):
@@ -12,10 +12,10 @@ class N8NWebUiTests(unittest.TestCase):
         self.assertTrue(issubclass(FactoriaN8NHandler, FactoriaWebHandler))
 
     def test_n8n_shell_contains_canvas_nodes_and_connections(self) -> None:
-        html = files("factoria.web").joinpath("index_n8n.html").read_text(encoding="utf-8")
+        html = files("factoria.web.frontend").joinpath("index_n8n.html").read_text(encoding="utf-8")
         self.assertIn('id="workflowCanvas"', html)
         self.assertIn('id="connections"', html)
-        assets = files("factoria.web").joinpath("agents.js").read_text(encoding="utf-8") + files("factoria.web").joinpath("shell-main.js").read_text(encoding="utf-8")
+        assets = files("factoria.web.frontend").joinpath("agents.js").read_text(encoding="utf-8") + files("factoria.web.frontend").joinpath("shell-main.js").read_text(encoding="utf-8")
         self.assertIn('class="port in"', assets)
         self.assertIn('class="port out"', assets)
         self.assertIn("startNodeDrag", assets)
@@ -23,7 +23,7 @@ class N8NWebUiTests(unittest.TestCase):
         self.assertIn("/api/workflow/save", assets)
 
     def test_visual_shell_keeps_existing_product_sections(self) -> None:
-        html = files("factoria.web").joinpath("index_n8n.html").read_text(encoding="utf-8")
+        html = files("factoria.web.frontend").joinpath("index_n8n.html").read_text(encoding="utf-8")
         for section in (
             "dashboard",
             "projects",

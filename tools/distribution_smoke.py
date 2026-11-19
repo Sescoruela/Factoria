@@ -111,7 +111,7 @@ def smoke(previous: Path, candidate: Path, report: Path) -> dict:
                 "-c",
                 "from importlib.resources import files; "
                 "assert files('factoria').joinpath('release.toml').is_file(); "
-                "assert files('factoria.web').joinpath('workflows.js').is_file()",
+                "assert files('factoria.web.frontend').joinpath('workflows.js').is_file()",
             ],
             env=env,
         )

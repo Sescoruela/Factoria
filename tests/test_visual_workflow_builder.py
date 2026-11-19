@@ -12,7 +12,7 @@ from factoria.application.projects.workflow_presets import (
     save_preset,
     validate_preset,
 )
-from factoria.web.server import _apply_workflow_defaults
+from factoria.web.backend.server import _apply_workflow_defaults
 
 
 class VisualWorkflowPresetTests(unittest.TestCase):

@@ -1,6 +1,6 @@
 """Compatibility imports for the local HTTP server."""
 
-from factoria.web.server import (
+from factoria.web.backend.server import (
     FactoriaHTTPServer,
     FactoriaWebHandler,
     run_web_ui,
