@@ -232,7 +232,15 @@ def _run_integration(args, root: Path) -> int:
         "applied": args.yes,
         "changed": plan.changed,
         "conflicts": plan.conflicts,
-        "next": "Guardar los cambios del proyecto en Git y abrir Codex u OpenCode.",
+        "tracked_conflicts": plan.tracked_conflicts,
+        "local_exclusions_pending": plan.local_exclusions_pending,
+        "next": (
+            "Revisa los archivos indicados antes de preparar el proyecto."
+            if plan.conflicts
+            else "Abre Codex u OpenCode en este proyecto."
+            if args.yes
+            else "Ejecuta factoria project prepare --yes para preparar esta copia local."
+        ),
     }
 
     print(json.dumps(result, ensure_ascii=True, indent=2))

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from factoria.git_local import ensure_local_project_files
 from factoria.storage import staged_bytes
 
 import hashlib
@@ -252,6 +253,7 @@ def _save_agent_profile(
     for preset in load_catalog(project_root, validate_agents=False).values():
         validate_assignments(preset, profiles)
     text = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    ensure_local_project_files(project_root, (_AGENT_FILE.as_posix(),))
     with staged_bytes(path, text.encode("utf-8")) as temporary:
         if (
             agent_catalog_revision(project_root) != revision

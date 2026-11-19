@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import Protocol, Sequence
 
 from factoria.domain.models import MemoryChange, MemoryMetadata, ProjectMemory
-from factoria.memory.filesystem import write_initial_memory
+from factoria.git_local import ensure_local_project_files
+from factoria.memory.filesystem import memory_targets, write_initial_memory
 from factoria.memory.initializer import MemoryInitProposal, MemoryInitializer
 from factoria.memory.renderer import render_agents_md, render_memory_document
 from factoria.domain.models import MemoryDocumentKind, ProjectKind
@@ -92,7 +93,15 @@ class MemoryUpdateFlow:
         if not proposal.confirmed:
             raise PermissionError("Memory update must be confirmed before writing project files")
 
+        project_root = project_root.resolve()
         memory = proposal.proposed
+        ensure_local_project_files(
+            project_root,
+            (
+                path.relative_to(project_root).as_posix()
+                for path in memory_targets(project_root, memory)
+            ),
+        )
         docs_root = project_root / "docs" / "memoria"
         docs_root.mkdir(parents=True, exist_ok=True)
         written: list[Path] = []

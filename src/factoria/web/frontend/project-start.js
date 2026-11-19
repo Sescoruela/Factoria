@@ -11,7 +11,12 @@ function preparationContent(project, integration) {
     : integration?.conflicts || [];
   if (conflicts.length) {
     return `<h3>Revisar qué impide continuar</h3>
-      <p>Factoría encontró archivos editados fuera de la preparación. Revisa su contenido en el repositorio y conserva los cambios que necesites. Después, vuelve a comprobar el proyecto.</p>
+      <p>${
+        guide.preview?.integration?.tracked_conflicts?.length ||
+        integration?.tracked_conflicts?.length
+          ? 'Git ya sigue alguno de estos archivos. Puedes conservarlos en disco y retirarlos del índice antes de volver a comprobar el proyecto.'
+          : 'Factoría encontró archivos editados fuera de la preparación. Revisa su contenido y vuelve a comprobar el proyecto.'
+      }</p>
       <ul class="guide-files">${conflicts.map((file) => `<li><code>${esc(file)}</code></li>`).join('')}</ul>
       <button type="button" class="primary" data-guide="refresh">Volver a comprobar</button>`;
   }
@@ -31,12 +36,14 @@ function preparationContent(project, integration) {
       </button>`;
   }
   if (!integration?.ready) {
-    const files = preview?.integration?.changed || [];
+    const preparedPreview = preview?.integration;
+    const files = preparedPreview?.changed || [];
     return `<h3>Preparar proyecto</h3>
-      <p>Factoría prepara las instrucciones que usarán Codex y OpenCode. Revisa los archivos antes de aplicar los cambios.</p>
+      <p>Factoría prepara en esta copia las instrucciones que usarán Codex y OpenCode. Revisa los cambios antes de aplicarlos.</p>
+      ${preparedPreview?.local_exclusions_pending ? '<p>Factoría añadirá una exclusión local de Git para la configuración.</p>' : ''}
       ${files.length ? `<ul class="guide-files">${files.map((file) => `<li><code>${esc(file)}</code></li>`).join('')}</ul>` : ''}
-      <button type="button" class="primary" data-guide="${files.length ? 'apply' : 'preview'}">
-        ${files.length ? 'Aplicar los cambios revisados' : 'Ver archivos que cambiarán'}
+      <button type="button" class="primary" data-guide="${preparedPreview ? 'apply' : 'preview'}">
+        ${preparedPreview ? 'Aplicar los cambios revisados' : 'Ver archivos que cambiarán'}
       </button>`;
   }
   return '';
@@ -134,7 +141,7 @@ window.renderProjectOverview = function (container, project) {
   </article>
   <section class="card project-guide" aria-label="Empezar con este proyecto">
     ${preparationContent(project, integration) || taskContent(workflows, allowed)}
-    ${project.dirty && project.memory_initialized && integration?.ready ? '<p class="guide-git-note">Revisa y guarda en Git la preparación que quieras conservar antes de empezar la tarea.</p>' : ''}
+    ${project.dirty && project.memory_initialized && integration?.ready ? '<p class="guide-git-note">Empieza la tarea desde una rama de trabajo con el código limpio.</p>' : ''}
     <div class="guide-status" id="guideStatus" role="status"></div>
   </section>
   <details class="project-options" id="projectOptions" ${advancedOpen ? 'open' : ''}>

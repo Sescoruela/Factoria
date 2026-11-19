@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import tempfile
 import threading
 import unittest
@@ -163,7 +164,7 @@ class SkillCatalogTests(unittest.TestCase):
         self.assertTrue(ProjectIntegration(self.root).check()['ready'])
 
     def test_http_auth_conflicts_project_pin_and_asset_packaging(self):
-        (self.root / '.git').mkdir()
+        subprocess.run(['git', 'init', '-q', str(self.root)], check=True)
         UiWorkspaceSettings(self.root.parent, self.root).save()
         server = FactoriaHTTPServer(('127.0.0.1', 0), FactoriaN8NHandler)
         server.factoria_token = 'test-token'

@@ -11,6 +11,11 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from factoria.git_local import (
+    ensure_local_project_files,
+    tracked_project_files,
+    unignored_project_files,
+)
 from factoria.application.projects.agent_profiles import load_agent_profiles
 from factoria.application.projects.product_design import CONTEXT_ECONOMY
 from factoria.application.governance import ExecutionGovernor, GovernedAction
@@ -28,6 +33,12 @@ START = "<!-- factoria:integration:start -->"
 END = "<!-- factoria:integration:end -->"
 MANIFEST = ".factoria/integration-manifest.json"
 CONTEXT_GUIDE = ".factoria/generated/policies/context-economy.md"
+_MEMORY_DOCS = (
+    "docs/memoria/arquitectura.md",
+    "docs/memoria/flujos.md",
+    "docs/memoria/decisiones.md",
+    "docs/memoria/testing.md",
+)
 
 
 from factoria.project_paths import project_path as project_path
@@ -172,6 +183,8 @@ class IntegrationPlan:
     files: dict[str, str]
     changed: tuple[str, ...]
     conflicts: tuple[str, ...]
+    tracked_conflicts: tuple[str, ...] = ()
+    local_exclusions_pending: bool = False
 
     @property
     def revision(self) -> str:
@@ -291,33 +304,29 @@ Los permisos y aprobaciones de la herramienta siguen vigentes.
         )
         agents_path = project_path(self.root, "AGENTS.md")
         original = _read(agents_path) if agents_path.exists() else ""
-        if original.count(START) != original.count(END) or original.count(START) > 1:
-            raise ValueError("Bloque de integración AGENTS.md ambiguo")
-        if START in original and original.index(START) > original.index(END):
-            raise ValueError("Bloque de integración AGENTS.md invertido")
-        if START in original:
-            before, rest = original.split(START, 1)
-            _, after = rest.split(END, 1)
-            files["AGENTS.md"] = before + block + after
-        else:
-            files["AGENTS.md"] = original + ("\n\n" if original else "") + block + "\n"
+        tracked_agents = tracked_project_files(self.root, ("AGENTS.md",))
+        if not tracked_agents:
+            if original.count(START) != original.count(END) or original.count(START) > 1:
+                raise ValueError("Bloque de integración AGENTS.md ambiguo")
+            if START in original and original.index(START) > original.index(END):
+                raise ValueError("Bloque de integración AGENTS.md invertido")
+            if START in original:
+                before, rest = original.split(START, 1)
+                _, after = rest.split(END, 1)
+                files["AGENTS.md"] = before + block + after
+            else:
+                files["AGENTS.md"] = original + ("\n\n" if original else "") + block + "\n"
         bundle = "# Contexto portable de Factoría\n\n"
         bundle += "Para ChatGPT sin acceso al repositorio: adjuntar este documento y los archivos de código necesarios.\n"
         bundle += "Sin herramientas no hay ejecución, verificación ni seguimiento automático; presentar propuestas y pasos pendientes.\n\n"
         bundle += f"## Skill compartida ({CONTEXT_GUIDE})\n\n{context_guide}\n"
         bundle += "## Configuración\n\n```json\n" + _json(definition) + "```\n\n"
         bundle += "\n\n".join(workflow_guide(k, definition) for k in definition["workflows"])
-        for relative in (
-            "AGENTS.md",
-            "docs/memoria/arquitectura.md",
-            "docs/memoria/flujos.md",
-            "docs/memoria/decisiones.md",
-            "docs/memoria/testing.md",
-        ):
+        for relative in ("AGENTS.md", *_MEMORY_DOCS):
             path = project_path(self.root, relative)
             if path.is_file() or relative == "AGENTS.md":
                 bundle += f"\n\n## Archivo {relative}\n\n" + (
-                    files["AGENTS.md"] if relative == "AGENTS.md" else _read(path)
+                    files.get("AGENTS.md", original) if relative == "AGENTS.md" else _read(path)
                 )
         files[".factoria/generated/chatgpt-context.md"] = bundle
         manifest_path = project_path(self.root, MANIFEST)
@@ -365,7 +374,16 @@ Los permisos y aprobaciones de la herramienta siguen vigentes.
         files[MANIFEST] = _json(manifest)
         if not manifest_path.exists() or _read(manifest_path) != files[MANIFEST]:
             changed.append(MANIFEST)
-        return IntegrationPlan(files, tuple(changed), tuple(conflicts))
+        tracked = tracked_project_files(self.root, set(files) | set(owned) | {".factoria"})
+        tracked_docs = tracked_project_files(self.root, _MEMORY_DOCS)
+        local_paths = (set(files) | set(_MEMORY_DOCS)) - tracked - tracked_agents - tracked_docs
+        return IntegrationPlan(
+            files,
+            tuple(changed),
+            tuple(sorted(set(conflicts) | tracked)),
+            tuple(sorted(tracked)),
+            bool(unignored_project_files(self.root, local_paths)),
+        )
 
     def apply(
         self, *, confirmed: bool = False, expected_revision: str | None = None
@@ -384,11 +402,18 @@ Los permisos y aprobaciones de la herramienta siguen vigentes.
             plan = self.plan()
             if expected_revision is not None and plan.revision != expected_revision:
                 raise ValueError("La preparación cambió. Vuelve a revisar los archivos.")
+            if plan.tracked_conflicts:
+                raise ValueError(
+                    "Git ya sigue estos archivos. Retíralos del índice sin borrarlos "
+                    "antes de preparar la configuración local: " + ", ".join(plan.tracked_conflicts)
+                )
             if plan.conflicts:
                 raise ValueError(
                     "Archivos modificados por el usuario; resolver antes de regenerar: "
                     + ", ".join(plan.conflicts)
                 )
+            local_memory = set(_MEMORY_DOCS) - tracked_project_files(self.root, _MEMORY_DOCS)
+            ensure_local_project_files(self.root, set(plan.files) | local_memory)
             for relative in plan.changed:
                 path = project_path(self.root, relative)
                 if relative not in plan.files:
@@ -402,7 +427,9 @@ Los permisos y aprobaciones de la herramienta siguen vigentes.
     def check(self) -> dict:
         plan = self.plan()
         return {
-            "ready": not plan.changed and not plan.conflicts,
+            "ready": not (plan.changed or plan.conflicts or plan.local_exclusions_pending),
+            "local_exclusions_pending": plan.local_exclusions_pending,
+            "tracked_conflicts": list(plan.tracked_conflicts),
             "changed": list(plan.changed),
             "conflicts": list(plan.conflicts),
             "enabled_workflows": [

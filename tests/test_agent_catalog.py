@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import tempfile
 import threading
 import unittest
@@ -147,7 +148,7 @@ class AgentCatalogTests(unittest.TestCase):
         self.assertEqual(len(load_agent_profiles(self.root)), 6)
 
     def test_http_create_update_conflict_and_project_pinning(self) -> None:
-        (self.root / '.git').mkdir()
+        subprocess.run(['git', 'init', '-q', str(self.root)], check=True)
         UiWorkspaceSettings(self.root.parent, self.root).save()
         server = FactoriaHTTPServer(('127.0.0.1', 0), FactoriaN8NHandler)
         server.factoria_token = 'test-token'

@@ -73,7 +73,12 @@ con `factoria native finish <id>` tras el commit y con el árbol limpio.
    primera vez, revisa la memoria inicial antes de guardarla.
 2. En **Preparar proyecto**, revisa los archivos y aplica los cambios. Si
    Factoría muestra un conflicto, revisa los archivos indicados y vuelve a
-   comprobar el proyecto. Revisa el diff y guarda en Git la preparación.
+   comprobar el proyecto. La preparación instala exclusiones en
+   `.git/info/exclude` para que la configuración, la memoria generada y los
+   archivos de Codex/OpenCode se queden en tu copia. Cada colaborador puede
+   preparar su propio clon con sus agentes, flujos e historial.
+   Si Factoría indica que algún archivo de configuración ya está versionado,
+   coordina con el equipo su retirada del índice de Git para conservarlo en disco.
 3. Elige **Corregir un problema** o **Añadir una funcionalidad**. Describe la
    tarea, elige Codex u OpenCode y copia la petición. Abre la herramienta
    elegida en el repositorio y pega la petición en tu rama de trabajo.

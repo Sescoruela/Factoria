@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import tempfile
 import threading
 import unittest
@@ -167,7 +168,7 @@ class WorkflowAgentAssignmentTests(unittest.TestCase):
             workflow_from_snapshot('fix', ({**raw[0], 'agent_id': '../escape'}, *raw[1:]))
 
     def test_authenticated_api_validates_assignment_and_returns_catalog_after_save(self):
-        (self.root / '.git').mkdir()
+        subprocess.run(['git', 'init', '-q', str(self.root)], check=True)
         UiWorkspaceSettings(self.root.parent, self.root).save()
         server = FactoriaHTTPServer(('127.0.0.1', 0), FactoriaWebHandler)
         server.factoria_token = 'fixture-token'

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import tempfile
 import threading
 import unittest
@@ -115,7 +116,7 @@ class WorkflowPersistenceTests(unittest.TestCase):
         self.assertEqual(outside.read_text(), '{}')
 
     def test_api_requires_auth_revision_and_expected_project(self):
-        (self.root / '.git').mkdir()
+        subprocess.run(['git', 'init', '-q', str(self.root)], check=True)
         UiWorkspaceSettings(self.root.parent, self.root).save()
         server = FactoriaHTTPServer(('127.0.0.1', 0), FactoriaWebHandler)
         server.factoria_token = 'test-token'

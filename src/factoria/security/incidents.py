@@ -8,6 +8,8 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Iterable
 
+from factoria.git_local import ensure_local_project_files
+
 from .secrets import SecretFinding, SecretScanner, SecretSource
 
 
@@ -145,6 +147,7 @@ class SecretIncidentStore:
         return any(item.fingerprint == incident.fingerprint for item in findings)
 
     def _write(self, records: Iterable[SecretIncidentRecord]) -> None:
+        ensure_local_project_files(self.project_root, (".factoria/security/incidents.json",))
         self.path.parent.mkdir(parents=True, exist_ok=True)
         payload = []
         for item in records:

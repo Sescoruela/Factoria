@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from factoria.git_local import ensure_local_project_files
 from factoria.storage import staged_bytes
 
 import hashlib
@@ -398,6 +399,7 @@ def _save_preset(
     payload = {key: item.to_mapping() for key, item in catalog.items()}
     payload[identifier] = checked.to_mapping()
     text = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    ensure_local_project_files(project_root, (_PRESET_FILE.as_posix(),))
     with staged_bytes(path, text.encode("utf-8")) as temporary:
         if revision != workflow_catalog_revision(project_root):
             raise WorkflowCatalogConflict(

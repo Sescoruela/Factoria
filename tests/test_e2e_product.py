@@ -112,7 +112,6 @@ class ProductEndToEndTests(unittest.TestCase):
         self.assertTrue((self.repo / "AGENTS.md").exists())
         self.assertTrue((self.repo / ".factoria" / "config.toml").exists())
         self._git("add", ".")
-        self._git("commit", "-m", "Initialize Factoria memory")
         self.assertEqual("", self._git("status", "--porcelain").stdout.strip())
 
     def _factoria(self, *args: str) -> subprocess.CompletedProcess[str]:

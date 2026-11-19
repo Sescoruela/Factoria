@@ -74,6 +74,8 @@ def handle_editor_post(self, path: str) -> None:
                     "ok": True,
                     "applied": confirmed,
                     "revision": plan.revision,
+                    "local_exclusions_pending": plan.local_exclusions_pending,
+                    "tracked_conflicts": list(plan.tracked_conflicts),
                     "changed": list(plan.changed),
                     "conflicts": list(plan.conflicts),
                     "state": self._editor_state(),

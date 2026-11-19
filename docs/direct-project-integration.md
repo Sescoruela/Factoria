@@ -13,11 +13,14 @@ uso; la aplicación web no necesita permanecer abierta.
 | `.factoria/workflows.json` | Workflows básicos y propios basados en fix/feature; agentes y preferencias por etapa |
 | `.factoria/config.toml` | Políticas y flujos permitidos o bloqueados |
 | `AGENTS.md`, `docs/memoria/` | Contexto y comandos confirmados del proyecto |
-| `project prepare` | Validar y generar las integraciones compartidas |
+| `project prepare` | Validar y generar las integraciones de esta copia |
 | `native` | Estado local, evidencia, verificaciones, puntos de aprobación e historial |
 | Codex/OpenCode | LLM, autenticación, permisos, edición y ejecución dentro de su sesión |
 
-La configuración nueva es versionable. Si solo existen `ui-agents.json` o
+La configuración, las instrucciones generadas y la memoria que crea Factoría
+quedan en cada copia local. La preparación usa `.git/info/exclude` para excluir
+estos archivos de Git sin editar el `.gitignore` del equipo. Si solo existen
+`ui-agents.json` o
 `ui-workflows.json`, se leen como compatibilidad y se migran sin borrarlos al preparar
 el proyecto. Una configuración mal formada bloquea; no se sustituye silenciosamente
 por valores predeterminados. No se incluyen credenciales ni rutas personales de CLIs.
@@ -38,21 +41,26 @@ Se generan:
 - `.factoria/generated/workflows.md`, catálogo e instrucciones de selección explícita.
 - `.factoria/generated/chatgpt-context.md`, contexto portable para sesiones sin checkout.
 - `.factoria/integration-manifest.json`, hashes y versión del formato generado.
-- Un bloque delimitado en `AGENTS.md` para dirigir peticiones naturales a los flujos.
+- Un bloque delimitado en el `AGENTS.md` local para dirigir peticiones naturales a los flujos.
 
-Los archivos existentes no gestionados producen conflicto. Los cambios propios de
-`AGENTS.md` se conservan byte a byte fuera del bloque delimitado. No se sigue ningún
+Los archivos existentes no gestionados producen conflicto. El contenido propio del
+`AGENTS.md` local se conserva fuera del bloque delimitado. Factoría respeta los
+`AGENTS.md` y documentos de memoria ya versionados como referencias del equipo.
+Si Git ya sigue un archivo de configuración de Factoría, el chequeo lo indica.
+Retirarlo del índice conservando el archivo en disco requiere una decisión del equipo. No se sigue ningún
 symlink de salida. Al deshabilitar un flujo se retiran únicamente sus archivos
 generados cuyo contenido todavía coincide con el manifiesto. La regeneración se
 revisa antes de escribir y nunca modifica la configuración global de las herramientas.
 
-Después de cambiar agentes, flujos, skills o memoria, regenerar y revisar el diff.
+Después de cambiar agentes, flujos, skills o memoria, revisa la propuesta antes de regenerar.
 `memoria-update` conserva el bloque de entrada de `AGENTS.md`; el contexto portable
 queda pendiente de regeneración porque ha cambiado la memoria.
 
 ## Recorrido dentro de la herramienta
 
-Guardar primero la configuración en Git y seleccionar una rama de trabajo limpia.
+Prepara tu copia local y selecciona una rama de trabajo limpia. Puedes verificar
+qué archivos siguen fuera de Git con `git status --short` y
+`git check-ignore .factoria/workflows.json`.
 Abrir Codex/OpenCode en el proyecto y pedir «corrige este fallo». La instrucción de
 entrada selecciona `factoria-fix`. La selección natural depende de que el agente
 respete las instrucciones; la invocación explícita permite diagnosticar el enrutado:

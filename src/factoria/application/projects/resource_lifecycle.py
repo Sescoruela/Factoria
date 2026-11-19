@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from factoria.git_local import ensure_local_project_files
 from factoria.storage import atomic_write_bytes
 
 from dataclasses import asdict, replace
@@ -403,6 +404,7 @@ def apply_resource(root: Path, request: dict, *, token: str, confirmed: bool) ->
         history_path = project_path(root, f"{DIRECTORY}/{record_id}.json")
         if (history_path.read_bytes() if history_path.exists() else None) != previous_record:
             raise ResourceConflict("El registro cambió durante la operación")
+        ensure_local_project_files(root, (relative, history_path.relative_to(root).as_posix()))
         record["status"] = "pending"
         pending_bytes = _json(record)
         _write(history_path, pending_bytes, create=previous_record is None)

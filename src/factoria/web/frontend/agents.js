@@ -287,7 +287,7 @@
   integrationSection.id = 'integration';
   integrationSection.className = 'section';
   integrationSection.innerHTML =
-    '<div class="card"><h2>Preparar proyecto para Codex y OpenCode</h2><p>Configura agentes y flujos, revisa los archivos que se generarán y guarda el resultado en Git. Después podrás trabajar directamente en cualquiera de las dos herramientas con Factoría cerrada.</p><div id="integrationStatus"></div><div class="actions"><button onclick="prepareIntegration(false)">Ver cambios</button><button class="primary" onclick="prepareIntegration(true)">Preparar ambas herramientas</button></div><pre id="integrationOutput"></pre><p>Codex: usa las skills factoria-fix y factoria-feature. OpenCode: también puedes usar /factoria-fix y /factoria-feature. Las peticiones naturales se dirigen desde AGENTS.md.</p><p>ChatGPT necesita acceso al repositorio. Para una conversación sin ese acceso, adjunta .factoria/generated/chatgpt-context.md y el código necesario; sin herramientas solo podrá proponer cambios.</p><p>Los modelos y permisos se controlan en Codex/OpenCode. Una etapa asignada a otra plataforma requiere continuar allí.</p></div>';
+    '<div class="card"><h2>Preparar proyecto para Codex y OpenCode</h2><p>Configura agentes y flujos, revisa los archivos que se guardarán en esta copia local. Después podrás trabajar directamente en cualquiera de las dos herramientas con Factoría cerrada.</p><div id="integrationStatus"></div><div class="actions"><button onclick="prepareIntegration(false)">Ver cambios</button><button class="primary" onclick="prepareIntegration(true)">Preparar ambas herramientas</button></div><pre id="integrationOutput"></pre><p>Codex: usa las skills factoria-fix y factoria-feature. OpenCode: también puedes usar /factoria-fix y /factoria-feature. Las peticiones naturales se dirigen desde AGENTS.md.</p><p>ChatGPT necesita acceso al repositorio. Para una conversación sin ese acceso, adjunta .factoria/generated/chatgpt-context.md y el código necesario; sin herramientas solo podrá proponer cambios.</p><p>Los modelos y permisos se controlan en Codex/OpenCode. Una etapa asignada a otra plataforma requiere continuar allí.</p></div>';
   document.querySelector('main.main').appendChild(integrationSection);
   const integrationButton = document.createElement('button');
   integrationButton.textContent = 'Integración';
@@ -305,9 +305,15 @@
     try {
       if (agentEdits || workflowDirty || window.hasUnsavedSkills?.())
         return toast('Guarda primero los cambios de skills, agentes y flujos.');
-      const preview = await api('/api/project/prepare', 'POST', { confirmed: false });
+      const project_path = state.selected_project?.path;
+      const preview = await api('/api/project/prepare', 'POST', { project_path, confirmed: false });
       document.getElementById('integrationOutput').textContent = JSON.stringify(
-        { archivos: preview.changed, conflictos: preview.conflicts },
+        {
+          archivos: preview.changed,
+          conflictos: preview.conflicts,
+          seguidos_por_git: preview.tracked_conflicts,
+          exclusión_local_pendiente: preview.local_exclusions_pending,
+        },
         null,
         2,
       );
@@ -316,14 +322,18 @@
         return toast('Resuelve los conflictos antes de preparar el proyecto.');
       if (
         !confirm(
-          'Se actualizarán únicamente los archivos mostrados. Se conserva el contenido propio de AGENTS.md. ¿Aplicar?',
+          'Se actualizarán los archivos locales de la lista y las exclusiones de este repositorio. ¿Aplicar?',
         )
       )
         return;
-      const result = await api('/api/project/prepare', 'POST', { confirmed: true });
+      const result = await api('/api/project/prepare', 'POST', {
+        project_path,
+        confirmed: true,
+        revision: preview.revision,
+      });
       state = result.state;
       renderIntegration();
-      toast('Proyecto preparado. Revisa y guarda los cambios en Git.');
+      toast('Proyecto preparado en esta copia local.');
     } catch (e) {
       toast(e.message);
     }

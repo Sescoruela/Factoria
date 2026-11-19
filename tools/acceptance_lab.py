@@ -164,8 +164,6 @@ def prepare_project(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )
     ProjectIntegration(root).apply(confirmed=True)
-    git(root, "add", ".")
-    git(root, "commit", "-m", "test: prepare H05 agents skills and workflows")
     baseline = {"commit": git(root, "rev-parse", "HEAD")}
     metadata = Path(git(root, "rev-parse", "--git-path", "factoria/h05-baseline.json"))
     if not metadata.is_absolute():

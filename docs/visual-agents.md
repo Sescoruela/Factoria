@@ -13,8 +13,8 @@ existentes. No incorporan dependencias de runtime ni un proveedor de imágenes.
 4. En el diseñador del workflow, asignar `visual-designer` a **plan / planner** y
    `visual-reviewer` a **review / reviewer**. Guardar el workflow. Para un fix que
    necesite planificación visual, activar primero su etapa plan.
-5. En **Integración**, revisar los cambios y preparar ambas herramientas. Revisar
-   y guardar los archivos generados en Git antes de iniciar el próximo flujo.
+5. En **Integración**, revisar los cambios y preparar ambas herramientas en tu
+   copia local antes de iniciar el próximo flujo.
 
 Crear desde plantilla abre un borrador; no guarda ni asigna el agente. Si el ID
 ya existe, no se sobrescribe: modificar el existente o crear uno con otro ID.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from factoria.git_local import ensure_local_project_files
 from factoria.storage import staged_bytes
 from factoria.application.projects.resource_support import skill_bytes
 
@@ -197,6 +198,7 @@ def save_skill(
                 "content": skill.content,
             }
         )
+        ensure_local_project_files(root, (checked.path,))
         with staged_bytes(target, content) as temporary:
             if revision != skill_catalog_revision(root):
                 raise SkillCatalogConflict(

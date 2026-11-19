@@ -435,6 +435,8 @@ test('guided start reviews and prepares a fresh repository, copies a task and se
   expect(fs.existsSync(path.join(lab.project, '.factoria/integration-manifest.json'))).toBe(false);
   await overview.getByRole('button', {name: 'Aplicar los cambios revisados'}).click();
   await expect(overview.getByRole('button', {name: 'Añadir una funcionalidad'})).toBeVisible();
+  execFileSync('git', ['-C', lab.project, 'add', '-A']);
+  expect(execFileSync('git', ['-C', lab.project, 'status', '--porcelain'], {encoding: 'utf8'})).toBe('');
   await overview.getByRole('button', {name: 'Añadir una funcionalidad'}).click();
   const description = overview.getByLabel('Describe la tarea');
   await description.fill('Añade turnos de 30 minutos');

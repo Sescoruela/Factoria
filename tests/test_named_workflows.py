@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import tempfile
 import threading
 import unittest
@@ -166,7 +167,7 @@ class NamedWorkflowTests(unittest.TestCase):
         self.assertEqual(len(load_catalog(self.root)), 3)
 
     def test_api_create_update_auth_conflicts_and_catalog_asset(self):
-        (self.root / '.git').mkdir()
+        subprocess.run(['git', 'init', '-q', str(self.root)], check=True)
         UiWorkspaceSettings(self.root.parent, self.root).save()
         server = FactoriaHTTPServer(('127.0.0.1', 0), FactoriaWebHandler)
         server.factoria_token = 'test-token'

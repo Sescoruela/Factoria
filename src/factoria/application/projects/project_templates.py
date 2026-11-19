@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from factoria.git_local import ensure_local_project_files
 from factoria.storage import staged_bytes
 
 from dataclasses import asdict
@@ -233,6 +234,7 @@ def apply_template(root: Path, data: dict, *, expected_token: str, confirmed: bo
             raise TemplateConflict("Hay conflictos; no se sobrescribe ningún recurso")
         if not writes:
             return {**plan, "applied": True, "backup": None}
+        ensure_local_project_files(root, writes)
         # Local recovery record before any catalog write. Not exported.
         git = subprocess.run(
             ["git", "-C", str(root), "rev-parse", "--git-path", "factoria/template-imports"],

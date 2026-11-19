@@ -1,49 +1,14 @@
 from __future__ import annotations
 
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
 
-_LOCAL_EXCLUDE_MARKER = "# factoria: local runtime artifacts"
-_LOCAL_WORK_RULE = "/.factoria/work/"
+from factoria.git_local import ensure_local_project_files
 
 
 def ensure_local_runtime_excluded(project_root: Path) -> None:
-    """Keep Factoria's transient workspace out of Git without editing .gitignore.
-
-    Non-Git directories remain supported: in that case this is intentionally a no-op.
-    """
-    completed = subprocess.run(
-        ["git", "-C", str(project_root), "rev-parse", "--git-path", "info/exclude"],
-        check=False,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
-    if completed.returncode != 0 or not completed.stdout.strip():
-        return
-
-    exclude_path = Path(completed.stdout.strip())
-    if not exclude_path.is_absolute():
-        exclude_path = project_root / exclude_path
-    exclude_path = exclude_path.resolve()
-    exclude_path.parent.mkdir(parents=True, exist_ok=True)
-
-    existing = ""
-    if exclude_path.exists():
-        existing = exclude_path.read_text(encoding="utf-8", errors="replace")
-        if any(line.strip() == _LOCAL_WORK_RULE for line in existing.splitlines()):
-            return
-
-    newline = "\r\n" if "\r\n" in existing else "\n"
-    prefix = ""
-    if existing and not existing.endswith(("\n", "\r")):
-        prefix = newline
-    addition = f"{prefix}{_LOCAL_EXCLUDE_MARKER}{newline}{_LOCAL_WORK_RULE}{newline}"
-    with exclude_path.open("a", encoding="utf-8", newline="") as handle:
-        handle.write(addition)
+    ensure_local_project_files(project_root, (".factoria/work/",))
 
 
 @dataclass(frozen=True, slots=True)

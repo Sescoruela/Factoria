@@ -6,6 +6,7 @@ A pending transaction can only restore bytes it actually owned.
 
 from __future__ import annotations
 
+from factoria.git_local import ensure_local_project_files
 from factoria.storage import atomic_write_bytes, sync_directory
 
 import base64
@@ -335,6 +336,7 @@ def apply_config(root, action, *, identifier=None, token, confirmed):
             raise ValueError("Preview obsoleto o con conflictos; volver a revisar")
         if action == "migrate" and not plan["changed"]:
             return {**plan, "applied": True, "backup_id": None}
+        ensure_local_project_files(root, plan["changed"])
         recovering = old is not None and old["state"] == "pending"
         if recovering:
             record = old

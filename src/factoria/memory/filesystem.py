@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from factoria.git_local import ensure_local_project_files
 from factoria.domain.models import MemoryDocumentKind, ProjectKind, ProjectMemory
 
 from .renderer import render_agents_md, render_memory_document
@@ -64,6 +65,9 @@ def write_initial_memory(
             ]
         )
 
+    ensure_local_project_files(
+        project_root, (path.relative_to(project_root).as_posix() for path, _ in documents)
+    )
     written: list[WrittenMemoryFile] = []
     for path, content in documents:
         path.parent.mkdir(parents=True, exist_ok=True)

@@ -9,6 +9,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Iterable
 
+from factoria.git_local import ensure_local_project_files
 from factoria.config.models import MemoryConfig, ProjectConfig
 from factoria.domain.models import (
     ConfirmedCommand,
@@ -317,6 +318,8 @@ class MemoryBootstrapService:
             joined = ", ".join(path.relative_to(root).as_posix() for path in existing_memory)
             raise FileExistsError(f"Initial memory would overwrite existing files: {joined}")
 
+        if proposal.write_config:
+            ensure_local_project_files(root, (proposal.config_target.relative_to(root).as_posix(),))
         written_memory = write_initial_memory(root, proposal.memory)
         written = [item.path for item in written_memory]
         if proposal.write_config:

@@ -70,6 +70,72 @@ class ProjectFixture(unittest.TestCase):
 
 
 class IntegrationTests(ProjectFixture):
+    def test_generated_files_stay_local_across_clones(self):
+        integration = ProjectIntegration(self.root)
+        original_gitignore = (self.root / '.gitignore').read_bytes()
+        # Simulate a checkout prepared before local exclusions were installed.
+        exclude = self.root / '.git/info/exclude'
+        exclude.write_text('# personal rule\n/local-scratch/\n', encoding='utf-8')
+        plan = integration.plan()
+        self.assertEqual(plan.changed, ())
+        self.assertTrue(plan.local_exclusions_pending)
+        self.assertFalse(integration.check()['ready'])
+        integration.apply(confirmed=True, expected_revision=plan.revision)
+        self.assertTrue(integration.check()['ready'])
+        self.assertIn('/local-scratch/', exclude.read_text(encoding='utf-8'))
+        rules = exclude.read_bytes()
+        integration.apply(confirmed=True)
+        self.assertEqual(exclude.read_bytes(), rules)
+        self.assertEqual((self.root / '.gitignore').read_bytes(), original_gitignore)
+        self.assertEqual(self.git('status', '--porcelain'), '')
+        self.git('add', '-A')
+        self.assertEqual(self.git('diff', '--cached', '--name-only'), '')
+
+        clone = self.root.parent / 'second copy'
+        subprocess.run(['git', 'clone', '-q', str(self.root), str(clone)], check=True)
+        for relative in ('AGENTS.md', 'docs/memoria/testing.md', '.factoria', '.agents', '.opencode'):
+            self.assertFalse((clone / relative).exists(), relative)
+        self.assertTrue((clone / 'app.py').exists())
+        ProjectIntegration(clone).apply(confirmed=True)
+        self.assertTrue(ProjectIntegration(clone).check()['ready'])
+        self.assertNotEqual((self.root / 'AGENTS.md').read_bytes(), (clone / 'AGENTS.md').read_bytes())
+
+        team_files = ('.agents/skills/team/SKILL.md', '.opencode/commands/team.md', 'docs/README.md')
+        for relative in team_files:
+            path = self.root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('Team-owned content', encoding='utf-8')
+        self.assertEqual(
+            set(self.git('ls-files', '--others', '--exclude-standard').splitlines()),
+            set(team_files),
+        )
+
+    def test_shared_agent_instructions_are_preserved_and_tracked_settings_block_preparation(self):
+        agents = self.root / 'AGENTS.md'
+        agents.write_text('# Instrucciones del equipo\n', encoding='utf-8')
+        self.git('add', '-f', 'AGENTS.md', 'docs/memoria/testing.md')
+        self.git('commit', '-m', 'Share team instructions')
+        original = agents.read_bytes()
+        integration = ProjectIntegration(self.root)
+        integration.apply(confirmed=True)
+        self.assertEqual(agents.read_bytes(), original)
+        self.assertTrue(integration.check()['ready'])
+
+        filename = '.factoria/config.toml'
+        (self.root / filename).write_text('[flows]\n', encoding='utf-8')
+        self.git('add', '-f', filename)
+        before = (self.root / filename).read_bytes()
+        self.assertIn(filename, integration.check()['tracked_conflicts'])
+        with self.assertRaisesRegex(ValueError, 'Git ya sigue'):
+            integration.apply(confirmed=True)
+        self.assertEqual((self.root / filename).read_bytes(), before)
+        self.assertEqual(self.git('diff', '--cached', '--name-only'), filename)
+
+        profiles = '.factoria/agents.json'
+        self.git('add', '-f', profiles)
+        with self.assertRaisesRegex(ValueError, 'Git ya sigue'):
+            save_agent_profile(self.root, AgentRoleProfile('reviewer', 'rapido'))
+
     def test_http_preparation_requires_token_and_explicit_confirmation(self):
         import threading
         import urllib.error
@@ -149,11 +215,6 @@ class IntegrationTests(ProjectFixture):
             self.assertIn(guide, command)
         self.assertIn(START, (self.root / 'AGENTS.md').read_text())
         self.assertIn('sin herramientas solo propuestas', ProjectIntegration(self.root).check()['chatgpt'])
-
-    def test_agents_and_flows_are_tracked_not_ignored(self):
-        tracked = self.git('ls-files')
-        self.assertIn('.factoria/agents.json', tracked)
-        self.assertIn('.factoria/workflows.json', tracked)
 
     def test_preserves_handwritten_agents_bytes_outside_managed_block(self):
         original = 'Normas propias\r\nTexto con acentos: revisión.\r\n'
