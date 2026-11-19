@@ -10,6 +10,7 @@ PROJECT_RESOURCE_ROUTES = frozenset(
         "/api/config/preview",
         "/api/config/apply",
         "/api/project/relations",
+        "/api/project/memory-review",
         "/api/resource/list",
         "/api/resource/preview",
         "/api/resource/apply",
@@ -21,6 +22,31 @@ PROJECT_RESOURCE_ROUTES = frozenset(
 
 
 def handle_project_post(self, path: str) -> None:
+    if path == "/api/project/memory-review":
+        from factoria.application.projects.memory_review import (
+            MAX_REPORT_BYTES,
+            review_memory,
+            review_request,
+        )
+
+        if not 0 <= int(self.headers.get("Content-Length", "0")) <= MAX_REPORT_BYTES * 6 + 4096:
+            raise ValueError("El informe de memoria supera el tamaño admitido")
+        data = self._body()
+        project = self._active_project()
+        if project is None or data.get("project_path") != str(project):
+            self._json({"error": "El proyecto cambió; vuelve a preparar el informe"}, 409)
+            return
+        if data.get("action") == "request":
+            self._json({"request": review_request()})
+            return
+        if data.get("action") not in {"preview", "apply"}:
+            raise ValueError("Acción de revisión desconocida")
+        confirmed = data["action"] == "apply"
+        result = review_memory(
+            project, data.get("report"), confirmed=confirmed, token=data.get("revision")
+        )
+        self._json({**result, **({"state": self._editor_state()} if confirmed else {})})
+        return
     if path in {"/api/config/status", "/api/config/preview", "/api/config/apply"}:
         if not 0 <= int(self.headers.get("Content-Length", "0")) <= 16384:
             raise ValueError("Solicitud demasiado grande")

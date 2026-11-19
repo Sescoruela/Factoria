@@ -5,6 +5,101 @@ const taskTypes = new Map([
   ['feature', 'Añadir una funcionalidad'],
 ]);
 
+function memoryReviewContent(open) {
+  return `<details class="project-options" id="projectMemoryReview" ${open ? 'open' : ''}>
+    <summary>Analizar memoria con OpenCode o Codex</summary>
+    <p>Copia el encargo a tu sesión abierta en este repositorio. Pega aquí el JSON que te devuelva para revisar sus hallazgos y las fuentes.</p>
+    <div class="actions guide-actions"><button type="button" class="secondary" id="copyMemoryReview">Copiar encargo de análisis</button></div>
+    <textarea id="memoryReviewRequest" aria-label="Encargo de análisis" rows="4" readonly hidden></textarea>
+    <form id="memoryReviewForm" class="guide-form">
+      <label>Informe JSON<textarea name="report" rows="6" maxlength="65536" required></textarea></label>
+      <pre class="guide-preview" hidden></pre>
+      <div class="actions guide-actions"><button type="submit" class="secondary">Revisar informe</button>
+        <button type="button" class="primary" id="saveMemoryReview" hidden>Guardar revisión</button></div>
+      <p role="status"></p>
+    </form>
+  </details>`;
+}
+
+function bindMemoryReview(container, project) {
+  const form = container.querySelector('#memoryReviewForm');
+  const copy = container.querySelector('#copyMemoryReview');
+  const requestField = container.querySelector('#memoryReviewRequest');
+  const save = form.querySelector('#saveMemoryReview');
+  const preview = form.querySelector('pre');
+  const status = form.querySelector('[role="status"]');
+  let revision;
+  const call = (action, extra = {}) =>
+    api('/api/project/memory-review', 'POST', { project_path: project.path, action, ...extra });
+
+  copy.onclick = async () => {
+    copy.disabled = true;
+    try {
+      const result = await call('request');
+      try {
+        await navigator.clipboard.writeText(result.request);
+        status.textContent = 'Encargo copiado.';
+      } catch {
+        requestField.hidden = false;
+        requestField.value = result.request;
+        requestField.select();
+        status.textContent = 'Encargo seleccionado. Pulsa Ctrl+C para copiarlo.';
+      }
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      copy.disabled = false;
+    }
+  };
+  const clearPreview = () => {
+    revision = undefined;
+    preview.hidden = true;
+    save.hidden = true;
+  };
+  form.elements.report.value = guide.reviewDraft || '';
+  form.oninput = () => {
+    guide.reviewDraft = form.elements.report.value;
+    clearPreview();
+  };
+  async function submit(action) {
+    const report = form.elements.report;
+    const buttons = [...form.querySelectorAll('button')];
+    [report, ...buttons].forEach((item) => (item.disabled = true));
+    status.textContent = 'Revisando el informe…';
+    try {
+      const result = await call(action, { report: report.value, revision });
+      if (action === 'apply') {
+        if (state.selected_project?.path !== project.path) return;
+        state = result.state;
+        guide.reviewDraft = '';
+        guide.snapshot = null;
+        renderAll();
+        const current = container.querySelector('#projectMemoryReview');
+        current.querySelector('[role="status"]').textContent =
+          'Revisión guardada en docs/memoria/revision.md.';
+      } else {
+        revision = result.revision;
+        preview.textContent = result.markdown;
+        preview.hidden = false;
+        save.hidden = false;
+        status.textContent = 'Revisa los hallazgos antes de guardar.';
+      }
+    } catch (error) {
+      clearPreview();
+      status.textContent = error.message;
+    } finally {
+      [report, ...buttons].forEach((item) => (item.disabled = false));
+    }
+  }
+  form.onsubmit = (event) => {
+    event.preventDefault();
+    submit('preview');
+  };
+  save.onclick = () => {
+    if (revision) submit('apply');
+  };
+}
+
 function preparationContent(project, integration) {
   const conflicts = guide.preview?.integration?.conflicts?.length
     ? guide.preview.integration.conflicts
@@ -29,7 +124,7 @@ function preparationContent(project, integration) {
   const preview = guide.preview;
   if (!project.memory_initialized) {
     return `<h3>Preparar proyecto</h3>
-      <p>Primero, Factoría propone una memoria con la estructura del repositorio y los comandos que detecta. Revisa la propuesta antes de guardarla.</p>
+      <p>Factoría propone una memoria inicial a partir de archivos y comandos detectados. Usa el análisis de OpenCode o Codex para documentar cómo funciona el proyecto.</p>
       ${preview?.memory ? `<pre class="guide-preview">${esc(preview.memory)}</pre>` : ''}
       <button type="button" class="primary" data-guide="${preview?.memory ? 'save-memory' : 'preview-memory'}">
         ${preview?.memory ? 'Guardar memoria' : 'Revisar memoria inicial'}
@@ -85,6 +180,7 @@ window.renderProjectOverview = function (container, project) {
       preview: null,
       busy: false,
       task: null,
+      reviewDraft: '',
     });
   }
   const integration = state.integration;
@@ -116,6 +212,8 @@ window.renderProjectOverview = function (container, project) {
   guide.snapshot = snapshot;
   const advancedOpen = container.querySelector('#projectOptions')?.open;
   const graphOpen = container.querySelector('#projectMemoryGraph')?.open;
+  const reviewOpen =
+    guide.project === project?.path && container.querySelector('#projectMemoryReview')?.open;
   if (!project) {
     container.innerHTML =
       '<article class="empty-workspace"><h2>¿En qué vas a trabajar?</h2><p>Elige el repositorio en el que quieres usar Factoría.</p><button type="button" class="primary" data-open-page="projects" data-start-selection>Elegir proyecto</button></article>';
@@ -144,6 +242,7 @@ window.renderProjectOverview = function (container, project) {
     ${project.dirty && project.memory_initialized && integration?.ready ? '<p class="guide-git-note">Empieza la tarea desde una rama de trabajo con el código limpio.</p>' : ''}
     <div class="guide-status" id="guideStatus" role="status"></div>
   </section>
+  ${memoryReviewContent(reviewOpen)}
   <details class="project-options" id="projectOptions" ${advancedOpen ? 'open' : ''}>
     <summary>Configuración del proyecto</summary>
     <div class="project-resources">
@@ -179,6 +278,7 @@ function bindProjectGuide(container, project) {
     description: '',
     tool: state.default_tool === 'opencode' ? 'opencode' : 'codex',
   });
+  bindMemoryReview(container, project);
   const graphForm = container.querySelector('#guideGraphForm');
   const graphResult = container.querySelector('#guideGraphResult');
   const sameProject = () => state.selected_project?.path === project.path;

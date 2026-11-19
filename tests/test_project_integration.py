@@ -136,6 +136,39 @@ class IntegrationTests(ProjectFixture):
         with self.assertRaisesRegex(ValueError, 'Git ya sigue'):
             save_agent_profile(self.root, AgentRoleProfile('reviewer', 'rapido'))
 
+    def test_session_report_is_validated_previewed_and_kept_local(self):
+        from factoria.application.projects.memory_review import REVIEW_PATH, SECTIONS, review_memory
+        from factoria.application.projects.memory_graph import project_memory_graph
+
+        report = {key: [] for key in SECTIONS}
+        report.update(commit=self.git('rev-parse', 'HEAD'), pending=['Confirmar despliegue'])
+        report['architecture'] = [{'finding': 'El valor principal se define en app.py.', 'sources': ['app.py']}]
+        target = self.root / REVIEW_PATH
+        agents = (self.root / 'AGENTS.md').read_bytes()
+        raw = json.dumps(report)
+        preview = review_memory(self.root, raw)
+        self.assertFalse(target.exists())
+        self.assertIn('Fuentes: `app.py`', preview['markdown'])
+        with self.assertRaisesRegex(ValueError, 'propuesta cambió'):
+            review_memory(self.root, raw, confirmed=True, token='old')
+        with self.assertRaisesRegex(ValueError, 'otro commit'):
+            review_memory(self.root, json.dumps({**report, 'commit': 'old'}))
+        with self.assertRaisesRegex(ValueError, 'Fuente inexistente'):
+            review_memory(self.root, json.dumps({
+                **report,
+                'architecture': [{'finding': 'Un módulo', 'sources': ['no-existe.py']}],
+            }))
+        review_memory(self.root, raw, confirmed=True, token=preview['revision'])
+        self.assertEqual(agents, (self.root / 'AGENTS.md').read_bytes())
+        self.assertEqual(target.read_text(encoding='utf-8'), preview['markdown'])
+        self.assertEqual(self.git('status', '--porcelain'), '')
+        ProjectIntegration(self.root).apply(confirmed=True)
+        portable = self.root / '.factoria/generated/chatgpt-context.md'
+        self.assertIn('El valor principal', portable.read_text(encoding='utf-8'))
+        project_memory_graph(self.root, rebuild=True)
+        hits = project_memory_graph(self.root, query='Confirmar despliegue')
+        self.assertTrue(any(node['source'] == REVIEW_PATH for node in hits['matches']))
+
     def test_http_preparation_requires_token_and_explicit_confirmation(self):
         import threading
         import urllib.error

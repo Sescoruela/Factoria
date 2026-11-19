@@ -456,6 +456,35 @@ test('guided start reviews and prepares a fresh repository, copies a task and se
   await expect(overview.locator('#guideGraphResult')).toContainText('AGENTS.md');
 });
 
+test('imports a project memory review from an existing agent session', async ({page, context, lab}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  fs.writeFileSync(path.join(lab.project, 'README.md'), '# Turnos');
+  execFileSync('git', ['-C', lab.project, 'add', 'README.md']);
+  execFileSync('git', ['-C', lab.project, '-c', 'user.name=Factoría', '-c',
+    'user.email=fixture@example.invalid', 'commit', '-m', 'Document project']);
+  const commit = execFileSync('git', ['-C', lab.project, 'rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
+  await open(page, lab, 'main');
+  const panel = page.locator('#projectMemoryReview');
+  await panel.getByText('Analizar memoria con OpenCode o Codex').click();
+  await panel.getByRole('button', {name: 'Copiar encargo de análisis'}).click();
+  await expect(panel.getByText('Encargo copiado.')).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('git rev-parse HEAD');
+  await panel.getByLabel('Informe JSON').fill(JSON.stringify({
+    commit,
+    purpose: [{finding: 'Gestiona turnos de empleados.', sources: ['README.md']}],
+    architecture: [], flows: [], contracts: [], decisions: [], checks: [],
+    pending: ['Confirmar persistencia'],
+  }));
+  await panel.getByRole('button', {name: 'Revisar informe'}).click();
+  await expect(panel.locator('pre')).toContainText('Gestiona turnos de empleados.');
+  const target = path.join(lab.project, 'docs', 'memoria', 'revision.md');
+  expect(fs.existsSync(target)).toBe(false);
+  await panel.getByRole('button', {name: 'Guardar revisión'}).click();
+  await expect(panel.getByText(/Revisión guardada/)).toBeVisible();
+  expect(fs.readFileSync(target, 'utf8')).toContain('Confirmar persistencia');
+  expect(execFileSync('git', ['-C', lab.project, 'status', '--porcelain'], {encoding: 'utf8'})).toBe('');
+});
+
 test('guided start identifies a conflicting file and preserves it', async ({page, lab}) => {
   const relative = '.agents/skills/factoria-fix/SKILL.md';
   const target = path.join(lab.project, relative);

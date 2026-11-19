@@ -56,6 +56,20 @@ Después de cambiar agentes, flujos, skills o memoria, revisa la propuesta antes
 `memoria-update` conserva el bloque de entrada de `AGENTS.md`; el contexto portable
 queda pendiente de regeneración porque ha cambiado la memoria.
 
+## Revisión de memoria desde una sesión abierta
+
+Desde **Inicio** se puede copiar un encargo para OpenCode o Codex. La sesión
+abierta examina el repositorio y devuelve un informe estructurado sobre el
+propósito, la arquitectura, los flujos, los contratos, las decisiones y las
+pruebas. Factoría valida que el informe indique el commit actual y que los
+archivos citados existan. La revisión humana confirma si las fuentes respaldan
+los hallazgos.
+
+Al guardar, `docs/memoria/revision.md` queda en la copia local. Las pruebas
+mencionadas en el informe son documentación y siguen sin ejecutarse. El
+contexto portable incorpora el informe en la siguiente preparación. El grafo
+lo incorpora al volver a generar el índice.
+
 ## Recorrido dentro de la herramienta
 
 Prepara tu copia local y selecciona una rama de trabajo limpia. Puedes verificar

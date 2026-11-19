@@ -17,6 +17,7 @@ from factoria.git_local import (
     unignored_project_files,
 )
 from factoria.application.projects.agent_profiles import load_agent_profiles
+from factoria.application.projects.memory_review import REVIEW_PATH
 from factoria.application.projects.product_design import CONTEXT_ECONOMY
 from factoria.application.governance import ExecutionGovernor, GovernedAction
 from factoria.application.policy_runtime import build_execution_context
@@ -135,7 +136,8 @@ Si la integración está desactualizada, pedir regenerarla; no usar instruccione
    contexto portable ya incluye la skill, usar esa copia.
    Si necesitas recuperar contexto de sesiones anteriores, consulta el índice
    local con `factoria --read-only project memory-graph recall "<tema>" --limit 5`.
-   Si falta el índice o el comando, consulta directamente la memoria versionada.
+   Si falta el índice o el comando, consulta directamente la memoria del proyecto.
+   Si existe `docs/memoria/revision.md`, consulta sus hallazgos y su commit analizado.
    Comprueba las fuentes citadas antes de basar un cambio en el resultado.
 2. Ejecutar `factoria native --compact start {kind} --tool <codex|opencode> --task "<petición>"`.
    Requiere una rama de trabajo y árbol limpio. Pedir crear/cambiar rama si procede.
@@ -322,7 +324,7 @@ Los permisos y aprobaciones de la herramienta siguen vigentes.
         bundle += f"## Skill compartida ({CONTEXT_GUIDE})\n\n{context_guide}\n"
         bundle += "## Configuración\n\n```json\n" + _json(definition) + "```\n\n"
         bundle += "\n\n".join(workflow_guide(k, definition) for k in definition["workflows"])
-        for relative in ("AGENTS.md", *_MEMORY_DOCS):
+        for relative in ("AGENTS.md", *_MEMORY_DOCS, REVIEW_PATH):
             path = project_path(self.root, relative)
             if path.is_file() or relative == "AGENTS.md":
                 bundle += f"\n\n## Archivo {relative}\n\n" + (

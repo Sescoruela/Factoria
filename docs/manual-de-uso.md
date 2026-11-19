@@ -83,6 +83,20 @@ con `factoria native finish <id>` tras el commit y con el árbol limpio.
    tarea, elige Codex u OpenCode y copia la petición. Abre la herramienta
    elegida en el repositorio y pega la petición en tu rama de trabajo.
 
+### Completar la memoria con OpenCode o Codex
+
+En **Inicio**, abre **Analizar memoria con OpenCode o Codex**. Copia el encargo
+a la sesión que tengas abierta en ese repositorio. Pega el JSON que te devuelva,
+pulsa **Revisar informe** y comprueba las fuentes antes de **Guardar revisión**.
+Puedes hacerlo tanto al preparar un proyecto como al revisar uno existente.
+
+La revisión cubre propósito, arquitectura, flujos, contratos, decisiones y
+verificación. Los hallazgos citan archivos y tienen una sección para dudas
+pendientes. Factoría guarda el resultado en `docs/memoria/revision.md` como
+parte de la memoria local. Si quieres encontrarlo con el grafo, pulsa
+**Generar índice**. Vuelve a preparar la integración para incorporarlo al
+contexto portable.
+
 El menú lateral agrupa las opciones que usarás después de preparar el proyecto.
 
 | Menú | Qué puedes encontrar |
