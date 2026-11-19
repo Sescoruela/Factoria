@@ -69,7 +69,9 @@ con `factoria native finish <id>` tras el commit y con el árbol limpio.
 
 ## 3. Configurar un proyecto propio
 
-1. En **Inicio**, pulsa **Elegir proyecto** y abre el repositorio. Si es la
+1. En **Inicio**, si todavía no has seleccionado un proyecto, consulta
+   **Revisar integración** para ver qué instalaciones de Codex y OpenCode
+   detecta Factoría. Pulsa **Elegir proyecto** y abre el repositorio. Si es la
    primera vez, pulsa **Revisar preparación inicial** y luego
    **Preparar memoria, agentes y skills**. En el mismo paso se generan los
    subagentes nativos de OpenCode, las skills y los comandos del proyecto.

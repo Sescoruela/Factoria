@@ -380,16 +380,41 @@ test('mobile workflow editing keeps horizontal scrolling inside its canvas', asy
   expect(await page.locator('#workflowCanvas').evaluate(el=>el.scrollWidth>el.clientWidth)).toBeTruthy();
 });
 
-test('empty workspace offers project selection without claiming resources', async ({page,request,lab})=>{
+test('empty workspace checks integration before choosing a project', async ({page,request,lab})=>{
   const response=await request.post(lab.url+'/__test__/reset',{headers:{'X-Factoria-Token':token},data:{selected:false}});
   const empty=await response.json();
+  let opencodeDetected = false;
+  await page.route('**/api/state', async route => {
+    const response = await route.fetch();
+    const payload = await response.json();
+    payload.agents = [
+      {name: 'codex', cli_available: false, desktop_detected: true},
+      {name: 'opencode', cli_available: opencodeDetected},
+    ];
+    await route.fulfill({response, json: payload});
+  });
+  const projectWrites = [];
+  page.on('request', request => {
+    if (['/api/project/prepare', '/api/command'].some(route => request.url().endsWith(route))) {
+      projectWrites.push(request.url());
+    }
+  });
   await page.goto(empty.url+'/?token='+token);
-  await expect(page.getByRole('heading',{name:'¿En qué vas a trabajar?'})).toBeVisible();
+  const startup = page.getByRole('article', {name: 'Revisar integración'});
+  await expect(startup).toBeVisible();
+  await expect(startup).toContainText('INDICIOS DE INSTALACIÓN DETECTADOS');
+  const openCode = startup.locator('.item').filter({hasText: 'opencode'});
+  await expect(openCode).toContainText('NO DETECTADO');
+  opencodeDetected = true;
+  await startup.getByRole('button', {name:'Volver a comprobar'}).click();
+  await expect(openCode).toContainText('DETECTADO · INICIO EXTERNO');
+  expect(projectWrites).toEqual([]);
   await expect(page.locator('#dashboardGrid .workflow-row')).toHaveCount(0);
-  await page.getByRole('button',{name:'Elegir proyecto',exact:true}).click();
+  await startup.getByRole('button',{name:'Elegir proyecto',exact:true}).click();
   await page.locator('#projectList .item').filter({hasText:empty.project}).getByRole('button',{name:'Abrir',exact:true}).click();
   await expect(page.locator('#dashboard')).toHaveClass(/active/);
   await expect(page.getByRole('button', {name: 'Revisar preparación inicial'})).toBeVisible();
+  await expect(startup).toHaveCount(0);
 });
 
 test('classic overview opens the full skill editor in the same authenticated server', async ({page,lab})=>{

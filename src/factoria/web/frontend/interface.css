@@ -521,6 +521,15 @@ pre {
   color: var(--muted);
   margin-bottom: 20px;
 }
+.startup-platforms {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.startup-platforms .item {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .canvas-toolbar {
   align-items: center;
 }

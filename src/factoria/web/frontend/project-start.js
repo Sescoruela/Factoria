@@ -100,6 +100,21 @@ function bindMemoryReview(container, project) {
   };
 }
 
+function startupIntegrationContent() {
+  const platforms = (state.agents || [])
+    .map((agent) => renderPlatformCard(agent, state.default_tool))
+    .join('');
+  return `<article class="empty-workspace" id="startupIntegration" aria-labelledby="startupIntegrationTitle">
+    <h2 id="startupIntegrationTitle">Revisar integración</h2>
+    <p>Factoría comprueba si Codex y OpenCode están disponibles en este equipo. La revisión es local y se hace antes de preparar un proyecto.</p>
+    <div class="startup-platforms">${platforms || '<p>Comprobando las herramientas…</p>'}</div>
+    <div class="actions guide-actions">
+      <button type="button" class="secondary" onclick="refresh()">Volver a comprobar</button>
+      <button type="button" class="primary" data-open-page="projects" data-start-selection>Elegir proyecto</button>
+    </div>
+  </article>`;
+}
+
 function preparationContent(project, integration) {
   const conflicts = guide.preview?.integration?.conflicts?.length
     ? guide.preview.integration.conflicts
@@ -207,6 +222,8 @@ window.renderProjectOverview = function (container, project) {
     state.agent_roles?.length,
     state.skill_configuration_error,
     state.agent_configuration_error,
+    !project && state.agents,
+    !project && state.default_tool,
   ]);
   if (guide.busy || guide.snapshot === snapshot) return;
   guide.snapshot = snapshot;
@@ -215,8 +232,7 @@ window.renderProjectOverview = function (container, project) {
   const reviewOpen =
     guide.project === project?.path && container.querySelector('#projectMemoryReview')?.open;
   if (!project) {
-    container.innerHTML =
-      '<article class="empty-workspace"><h2>¿En qué vas a trabajar?</h2><p>Elige el repositorio en el que quieres usar Factoría.</p><button type="button" class="primary" data-open-page="projects" data-start-selection>Elegir proyecto</button></article>';
+    container.innerHTML = startupIntegrationContent();
     return;
   }
   if (project.error) {
