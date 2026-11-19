@@ -249,6 +249,34 @@ class IntegrationTests(ProjectFixture):
         self.assertIn(START, (self.root / 'AGENTS.md').read_text())
         self.assertIn('sin herramientas solo propuestas', ProjectIntegration(self.root).check()['chatgpt'])
 
+    def test_check_distinguishes_missing_opencode_agent_from_generated_catalog(self):
+        integration = ProjectIntegration(self.root)
+        agent_path = '.opencode/agents/factoria-reviewer.md'
+        (self.root / agent_path).unlink()
+
+        status = integration.check()
+        self.assertFalse(status['ready'])
+        self.assertIn(
+            {'id': 'factoria-reviewer', 'path': agent_path, 'status': 'missing'},
+            status['opencode_agents'],
+        )
+        self.assertIn(agent_path, status['changed'])
+        integration.apply(confirmed=True)
+        self.assertIn(
+            {'id': 'factoria-reviewer', 'path': agent_path, 'status': 'generated'},
+            integration.check()['opencode_agents'],
+        )
+        instructions = (self.root / 'AGENTS.md').read_text(encoding='utf-8')
+        self.assertIn('sólo se refieren a workflows', instructions)
+        self.assertIn('factoria-reviewer', instructions)
+        catalog = (self.root / '.factoria/generated/agents.md').read_text(encoding='utf-8')
+        self.assertIn(agent_path, catalog)
+        (self.root / agent_path).write_text('Local edits', encoding='utf-8')
+        self.assertIn(
+            {'id': 'factoria-reviewer', 'path': agent_path, 'status': 'conflict'},
+            integration.check()['opencode_agents'],
+        )
+
     def test_preserves_handwritten_agents_bytes_outside_managed_block(self):
         original = 'Normas propias\r\nTexto con acentos: revisión.\r\n'
         (self.root / 'AGENTS.md').write_bytes(original.encode())

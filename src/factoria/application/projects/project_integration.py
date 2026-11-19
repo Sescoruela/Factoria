@@ -34,6 +34,7 @@ START = "<!-- factoria:integration:start -->"
 END = "<!-- factoria:integration:end -->"
 MANIFEST = ".factoria/integration-manifest.json"
 CONTEXT_GUIDE = ".factoria/generated/policies/context-economy.md"
+_OPENCODE_AGENT_DIR = ".opencode/agents/"
 _MEMORY_DOCS = (
     "docs/memoria/arquitectura.md",
     "docs/memoria/flujos.md",
@@ -116,6 +117,7 @@ def workflow_guide(kind: str, definition: dict) -> str:
         rows.append(
             f"{index}. **{step['name']} / {step['role']}** · agente `{role['role']}` · perfil `{step['profile']}` · plataforma `{step['preferred_tool'] or 'sesión actual'}`"
         )
+        rows.append(f"   - Subagente en OpenCode: `factoria-{role['role']}`.")
         if role["instructions"]:
             rows.append("\n" + role["instructions"] + "\n")
         for name in role["skills"]:
@@ -222,6 +224,8 @@ class ProjectIntegration:
         for agent in definition["agents"]:
             catalog += f"## {agent['name'] or agent['role']} ({agent['role']})\n\n"
             catalog += f"Rol base: {agent['base_role'] or agent['role']} · perfil: {agent['profile']} · plataforma preferida: {agent['platform'] or 'sesión actual'}\n\n"
+            opencode_id = f"factoria-{agent['role']}"
+            catalog += f"Subagente en OpenCode: `{opencode_id}` · archivo: `{_OPENCODE_AGENT_DIR}{opencode_id}.md`\n\n"
             catalog += agent["description"] + "\n\n" + agent["instructions"] + "\n\n"
             catalog += "\n".join(f"Consultar `{skill}`." for skill in agent["skills"]) + "\n\n"
         files[".factoria/generated/agents.md"] = catalog
@@ -271,7 +275,7 @@ class ProjectIntegration:
             }
             if (role.get("base_role") or role["role"]) == "implementer":
                 permission["edit"] = "ask"
-            files[f".opencode/agents/factoria-{role['role']}.md"] = (
+            files[f"{_OPENCODE_AGENT_DIR}factoria-{role['role']}.md"] = (
                 "---\ndescription: "
                 + role["role"]
                 + " del proyecto Factoría\nmode: subagent\npermission: "
@@ -289,7 +293,12 @@ class ProjectIntegration:
 Consultar el catálogo de workflows en `.factoria/generated/workflows.md`.
 Si el usuario especifica un workflow propio, usar exactamente ese identificador y su skill `factoria-<identificador>`.
 Si hay varios workflows compatibles y la intención es ambigua, preguntar cuál usar antes de iniciar. No seleccionar uno propio por parecido de nombre.
-Consultar el catálogo de agentes en `.factoria/generated/agents.md`.
+Consultar el catálogo de agentes en `.factoria/generated/agents.md` o los perfiles de `.factoria/agents.json`.
+En OpenCode, los subagentes de Factoría se definen en `.opencode/agents/factoria-*.md`.
+El nombre para invocarlos es el del archivo sin extensión, por ejemplo `factoria-reviewer`.
+Las listas `[flows]` de `.factoria/config.toml` sólo se refieren a workflows.
+Si faltan los archivos, ejecutar `factoria --read-only project check` y pedir que se prepare el proyecto.
+Si los archivos existen, comprobar que la sesión está abierta desde la raíz de esta copia antes de afirmar que OpenCode los ha cargado.
 Consultar el catálogo de skills en `.factoria/generated/skills.md` y los archivos asignados a cada agente.
 Cada etapa usa el agente configurado en su campo agent_id; si está vacío, usa el agente básico del rol. Mantener sus controles obligatorios.
 Antes de cambiar código, resolver la selección y cualquier ambigüedad. Si procede usar un flujo básico, elegir según la intención:
@@ -438,6 +447,23 @@ Los permisos y aprobaciones de la herramienta siguen vigentes.
                 path.split("/")[2].removeprefix("factoria-")
                 for path in plan.files
                 if path.startswith(".agents/skills/factoria-") and path.endswith("/SKILL.md")
+            ],
+            "opencode_agents": [
+                {
+                    "id": Path(path).stem,
+                    "path": path,
+                    "status": (
+                        "conflict"
+                        if path in plan.conflicts
+                        else "generated"
+                        if path not in plan.changed
+                        else "outdated"
+                        if (self.root / path).is_file()
+                        else "missing"
+                    ),
+                }
+                for path in plan.files
+                if path.startswith(_OPENCODE_AGENT_DIR)
             ],
             "tools": ["codex", "opencode"],
             "chatgpt": "Requiere acceso al repositorio o adjuntar el contexto portable; sin herramientas solo propuestas.",

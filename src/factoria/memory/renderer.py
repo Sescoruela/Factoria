@@ -133,6 +133,8 @@ def render_agents_md(memory: ProjectMemory) -> str:
             "",
             "## Uso por agentes",
             "Consulta primero este archivo. Abre solo la memoria detallada relevante para la tarea.",
+            "Los subagentes de OpenCode se generan al preparar la integración en `.opencode/agents/`.",
+            "Ejecuta `factoria --read-only project check` para comprobar qué archivos de subagentes se han generado.",
             "Si el código contradice comportamiento o estructura descritos aquí, marca la memoria como potencialmente desactualizada.",
             "Las reglas obligatorias no se ignoran automáticamente aunque el código actual las contradiga.",
             "",

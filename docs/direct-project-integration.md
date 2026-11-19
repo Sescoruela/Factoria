@@ -56,6 +56,20 @@ Después de cambiar agentes, flujos, skills o memoria, revisa la propuesta antes
 `memoria-update` conserva el bloque de entrada de `AGENTS.md`; el contexto portable
 queda pendiente de regeneración porque ha cambiado la memoria.
 
+### Comprobar los subagentes de OpenCode
+
+El catálogo de Factoría está en `.factoria/agents.json`. OpenCode descubre
+los subagentes mediante `.opencode/agents/factoria-<id>.md`. Las listas
+`allowed` y `blocked` controlan los workflows.
+
+Ejecuta `factoria --read-only project check` y consulta `opencode_agents`.
+Si faltan archivos, `factoria project prepare` muestra lo que se generará y
+`factoria project prepare --yes` aplica los cambios en esa copia. Cuando
+figuren como generados, abre OpenCode desde la raíz del mismo repositorio y
+pídele, por ejemplo, «Usa el subagente factoria-reviewer para revisar estos
+cambios». El chequeo verifica los archivos de la copia local. La carga efectiva
+se comprueba dentro de OpenCode.
+
 ## Revisión de memoria desde una sesión abierta
 
 Desde **Inicio** se puede copiar un encargo para OpenCode o Codex. La sesión

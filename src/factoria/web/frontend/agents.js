@@ -287,7 +287,7 @@
   integrationSection.id = 'integration';
   integrationSection.className = 'section';
   integrationSection.innerHTML =
-    '<div class="card"><h2>Preparar proyecto para Codex y OpenCode</h2><p>Configura agentes y flujos, revisa los archivos que se guardarán en esta copia local. Después podrás trabajar directamente en cualquiera de las dos herramientas con Factoría cerrada.</p><div id="integrationStatus"></div><div class="actions"><button onclick="prepareIntegration(false)">Ver cambios</button><button class="primary" onclick="prepareIntegration(true)">Preparar ambas herramientas</button></div><pre id="integrationOutput"></pre><p>Codex: usa las skills factoria-fix y factoria-feature. OpenCode: también puedes usar /factoria-fix y /factoria-feature. Las peticiones naturales se dirigen desde AGENTS.md.</p><p>ChatGPT necesita acceso al repositorio. Para una conversación sin ese acceso, adjunta .factoria/generated/chatgpt-context.md y el código necesario; sin herramientas solo podrá proponer cambios.</p><p>Los modelos y permisos se controlan en Codex/OpenCode. Una etapa asignada a otra plataforma requiere continuar allí.</p></div>';
+    '<div class="card"><h2>Preparar proyecto para Codex y OpenCode</h2><p>Configura agentes y flujos, revisa los archivos que se guardarán en esta copia local. Después podrás trabajar directamente en cualquiera de las dos herramientas con Factoría cerrada.</p><div id="integrationStatus"></div><div class="actions"><button onclick="prepareIntegration(false)">Ver cambios</button><button class="primary" onclick="prepareIntegration(true)">Preparar ambas herramientas</button></div><pre id="integrationOutput"></pre><div id="opencodeAgentFiles"></div><p>Codex: usa las skills factoria-fix y factoria-feature. OpenCode: también puedes usar /factoria-fix y /factoria-feature. Las peticiones naturales se dirigen desde AGENTS.md.</p><p>ChatGPT necesita acceso al repositorio. Para una conversación sin ese acceso, adjunta .factoria/generated/chatgpt-context.md y el código necesario; sin herramientas solo podrá proponer cambios.</p><p>Los modelos y permisos se controlan en Codex/OpenCode. Una etapa asignada a otra plataforma requiere continuar allí.</p></div>';
   document.querySelector('main.main').appendChild(integrationSection);
   const integrationButton = document.createElement('button');
   integrationButton.textContent = 'Integración';
@@ -346,6 +346,18 @@
         (i?.ready
           ? 'Integración preparada y actualizada.'
           : 'Integración pendiente o desactualizada.');
+    const agents = i?.opencode_agents || [];
+    const labels = {
+      generated: 'Generado',
+      missing: 'Pendiente de generar',
+      outdated: 'Pendiente de actualizar',
+      conflict: 'En conflicto',
+    };
+    document.getElementById('opencodeAgentFiles').innerHTML = agents.length
+      ? `<h3>Subagentes de OpenCode</h3>
+      <p>Tras preparar la integración, abre OpenCode desde la raíz de esta copia y pide usar el subagente por su nombre.</p>
+      <ul class="guide-files">${agents.map(({ id, status }) => `<li><code>${esc(id)}</code> · ${esc(labels[status])}</li>`).join('')}</ul>`
+      : '';
   }
   const previousSelectProject = selectProject;
   selectProject = async function (path) {
