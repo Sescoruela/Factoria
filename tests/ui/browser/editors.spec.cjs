@@ -389,7 +389,7 @@ test('empty workspace offers project selection without claiming resources', asyn
   await page.getByRole('button',{name:'Elegir proyecto',exact:true}).click();
   await page.locator('#projectList .item').filter({hasText:empty.project}).getByRole('button',{name:'Abrir',exact:true}).click();
   await expect(page.locator('#dashboard')).toHaveClass(/active/);
-  await expect(page.getByRole('button', {name: 'Revisar memoria inicial'})).toBeVisible();
+  await expect(page.getByRole('button', {name: 'Revisar preparación inicial'})).toBeVisible();
 });
 
 test('classic overview opens the full skill editor in the same authenticated server', async ({page,lab})=>{
@@ -421,20 +421,25 @@ test('guided start reviews and prepares a fresh repository, copies a task and se
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await open(page, lab, 'main');
   const overview = page.locator('#dashboardGrid');
-  await overview.getByRole('button', {name: 'Revisar memoria inicial'}).click();
+  await overview.getByRole('button', {name: 'Revisar preparación inicial'}).click();
   await expect(overview.getByText('Crea el primer commit', {exact: false})).toBeVisible();
   execFileSync('git', ['-C', lab.project, '-c', 'user.name=Factoría', '-c',
     'user.email=fixture@example.invalid', 'commit', '--allow-empty', '-m', 'Initial commit']);
-  await overview.getByRole('button', {name: 'Revisar memoria inicial'}).click();
+  await overview.getByRole('button', {name: 'Revisar preparación inicial'}).click();
   await expect(overview.getByText('Tecnologías propuestas', {exact: false})).toBeVisible();
-  expect(fs.existsSync(path.join(lab.project, 'AGENTS.md'))).toBe(false);
-  await overview.getByRole('button', {name: 'Guardar memoria'}).click();
-  await expect(overview.getByRole('button', {name: 'Ver archivos que cambiarán'})).toBeVisible();
-  await overview.getByRole('button', {name: 'Ver archivos que cambiarán'}).click();
-  await expect(overview.getByText('.factoria/integration-manifest.json', {exact: true})).toBeVisible();
-  expect(fs.existsSync(path.join(lab.project, '.factoria/integration-manifest.json'))).toBe(false);
-  await overview.getByRole('button', {name: 'Aplicar los cambios revisados'}).click();
+  const newFiles = [
+    'AGENTS.md',
+    '.factoria/integration-manifest.json',
+    '.opencode/agents/factoria-explorer.md',
+    '.opencode/commands/factoria-fix.md',
+    '.agents/skills/factoria-fix/SKILL.md',
+  ];
+  await expect(overview.locator('.project-guide .guide-preview')).toContainText(newFiles[2]);
+  await expect(overview.locator('.project-guide .guide-preview')).toContainText(newFiles[4]);
+  for (const file of newFiles) expect(fs.existsSync(path.join(lab.project, file))).toBe(false);
+  await overview.getByRole('button', {name: 'Preparar memoria, agentes y skills'}).click();
   await expect(overview.getByRole('button', {name: 'Añadir una funcionalidad'})).toBeVisible();
+  for (const file of newFiles) expect(fs.existsSync(path.join(lab.project, file))).toBe(true);
   execFileSync('git', ['-C', lab.project, 'add', '-A']);
   expect(execFileSync('git', ['-C', lab.project, 'status', '--porcelain'], {encoding: 'utf8'})).toBe('');
   await overview.getByRole('button', {name: 'Añadir una funcionalidad'}).click();

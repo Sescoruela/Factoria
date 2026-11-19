@@ -124,10 +124,10 @@ function preparationContent(project, integration) {
   const preview = guide.preview;
   if (!project.memory_initialized) {
     return `<h3>Preparar proyecto</h3>
-      <p>Factoría propone una memoria inicial a partir de archivos y comandos detectados. Usa el análisis de OpenCode o Codex para documentar cómo funciona el proyecto.</p>
+      <p>Factoría revisa la memoria inicial y los archivos de agentes y skills que generará en esta copia para OpenCode y Codex.</p>
       ${preview?.memory ? `<pre class="guide-preview">${esc(preview.memory)}</pre>` : ''}
       <button type="button" class="primary" data-guide="${preview?.memory ? 'save-memory' : 'preview-memory'}">
-        ${preview?.memory ? 'Guardar memoria' : 'Revisar memoria inicial'}
+        ${preview?.memory ? 'Preparar memoria, agentes y skills' : 'Revisar preparación inicial'}
       </button>`;
   }
   if (!integration?.ready) {
@@ -362,10 +362,30 @@ function bindProjectGuide(container, project) {
         return;
       } else if (action === 'preview-memory' || action === 'save-memory') {
         const save = action === 'save-memory';
-        const args = ['memoria-init', '--name', project.name, ...(save ? ['--yes'] : [])];
+        const args = [
+          'memoria-init',
+          '--name',
+          project.name,
+          '--prepare',
+          ...(save ? ['--yes'] : []),
+        ];
         const result = await api('/api/command', 'POST', { project_path: project.path, args });
         if (!sameProject()) return;
-        if (!result.ok) throw new Error(result.output.trim() || 'No se pudo preparar la memoria.');
+        if (!result.ok) {
+          if (save && result.state?.selected_project?.memory_initialized) {
+            guide.preview = null;
+            guide.snapshot = null;
+            guide.busy = false;
+            state = result.state;
+            renderAll();
+            container.querySelector('#guideStatus').textContent = result.output
+              .trim()
+              .split('\n')
+              .at(-1);
+            return;
+          }
+          throw new Error(result.output.trim() || 'No se pudo preparar el proyecto.');
+        }
         guide.preview = save ? null : { memory: result.output };
         nextState = result.state;
       } else {
@@ -400,7 +420,7 @@ function bindProjectGuide(container, project) {
         const current = container.querySelector('.project-guide');
         const next = current?.querySelector('[data-guide]');
         next?.focus({ preventScroll: true });
-        if (action === 'apply' && state.integration?.ready)
+        if (['apply', 'save-memory'].includes(action) && state.integration?.ready)
           current.querySelector('#guideStatus').textContent = 'Proyecto preparado.';
       }
     }

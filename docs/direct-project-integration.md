@@ -31,6 +31,10 @@ En la interfaz web: seleccionar proyecto → editar Agentes y Flujos → Integra
 Ver cambios → Preparar ambas herramientas. Guardar primero los cambios del editor.
 Desde terminal, `factoria project prepare` muestra los archivos, `--yes` los genera
 y `factoria project check` devuelve JSON con `ready`, cambios y conflictos.
+En un proyecto nuevo, la preparación inicial de **Inicio** genera la memoria
+y la integración en la misma confirmación. En terminal, puedes revisar
+la propuesta con `factoria memoria-init --prepare` y aplicarla con
+`factoria memoria-init --prepare --yes`.
 
 Se generan:
 

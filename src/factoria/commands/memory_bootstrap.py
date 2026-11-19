@@ -8,6 +8,7 @@ from pathlib import Path
 
 from factoria.application.governance import ExecutionGovernor, GovernedAction
 from factoria.application.projects.memory_bootstrap import MemoryBootstrapService
+from factoria.application.projects.project_integration import ProjectIntegration
 from factoria.application.policy_runtime import build_execution_context
 from factoria.domain.models import ProjectKind
 from factoria.domain.permissions import PermissionProfile
@@ -32,6 +33,11 @@ def build_memory_init_parser() -> argparse.ArgumentParser:
     memory_init = sub.add_parser("memoria-init", help="Propose complete first-time project memory")
     memory_init.add_argument("--name")
     memory_init.add_argument("--purpose", default="")
+    memory_init.add_argument(
+        "--prepare",
+        action="store_true",
+        help="Include the local agents, skills and workflow integration in the proposal",
+    )
     memory_init.add_argument(
         "--kind",
         choices=tuple(kind.value for kind in ProjectKind),
@@ -70,6 +76,17 @@ def run_memory_init_cli(argv: list[str]) -> int:
             project_kind=ProjectKind(args.kind) if args.kind else None,
         )
         _print_proposal(root, proposal)
+        integration = ProjectIntegration(root) if args.prepare else None
+        if integration is not None:
+            plan = integration.plan()
+            if plan.conflicts:
+                raise ValueError(
+                    "Resuelve primero los conflictos de la integración: "
+                    + ", ".join(plan.conflicts)
+                )
+            print("Archivos de agentes, skills e integración que se prepararán:")
+            for relative in plan.changed:
+                print(f"- {relative}")
         if args.read_only:
             print("--read-only: propuesta analizada; no se escribirá ningún archivo.")
             return 0
@@ -83,6 +100,16 @@ def run_memory_init_cli(argv: list[str]) -> int:
         written = service.apply(root, proposal.confirm())
         for path in written:
             print(f"Escrito: {path.relative_to(root)}")
+        if integration is not None:
+            try:
+                plan = integration.apply(confirmed=True)
+            except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as exc:
+                raise ValueError(
+                    "Se guardó la memoria. Revisa la integración para completar la preparación: "
+                    + str(exc)
+                ) from exc
+            for relative in plan.changed:
+                print(f"Integración actualizada: {relative}")
         return 0
     except (
         FileExistsError,
