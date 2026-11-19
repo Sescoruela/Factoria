@@ -87,9 +87,14 @@ def _project_payload(root: Path | None) -> dict[str, object] | None:
 
 def _agent_payload() -> list[dict[str, object]]:
     persisted = _apply_agent_paths()
-    return [
-        {**item, "configured_path": persisted.get(str(item["name"]))} for item in tool_presence()
-    ]
+    tools = tool_presence()
+    for item in tools:
+        configured = persisted.get(str(item["name"]))
+        item["configured_path"] = configured
+        if configured and Path(configured).is_file():
+            item["available"] = item["cli_available"] = True
+            item["cli_source"] = "ruta configurada en Factoría"
+    return tools
 
 
 def _job_summaries() -> list[dict[str, object]]:

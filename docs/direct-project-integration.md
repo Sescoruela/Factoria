@@ -83,7 +83,12 @@ se comprueba dentro de OpenCode.
 
 ## Revisión de memoria desde una sesión abierta
 
-Desde **Inicio** se puede copiar un encargo para OpenCode o Codex. La sesión
+Con la integración preparada, **Generar memoria** llama al CLI elegido
+en una copia temporal con una selección de archivos versionados. Factoría
+descarta los archivos privados o con indicios de secretos que detecta y ofrece
+el resultado para confirmación. El modelo es el configurado en ese CLI.
+
+Desde **Inicio** también se puede copiar un encargo para OpenCode o Codex. La sesión
 abierta examina el repositorio y devuelve un informe estructurado sobre el
 propósito, la arquitectura, los flujos, los contratos, las decisiones y las
 pruebas. Factoría valida que el informe indique el commit actual y que los
@@ -222,7 +227,10 @@ en [H05](acceptance/h05-status.md). Actions continúa deshabilitado hasta nuevo 
 
 ## Aplicación sin inicio de proveedores
 
-La web y la TUI solo muestran presencia pasiva y permiten guardar preferencias. No inician Codex/OpenCode ni ejecutan sus diagnósticos. Los endpoints y comandos internos que podrían lanzarlos se rechazan; abre la herramienta externa para trabajar o reanudar sus flujos.
+En el arranque, la web y la TUI detectan herramientas de forma pasiva. En la web,
+**Generar memoria** es una acción explícita que ejecuta el CLI para producir una
+propuesta de solo lectura. Para el resto de los flujos de desarrollo,
+abre la herramienta externa y trabaja o reanuda el flujo en su sesión.
 
 ## Workflows propios (H04)
 

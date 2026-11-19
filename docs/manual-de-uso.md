@@ -98,10 +98,14 @@ Consulta los nombres invocables en `.factoria/generated/agents.md` y
 
 ### Completar la memoria con OpenCode o Codex
 
-En **Inicio**, abre **Analizar memoria con OpenCode o Codex**. Copia el encargo
-a la sesión que tengas abierta en ese repositorio. Pega el JSON que te devuelva,
-pulsa **Revisar informe** y comprueba las fuentes antes de **Guardar revisión**.
-Puedes hacerlo tanto al preparar un proyecto como al revisar uno existente.
+Una vez preparada la integración, abre en **Inicio** el menú **Analizar memoria
+con OpenCode o Codex**. Elige el CLI que hayas configurado, pulsa **Generar
+memoria** y revisa las fuentes antes de **Guardar revisión**. El modelo de esa
+herramienta recibe una selección de archivos versionados del repositorio como
+contexto de solo lectura. Conviene iniciar sesión en la herramienta con antelación.
+
+Si trabajas desde una sesión externa, pulsa **Copiar encargo de análisis**,
+pega allí el encargo y vuelve con el JSON para usar **Revisar informe**.
 
 La revisión cubre propósito, arquitectura, flujos, contratos, decisiones y
 verificación. Los hallazgos citan archivos y tienen una sección para dudas

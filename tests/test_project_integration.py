@@ -169,6 +169,51 @@ class IntegrationTests(ProjectFixture):
         hits = project_memory_graph(self.root, query='Confirmar despliegue')
         self.assertTrue(any(node['source'] == REVIEW_PATH for node in hits['matches']))
 
+    def test_llm_memory_uses_an_isolated_snapshot_and_leaves_writing_for_confirmation(self):
+        from factoria.adapters.base import AgentResult
+        from factoria.application.projects.memory_generation import generate_memory
+        from factoria.application.projects.memory_review import REVIEW_PATH, SECTIONS, review_memory
+
+        (self.root / '.env').write_text('PRIVATE_SETTING=example', encoding='utf-8')
+        (self.root / 'untracked.py').write_text('PRIVATE_SETTING = 2', encoding='utf-8')
+        (self.root / 'opencode.json').write_text('{"instructions":["external.md"]}', encoding='utf-8')
+        self.git('add', '.env', 'opencode.json')
+        self.git('commit', '-m', 'Private settings fixture')
+        commit = self.git('rev-parse', 'HEAD')
+        report = {key: [] for key in SECTIONS}
+        report.update(commit=commit, pending=['Cobertura desconocida'])
+        report['architecture'] = [{'finding': 'El módulo principal es app.py.', 'sources': ['app.py']}]
+        raw = json.dumps(report)
+
+        for tool, cls in (('opencode', 'OpenCodeAdapter'), ('codex', 'CodexAdapter')):
+            with self.subTest(tool=tool), patch(
+                f'factoria.application.projects.memory_generation.{cls}'
+            ) as adapter:
+                def run(request):
+                    self.assertNotEqual(request.project_root, self.root)
+                    self.assertTrue((request.project_root / 'app.py').is_file())
+                    self.assertFalse((request.project_root / '.env').exists())
+                    self.assertFalse((request.project_root / 'opencode.json').exists())
+                    self.assertFalse((request.project_root / 'untracked.py').exists())
+                    self.assertIn(commit, request.prompt)
+                    if tool == 'codex':
+                        self.assertIn('read-only', request.extra_args)
+                        events = [{'type': 'item.completed', 'item': {'type': 'agent_message', 'text': raw}}]
+                    else:
+                        self.assertEqual(json.loads(request.environment['OPENCODE_PERMISSION'])['*'], 'deny')
+                        middle = len(raw) // 2
+                        events = [{'type': 'text', 'part': {'text': part}} for part in (raw[:middle], raw[middle:])]
+                    return AgentResult(tool, (), 0, stdout='\n'.join(map(json.dumps, events)))
+
+                adapter.return_value.run.side_effect = run
+                result = generate_memory(self.root, tool)
+                self.assertEqual(result['report'], raw)
+                self.assertIn('Fuentes: `app.py`', result['markdown'])
+                self.assertFalse((self.root / REVIEW_PATH).exists())
+
+        review_memory(self.root, result['report'], confirmed=True, token=result['revision'])
+        self.assertTrue((self.root / REVIEW_PATH).is_file())
+
     def test_http_preparation_requires_token_and_explicit_confirmation(self):
         import threading
         import urllib.error

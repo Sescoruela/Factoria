@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import subprocess
 from dataclasses import dataclass
 from types import MappingProxyType
@@ -33,6 +34,8 @@ class CodexAdapter(SubprocessToolAdapter):
         return "codex"
 
     def _resolved_executable(self) -> str | None:
+        if self.executable != "codex":
+            return shutil.which(self.executable)
         discovery = discover_codex()
         return str(discovery.cli_path) if discovery.cli_path is not None else None
 

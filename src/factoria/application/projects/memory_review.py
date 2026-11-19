@@ -26,7 +26,7 @@ SECTIONS = {
 MAX_REPORT_BYTES = 65536
 
 
-def review_request() -> str:
+def review_request(commit: str = "<SHA completo de git rev-parse HEAD>") -> str:
     return (
         "Analiza el repositorio abierto para actualizar la memoria de Factoría. "
         "Trabaja en solo lectura. No ejecutes las pruebas ni modifiques archivos. "
@@ -40,7 +40,7 @@ def review_request() -> str:
         "Devuelve solo JSON, sin bloque Markdown. Esquema: "
         + json.dumps(
             {
-                "commit": "<SHA completo de git rev-parse HEAD>",
+                "commit": commit,
                 **{
                     key: [{"finding": f"<{title}>", "sources": ["<ruta relativa a un archivo>"]}]
                     for key, title in SECTIONS.items()
@@ -120,7 +120,12 @@ def _render(root: Path, report: object, commit: str) -> str:
 
 
 def review_memory(
-    root: Path, raw_report: object, *, confirmed: bool = False, token: object = None
+    root: Path,
+    raw_report: object,
+    *,
+    confirmed: bool = False,
+    token: object = None,
+    evidence_root: Path | None = None,
 ) -> dict:
     governor = ExecutionGovernor()
     governor.assert_allowed(
@@ -143,7 +148,7 @@ def review_memory(
         if result.returncode != 0:
             raise ValueError("Crea el primer commit del repositorio para revisar su memoria.")
         commit = result.stdout.strip()
-        markdown = _render(root, report, commit)
+        markdown = _render(evidence_root or root, report, commit)
         target = project_path(root, REVIEW_PATH)
         existed = target.exists()
         before = target.read_bytes() if existed else b""

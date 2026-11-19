@@ -471,7 +471,7 @@ test('guided start reviews and prepares a fresh repository, copies a task and se
   const description = overview.getByLabel('Describe la tarea');
   await description.fill('Añade turnos de 30 minutos');
   await expect(overview.getByLabel('Petición para pegar')).toHaveValue('$factoria-feature Añade turnos de 30 minutos');
-  await overview.getByLabel('Herramienta').selectOption('opencode');
+  await overview.locator('#guidedTaskForm').getByLabel('Herramienta').selectOption('opencode');
   await overview.getByRole('button', {name: 'Copiar petición'}).click();
   await expect(overview.getByText('Petición copiada.')).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('/factoria-feature Añade turnos de 30 minutos');
@@ -513,6 +513,48 @@ test('imports a project memory review from an existing agent session', async ({p
   await expect(panel.getByText(/Revisión guardada/)).toBeVisible();
   expect(fs.readFileSync(target, 'utf8')).toContain('Confirmar persistencia');
   expect(execFileSync('git', ['-C', lab.project, 'status', '--porcelain'], {encoding: 'utf8'})).toBe('');
+});
+
+test('generates a memory proposal with the selected LLM and saves only after review', async ({page, lab}) => {
+  fs.writeFileSync(path.join(lab.project, 'README.md'), '# Turnos');
+  execFileSync('git', ['-C', lab.project, 'add', 'README.md']);
+  execFileSync('git', ['-C', lab.project, '-c', 'user.name=Factoría', '-c',
+    'user.email=fixture@example.invalid', 'commit', '-m', 'Document project']);
+  const commit = execFileSync('git', ['-C', lab.project, 'rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
+  await page.route('**/api/{state,command}', async route => {
+    const response = await route.fetch();
+    const payload = await response.json();
+    (payload.state || payload).agents = [{name: 'opencode', cli_available: true}];
+    await route.fulfill({response, json: payload});
+  });
+  const report = JSON.stringify({
+    commit,
+    purpose: [{finding: 'Gestiona turnos de empleados.', sources: ['README.md']}],
+    architecture: [], flows: [], contracts: [], decisions: [], checks: [], pending: [],
+  });
+  await page.route('**/api/project/memory-review', async route => {
+    const data = route.request().postDataJSON();
+    if (data.action !== 'generate') return route.continue();
+    expect(data.tool).toBe('opencode');
+    const response = await route.fetch({postData: {...data, action: 'preview', report}});
+    expect(response.status()).toBe(200);
+    const proposal = await response.json();
+    await route.fulfill({response, json: {...proposal, report, files_analyzed: 1}});
+  });
+  await open(page, lab, 'main');
+  const overview = page.locator('#dashboardGrid');
+  await overview.getByRole('button', {name: 'Revisar preparación inicial'}).click();
+  await overview.getByRole('button', {name: 'Preparar memoria, agentes y skills'}).click();
+  const panel = overview.locator('#projectMemoryReview');
+  await panel.getByText('Analizar memoria con OpenCode o Codex').click();
+  await panel.getByLabel('Herramienta para generar memoria').selectOption('opencode');
+  await panel.getByRole('button', {name: 'Generar memoria', exact: true}).click();
+  await expect(panel.locator('pre')).toContainText('Gestiona turnos de empleados.');
+  const target = path.join(lab.project, 'docs', 'memoria', 'revision.md');
+  expect(fs.existsSync(target)).toBe(false);
+  await panel.getByRole('button', {name: 'Guardar revisión'}).click();
+  await expect(panel.getByText(/Revisión guardada/)).toBeVisible();
+  expect(fs.readFileSync(target, 'utf8')).toContain('README.md');
 });
 
 test('guided start identifies a conflicting file and preserves it', async ({page, lab}) => {

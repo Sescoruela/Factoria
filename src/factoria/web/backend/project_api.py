@@ -1,7 +1,7 @@
 """HTTP transport for project resources, templates, diagnostics and recovery.
 
 Authentication stays at the server boundary; each feature retains its project and
-revision checks. No shell-specific handler imports or provider startup.
+revision checks. No shell-specific handler imports.
 """
 
 PROJECT_RESOURCE_ROUTES = frozenset(
@@ -38,6 +38,19 @@ def handle_project_post(self, path: str) -> None:
             return
         if data.get("action") == "request":
             self._json({"request": review_request()})
+            return
+        if data.get("action") == "generate":
+            from factoria.application.projects.memory_generation import generate_memory
+            from factoria.ui.agent_tools import _load_agent_paths
+
+            tool = data.get("tool")
+            if not isinstance(tool, str):
+                raise ValueError("Selecciona Codex u OpenCode para generar memoria.")
+            result = generate_memory(project, tool, executable=_load_agent_paths().get(tool))
+            if self._active_project() != project:
+                self._json({"error": "El proyecto cambió durante el análisis"}, 409)
+                return
+            self._json(result)
             return
         if data.get("action") not in {"preview", "apply"}:
             raise ValueError("Acción de revisión desconocida")

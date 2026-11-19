@@ -199,13 +199,17 @@ window.returnToProjectOverview = function () {
       choosingProjectFromOverview = button.hasAttribute('data-start-selection');
       openProjectSection(button.dataset.openPage, button.dataset.workflow);
       if (button.hasAttribute('data-open-memory')) {
+        const review = document.getElementById('projectMemoryReview');
         const graph = document.getElementById('projectMemoryGraph');
-        if (graph && document.getElementById('dashboard').classList.contains('active')) {
-          document.getElementById('projectOptions').open = true;
-          graph.open = true;
-          graph.querySelector('summary').focus();
-        } else if (!graph) {
-          toast('Primero prepara la memoria del proyecto desde Inicio.');
+        if (review && document.getElementById('dashboard').classList.contains('active')) {
+          review.open = true;
+          if (graph) {
+            document.getElementById('projectOptions').open = true;
+            graph.open = true;
+          }
+          review.querySelector('summary').focus();
+        } else if (!review) {
+          toast('Selecciona un proyecto para revisar su memoria.');
         }
       }
     });

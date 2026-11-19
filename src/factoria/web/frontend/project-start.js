@@ -6,10 +6,20 @@ const taskTypes = new Map([
 ]);
 
 function memoryReviewContent(open) {
+  const tools = (state.agents || []).filter((agent) => agent.cli_available ?? agent.available);
   return `<details class="project-options" id="projectMemoryReview" ${open ? 'open' : ''}>
     <summary>Analizar memoria con OpenCode o Codex</summary>
-    <p>Copia el encargo a tu sesión abierta en este repositorio. Pega aquí el JSON que te devuelva para revisar sus hallazgos y las fuentes.</p>
-    <div class="actions guide-actions"><button type="button" class="secondary" id="copyMemoryReview">Copiar encargo de análisis</button></div>
+    <p>Genera un informe con el LLM de la herramienta elegida. Factoría analiza una selección de archivos del repositorio y te muestra las fuentes antes de guardar.</p>
+    <label>Herramienta para generar memoria
+      <select id="memoryReviewTool" ${tools.length ? '' : 'disabled'}>
+        ${tools.map(({ name }) => `<option value="${esc(name)}" ${state.default_tool === name ? 'selected' : ''}>${name === 'codex' ? 'Codex' : 'OpenCode'}</option>`).join('') || '<option>CLI sin detectar</option>'}
+      </select>
+    </label>
+    <div class="actions guide-actions">
+      <button type="button" class="primary" id="generateMemoryReview" ${tools.length && state.integration?.prepared ? '' : 'disabled'}>Generar memoria</button>
+      <button type="button" class="secondary" id="copyMemoryReview">Copiar encargo de análisis</button>
+    </div>
+    ${!state.integration?.prepared ? '<p>Prepara primero la integración del proyecto.</p>' : !tools.length ? '<p>Configura la ruta del CLI en Codex y OpenCode para generar desde Factoría, o importa un informe de tu sesión abierta.</p>' : ''}
     <textarea id="memoryReviewRequest" aria-label="Encargo de análisis" rows="4" readonly hidden></textarea>
     <form id="memoryReviewForm" class="guide-form">
       <label>Informe JSON<textarea name="report" rows="6" maxlength="65536" required></textarea></label>
@@ -24,6 +34,8 @@ function memoryReviewContent(open) {
 function bindMemoryReview(container, project) {
   const form = container.querySelector('#memoryReviewForm');
   const copy = container.querySelector('#copyMemoryReview');
+  const generate = container.querySelector('#generateMemoryReview');
+  const tool = container.querySelector('#memoryReviewTool');
   const requestField = container.querySelector('#memoryReviewRequest');
   const save = form.querySelector('#saveMemoryReview');
   const preview = form.querySelector('pre');
@@ -63,13 +75,16 @@ function bindMemoryReview(container, project) {
   };
   async function submit(action) {
     const report = form.elements.report;
-    const buttons = [...form.querySelectorAll('button')];
-    [report, ...buttons].forEach((item) => (item.disabled = true));
-    status.textContent = 'Revisando el informe…';
+    const buttons = [...form.querySelectorAll('button'), generate, tool, copy, report].filter(
+      (item) => !item.disabled,
+    );
+    buttons.forEach((item) => (item.disabled = true));
+    status.textContent =
+      action === 'generate' ? 'Analizando los archivos con el LLM…' : 'Revisando el informe…';
     try {
-      const result = await call(action, { report: report.value, revision });
+      const result = await call(action, { report: report.value, revision, tool: tool.value });
+      if (state.selected_project?.path !== project.path) return;
       if (action === 'apply') {
-        if (state.selected_project?.path !== project.path) return;
         state = result.state;
         guide.reviewDraft = '';
         guide.snapshot = null;
@@ -78,19 +93,27 @@ function bindMemoryReview(container, project) {
         current.querySelector('[role="status"]').textContent =
           'Revisión guardada en docs/memoria/revision.md.';
       } else {
+        if (action === 'generate') {
+          report.value = result.report;
+          guide.reviewDraft = result.report;
+        }
         revision = result.revision;
         preview.textContent = result.markdown;
         preview.hidden = false;
         save.hidden = false;
-        status.textContent = 'Revisa los hallazgos antes de guardar.';
+        status.textContent =
+          action === 'generate'
+            ? `Archivos disponibles para el análisis: ${result.files_analyzed}. Revisa los hallazgos antes de guardar.`
+            : 'Revisa los hallazgos antes de guardar.';
       }
     } catch (error) {
       clearPreview();
       status.textContent = error.message;
     } finally {
-      [report, ...buttons].forEach((item) => (item.disabled = false));
+      buttons.forEach((item) => (item.disabled = false));
     }
   }
+  generate.onclick = () => submit('generate');
   form.onsubmit = (event) => {
     event.preventDefault();
     submit('preview');
@@ -208,6 +231,7 @@ window.renderProjectOverview = function (container, project) {
     project?.error,
     project?.memory_initialized,
     integration?.ready,
+    integration?.prepared,
     integration?.conflicts,
     integration?.error,
     allowed,
@@ -222,8 +246,8 @@ window.renderProjectOverview = function (container, project) {
     state.agent_roles?.length,
     state.skill_configuration_error,
     state.agent_configuration_error,
-    !project && state.agents,
-    !project && state.default_tool,
+    state.agents,
+    state.default_tool,
   ]);
   if (guide.busy || guide.snapshot === snapshot) return;
   guide.snapshot = snapshot;

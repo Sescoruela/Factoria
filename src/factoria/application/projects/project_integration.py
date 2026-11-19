@@ -498,6 +498,7 @@ Los permisos y aprobaciones de la herramienta siguen vigentes.
     def check(self) -> dict:
         plan = self.plan()
         return {
+            "prepared": project_path(self.root, MANIFEST).is_file(),
             "ready": not (plan.changed or plan.conflicts or plan.local_exclusions_pending),
             "local_exclusions_pending": plan.local_exclusions_pending,
             "tracked_conflicts": list(plan.tracked_conflicts),
