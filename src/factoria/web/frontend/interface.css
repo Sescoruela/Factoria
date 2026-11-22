@@ -190,6 +190,7 @@ p {
   max-width: 78ch;
 }
 .grid {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 20px;
 }
 button {
@@ -279,8 +280,27 @@ pre {
   gap: 10px;
   margin-top: 16px;
 }
-.row {
+.form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
   gap: 12px;
+  margin-top: 12px;
+}
+.form-row > label,
+.form-row > input {
+  margin-top: 0;
+}
+.form-row > button,
+.form-row input,
+.form-row select,
+.canvas-toolbar button,
+#workflowKind {
+  min-height: 44px;
+}
+#projectsRootLabel,
+#subtitle {
+  overflow-wrap: anywhere;
 }
 .pill {
   background: #eef1eb;
@@ -568,13 +588,18 @@ pre {
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.canvas-toolbar {
+.canvas-toolbar,
+.flow-toolbar {
   align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 .canvas-toolbar .actions {
   margin: 0;
 }
-.canvas-toolbar select {
+#workflowKind {
+  width: clamp(13rem, 22vw, 21rem);
+  max-width: 100%;
   margin-top: 0;
 }
 .canvas-shell {
@@ -829,24 +854,20 @@ td button.secondary {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
   }
-  .canvas-toolbar {
-    display: block;
-  }
   .canvas-toolbar .actions {
     justify-content: flex-start;
-    margin-top: 16px;
-  }
-  .canvas-toolbar select {
-    width: 100% !important;
   }
   .empty-workspace {
     padding: 26px;
   }
-  .row {
-    align-items: stretch;
+}
+@media (max-width: 560px) {
+  .form-row {
+    grid-template-columns: minmax(0, 1fr);
   }
-  .row > * {
-    flex-basis: 100%;
+  .canvas-toolbar .actions,
+  #workflowKind {
+    width: 100%;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -944,8 +965,13 @@ td button.secondary {
 }
 .guide-form label {
   display: grid;
-  gap: 4px;
+  gap: 6px;
+  margin: 0;
   font-weight: 550;
+}
+.guide-form :is(input, select, textarea),
+.guide-form .actions {
+  margin-top: 0;
 }
 .guide-form textarea {
   resize: vertical;
@@ -958,8 +984,9 @@ td button.secondary {
   justify-self: start;
 }
 .guide-fields {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
+  align-items: end;
   gap: 12px;
 }
 .guide-status:not(:empty),

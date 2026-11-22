@@ -35,7 +35,7 @@
             ><div class="card full"
               ><div class="label">Carpeta de proyectos</div
               ><div class="muted" id="projectsRootLabel"></div
-              ><div class="row"
+              ><div class="form-row"
                 ><input id="projectsRootInput" /><button
                   class="secondary"
                   onclick="saveProjectsRoot()"
@@ -86,12 +86,12 @@
                   ><div class="value" style="font-size:19px"
                     >Diseña cómo trabajarán los agentes</div
                   ></div
-                ><select id="workflowKind" style="max-width:180px" onchange="changeWorkflowKind()"
+                ><select id="workflowKind" onchange="changeWorkflowKind()"
                   ><option value="feature">Feature</option
                   ><option value="fix">Fix</option></select
                 ></div
               ><div class="card workflow-metadata" style="margin:12px 0"
-                ><div class="row"
+                ><div class="form-row"
                   ><label
                     >Crear a partir de<select id="workflowTemplate"
                       ><option value="feature">Feature</option

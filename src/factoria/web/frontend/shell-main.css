@@ -156,15 +156,11 @@ select {
   padding: 9px 10px;
   margin-top: 6px;
 }
-.row,
 .actions {
   display: flex;
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
-}
-.row > * {
-  flex: 1;
 }
 .list {
   display: grid;

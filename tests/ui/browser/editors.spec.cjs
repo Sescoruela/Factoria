@@ -123,6 +123,34 @@ async function chooseProject(page, project) {
 
 for (const shell of ['main', 'classic']) {
   test.describe(shell, () => {
+    test('keeps form actions aligned and page layouts inside the viewport', async ({page, lab}) => {
+      await open(page, lab, shell);
+      const pages = await page.locator('.nav [data-page]').evaluateAll(buttons =>
+        buttons.map(button => button.dataset.page));
+      for (const width of [1440, 900, 390]) {
+        await page.setViewportSize({width, height: 1000});
+        for (const name of pages) {
+          await nav(page, name);
+          const hasOverflow = await page.evaluate(() =>
+            document.documentElement.scrollWidth > document.documentElement.clientWidth);
+          expect(hasOverflow, `${shell} / ${name} / ${width}px`).toBeFalsy();
+        }
+        for (const field of ['#workflowTemplate', '#projectsRootInput']) {
+          await nav(page, field === '#workflowTemplate' ? 'designer' : 'projects');
+          const row = page.locator('.form-row').filter({has: page.locator(field)});
+          const input = await page.locator(field).boundingBox();
+          const button = await row.getByRole('button').boundingBox();
+          if (width > 560) {
+            expect(Math.abs(input.y - button.y)).toBeLessThan(2);
+            expect(Math.abs(input.height - button.height)).toBeLessThan(2);
+          } else {
+            expect(Math.abs(input.x - button.x)).toBeLessThan(2);
+            expect(button.y).toBeGreaterThan(input.y + input.height);
+          }
+        }
+      }
+    });
+
     test('shows ChatGPT installation independently of a missing Codex CLI', async ({page, lab}) => {
       let desktopDetected = true;
       await page.route('**/api/state', async route => {
