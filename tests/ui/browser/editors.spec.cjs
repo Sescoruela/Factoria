@@ -418,30 +418,39 @@ test('empty workspace checks integration before choosing a project', async ({pag
   await page.unrouteAll({behavior: 'wait'});
 });
 
-test('Inicio loads several projects and switches between them without leaving the dashboard', async ({page, request, lab}) => {
-  const response = await request.post(lab.url + '/__test__/reset', {
-    headers: {'X-Factoria-Token': token}, data: {selected: false},
-  });
-  const empty = await response.json();
-  await page.goto(empty.url + '/?token=' + token);
-  const projects = page.locator('.overview-projects');
-  const first = projects.getByRole('button').filter({has: page.getByText(empty.project, {exact: true})});
-  const second = projects.getByRole('button').filter({has: page.getByText(empty.other, {exact: true})});
+test('Inicio keeps prepared projects available for switching without listing other repositories', async ({page, request, lab}) => {
+  const headers = {'X-Factoria-Token': token};
+  const post = (route, data) => request.post(lab.url + route, {headers, data});
+  const inactive = path.join(path.dirname(lab.project), 'inactive');
+  execFileSync('git', ['init', '-b', 'main', inactive]);
+  for (const project of [lab.project, lab.other]) {
+    const selected = await post('/api/project/select', {path: project});
+    expect(selected.ok()).toBeTruthy();
+    const preview = await post('/api/project/prepare', {project_path: project});
+    expect(preview.ok()).toBeTruthy();
+    const {revision} = await preview.json();
+    const prepared = await post('/api/project/prepare', {project_path: project, revision, confirmed: true});
+    expect(prepared.ok()).toBeTruthy();
+  }
+  await open(page, {...lab, project: lab.other}, 'main');
+  const projects = page.getByRole('region', {name: 'Proyectos con Factoría'});
+  const first = projects.getByRole('button').filter({has: page.getByText(lab.project, {exact: true})});
+  const second = projects.getByRole('button').filter({has: page.getByText(lab.other, {exact: true})});
   await expect(first).toBeVisible();
-  await expect(second).toBeVisible();
-  await expect(projects.locator('[aria-current]')).toHaveCount(0);
+  await expect(second).toHaveAttribute('aria-current', 'true');
+  await expect(projects.getByText(inactive, {exact: true})).toHaveCount(0);
 
   await first.click();
-  await expect(page.locator('#subtitle')).toContainText(empty.project);
-  await expect(first).toHaveAttribute('aria-current', 'true');
-  await second.click();
   await expect(page.locator('#dashboard')).toHaveClass(/active/);
-  await expect(page.locator('#subtitle')).toContainText(empty.other);
-  await expect(second).toHaveAttribute('aria-current', 'true');
-  await expect(first).not.toHaveAttribute('aria-current', 'true');
+  await expect(page.locator('#subtitle')).toContainText(lab.project);
+  await expect(first).toHaveAttribute('aria-current', 'true');
+  await expect(second).toBeVisible();
   await page.reload();
-  await expect(second).toHaveAttribute('aria-current', 'true');
-  await expect(first).toBeVisible();
+  await expect(first).toHaveAttribute('aria-current', 'true');
+  await expect(second).toBeVisible();
+
+  await projects.getByRole('button', {name: 'Gestionar proyectos'}).click();
+  await expect(page.locator('#projectList').getByText(inactive, {exact: true})).toBeVisible();
 });
 
 test('classic overview opens the full skill editor in the same authenticated server', async ({page,lab})=>{

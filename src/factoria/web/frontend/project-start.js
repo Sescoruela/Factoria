@@ -126,11 +126,11 @@ function bindMemoryReview(container, project) {
 let switchingOverviewProject = false;
 
 function overviewProjectsContent(currentProject) {
-  const projects = state.projects || [];
+  const projects = (state.projects || []).filter(({ prepared }) => prepared);
   if (!projects.length) return '';
   return `<section class="overview-projects" aria-labelledby="overviewProjectsTitle">
     <div class="overview-projects-header">
-      <h2 id="overviewProjectsTitle">Proyectos</h2>
+      <h2 id="overviewProjectsTitle">Proyectos con Factoría</h2>
       <button type="button" class="secondary" data-open-page="projects" data-start-selection>Gestionar proyectos</button>
     </div>
     <ul class="overview-project-list">${projects
@@ -138,7 +138,7 @@ function overviewProjectsContent(currentProject) {
         const active = path === currentProject?.path;
         return `<li><button type="button" class="secondary" data-overview-project="${esc(path)}" ${active ? 'aria-current="true"' : ''}>
           <strong>${esc(name)}</strong>
-          ${active ? '<span class="pill ok">Activo</span>' : ''}
+          ${active ? '<span class="pill ok">En uso</span>' : ''}
           <small>${esc(path)}</small>
         </button></li>`;
       })
@@ -320,7 +320,7 @@ window.renderProjectOverview = function (container, project) {
     .join('');
   container.innerHTML = `${overviewProjectsContent(project)}<article class="project-overview">
     <div><h2>${esc(project.name)}</h2><div class="project-context"><span class="branch-name">${esc(project.branch || 'Sin rama')}</span><span>${project.dirty ? 'Hay cambios sin guardar en Git' : 'Sin cambios en Git'}</span></div></div>
-    ${state.projects?.length ? '' : '<button type="button" class="secondary" data-open-page="projects" data-start-selection>Cambiar proyecto</button>'}
+    ${state.projects?.some(({ prepared }) => prepared) ? '' : '<button type="button" class="secondary" data-open-page="projects" data-start-selection>Cambiar proyecto</button>'}
   </article>
   <section class="card project-guide" aria-label="Empezar con este proyecto">
     ${preparationContent(project, integration) || taskContent(workflows, allowed)}

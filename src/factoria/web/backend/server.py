@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 from factoria.application.environment.tool_presence import tool_presence, assert_ui_command_allowed
 from factoria.application.environment.setup import SetupService
 from factoria.application.workflows.status import OperationalStatusService
+from factoria.application.projects.project_integration import MANIFEST
 from factoria.application.projects.workflow_presets import (
     VisualWorkflowPreset,
     VisualWorkflowStep,
@@ -138,7 +139,10 @@ def _state() -> dict[str, object]:
     return {
         "projects_root": str(settings.projects_root) if settings.projects_root else None,
         "selected_project": _project_payload(root),
-        "projects": [{"name": p.name, "path": str(p)} for p in projects],
+        "projects": [
+            {"name": p.name, "path": str(p), "prepared": (p / MANIFEST).is_file()}
+            for p in projects
+        ],
         "agents": _agent_payload(),
         "default_tool": global_config.default_tool,
         "jobs": _job_summaries(),
