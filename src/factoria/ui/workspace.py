@@ -45,7 +45,12 @@ class UiWorkspaceSettings:
 
 
 _IGNORED_DISCOVERY_DIRS = {
+    ".buildozer",
+    ".dart_tool",
     ".git",
+    ".gradle",
+    ".next",
+    ".nuxt",
     ".factoria",
     ".venv",
     "venv",
@@ -96,15 +101,21 @@ def project_root(path: Path, workspace_root: Path | None = None) -> Path | None:
         boundary = workspace_root.expanduser().resolve()
         inside = [candidate for candidate in candidates if candidate.is_relative_to(boundary)]
         if inside:
-            return inside[-1]
+            owner = inside[-1]
+            if any(
+                part.casefold() in _IGNORED_DISCOVERY_DIRS
+                for part in owner.relative_to(boundary).parts
+            ):
+                return None
+            return owner
     return candidates[0] if candidates else None
 
 
 def discover_projects(root: Path) -> tuple[Path, ...]:
     """Return one entry per outer repository within the configured workspace.
 
-    Recurse through grouping folders, but stop at a project boundary. Repositories
-    inside a project are modules/dependencies, not additional list entries. Starting
+    Recurse through grouping folders and skip build output, caches and dependencies.
+    Stop at each project boundary to avoid listing nested repositories. Starting
     inside a repository returns its owning root. External sibling worktrees remain
     distinct projects. No coding tool or Git subprocess is started by discovery.
     """
@@ -119,7 +130,7 @@ def discover_projects(root: Path) -> tuple[Path, ...]:
     seen: set[Path] = set()
     for current, dirs, _files in os.walk(root):
         current_path = Path(current)
-        dirs[:] = [name for name in dirs if name not in _IGNORED_DISCOVERY_DIRS]
+        dirs[:] = [name for name in dirs if name.casefold() not in _IGNORED_DISCOVERY_DIRS]
         if _has_git_marker(current_path):
             resolved = current_path.resolve()
             if resolved not in seen:

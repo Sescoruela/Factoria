@@ -45,6 +45,23 @@ class ProjectDiscoveryTests(unittest.TestCase):
             (folder / ".git").write_bytes(content.encode("utf-8", errors="surrogateescape"))
         self.assertEqual(discover_projects(self.workspace), (self.project,))
 
+    def test_skips_buildozer_dependencies_even_without_an_enclosing_repo(self) -> None:
+        for app, folder in (("Trix", ".buildozer"), ("AnotherApp", ".BUILDOZER")):
+            external = (
+                self.workspace / app / folder
+                / "android/platform/build-arm64/dists/myapp/jni/SDL2_image/external"
+            )
+            for name in ("dav1d", "jpeg", "libavif", "libjxl"):
+                dependency = external / name
+                (dependency / ".git").mkdir(parents=True)
+                self.assertIsNone(project_root(dependency, self.workspace))
+        actual = self.workspace / "group" / "independent"
+        (actual / ".git").mkdir(parents=True)
+        with patch("pathlib.Path.home", return_value=self.workspace):
+            UiWorkspaceSettings(self.workspace, dependency).save()
+            self.assertIsNone(_selected_project(UiWorkspaceSettings.load()))
+        self.assertEqual(set(discover_projects(self.workspace)), {self.project, actual})
+
     def test_real_external_worktree_remains_independent(self) -> None:
         repo = self.workspace / "real"
         repo.mkdir()
