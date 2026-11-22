@@ -123,6 +123,48 @@ function bindMemoryReview(container, project) {
   };
 }
 
+let switchingOverviewProject = false;
+
+function overviewProjectsContent(currentProject) {
+  const projects = state.projects || [];
+  if (!projects.length) return '';
+  return `<section class="overview-projects" aria-labelledby="overviewProjectsTitle">
+    <div class="overview-projects-header">
+      <h2 id="overviewProjectsTitle">Proyectos</h2>
+      <button type="button" class="secondary" data-open-page="projects" data-start-selection>Gestionar proyectos</button>
+    </div>
+    <ul class="overview-project-list">${projects
+      .map(({ name, path }) => {
+        const active = path === currentProject?.path;
+        return `<li><button type="button" class="secondary" data-overview-project="${esc(path)}" ${active ? 'aria-current="true"' : ''}>
+          <strong>${esc(name)}</strong>
+          ${active ? '<span class="pill ok">Activo</span>' : ''}
+          <small>${esc(path)}</small>
+        </button></li>`;
+      })
+      .join('')}</ul>
+  </section>`;
+}
+
+function bindOverviewProjects(container) {
+  container.querySelectorAll('[data-overview-project]').forEach((button) => {
+    button.onclick = async () => {
+      const path = button.dataset.overviewProject;
+      if (switchingOverviewProject || path === state.selected_project?.path) return;
+      switchingOverviewProject = true;
+      try {
+        if (await selectProject(path)) {
+          container.querySelector('[data-overview-project][aria-current="true"]')?.focus();
+        }
+      } catch (error) {
+        toast(error.message);
+      } finally {
+        switchingOverviewProject = false;
+      }
+    };
+  });
+}
+
 function startupIntegrationContent() {
   const platforms = (state.agents || [])
     .map((agent) => renderPlatformCard(agent, state.default_tool))
@@ -248,6 +290,7 @@ window.renderProjectOverview = function (container, project) {
     state.agent_configuration_error,
     state.agents,
     state.default_tool,
+    state.projects,
   ]);
   if (guide.busy || guide.snapshot === snapshot) return;
   guide.snapshot = snapshot;
@@ -256,11 +299,13 @@ window.renderProjectOverview = function (container, project) {
   const reviewOpen =
     guide.project === project?.path && container.querySelector('#projectMemoryReview')?.open;
   if (!project) {
-    container.innerHTML = startupIntegrationContent();
+    container.innerHTML = startupIntegrationContent() + overviewProjectsContent(project);
+    bindOverviewProjects(container);
     return;
   }
   if (project.error) {
-    container.innerHTML = `<article class="empty-workspace"><h2>Hay que revisar este proyecto</h2><p>${esc(project.error)}</p><button type="button" class="secondary" data-open-page="configuration">Revisar configuración</button></article>`;
+    container.innerHTML = `${overviewProjectsContent(project)}<article class="empty-workspace"><h2>Hay que revisar este proyecto</h2><p>${esc(project.error)}</p><button type="button" class="secondary" data-open-page="configuration">Revisar configuración</button></article>`;
+    bindOverviewProjects(container);
     return;
   }
   const rows = Object.entries(workflows)
@@ -273,9 +318,9 @@ window.renderProjectOverview = function (container, project) {
     </button>`,
     )
     .join('');
-  container.innerHTML = `<article class="project-overview">
+  container.innerHTML = `${overviewProjectsContent(project)}<article class="project-overview">
     <div><h2>${esc(project.name)}</h2><div class="project-context"><span class="branch-name">${esc(project.branch || 'Sin rama')}</span><span>${project.dirty ? 'Hay cambios sin guardar en Git' : 'Sin cambios en Git'}</span></div></div>
-    <button type="button" class="secondary" data-open-page="projects" data-start-selection>Cambiar proyecto</button>
+    ${state.projects?.length ? '' : '<button type="button" class="secondary" data-open-page="projects" data-start-selection>Cambiar proyecto</button>'}
   </article>
   <section class="card project-guide" aria-label="Empezar con este proyecto">
     ${preparationContent(project, integration) || taskContent(workflows, allowed)}
@@ -318,6 +363,7 @@ function bindProjectGuide(container, project) {
     description: '',
     tool: state.default_tool === 'opencode' ? 'opencode' : 'codex',
   });
+  bindOverviewProjects(container);
   bindMemoryReview(container, project);
   const graphForm = container.querySelector('#guideGraphForm');
   const graphResult = container.querySelector('#guideGraphResult');

@@ -415,6 +415,33 @@ test('empty workspace checks integration before choosing a project', async ({pag
   await expect(page.locator('#dashboard')).toHaveClass(/active/);
   await expect(page.getByRole('button', {name: 'Revisar preparación inicial'})).toBeVisible();
   await expect(startup).toHaveCount(0);
+  await page.unrouteAll({behavior: 'wait'});
+});
+
+test('Inicio loads several projects and switches between them without leaving the dashboard', async ({page, request, lab}) => {
+  const response = await request.post(lab.url + '/__test__/reset', {
+    headers: {'X-Factoria-Token': token}, data: {selected: false},
+  });
+  const empty = await response.json();
+  await page.goto(empty.url + '/?token=' + token);
+  const projects = page.locator('.overview-projects');
+  const first = projects.getByRole('button').filter({has: page.getByText(empty.project, {exact: true})});
+  const second = projects.getByRole('button').filter({has: page.getByText(empty.other, {exact: true})});
+  await expect(first).toBeVisible();
+  await expect(second).toBeVisible();
+  await expect(projects.locator('[aria-current]')).toHaveCount(0);
+
+  await first.click();
+  await expect(page.locator('#subtitle')).toContainText(empty.project);
+  await expect(first).toHaveAttribute('aria-current', 'true');
+  await second.click();
+  await expect(page.locator('#dashboard')).toHaveClass(/active/);
+  await expect(page.locator('#subtitle')).toContainText(empty.other);
+  await expect(second).toHaveAttribute('aria-current', 'true');
+  await expect(first).not.toHaveAttribute('aria-current', 'true');
+  await page.reload();
+  await expect(second).toHaveAttribute('aria-current', 'true');
+  await expect(first).toBeVisible();
 });
 
 test('classic overview opens the full skill editor in the same authenticated server', async ({page,lab})=>{
