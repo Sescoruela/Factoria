@@ -46,7 +46,11 @@ def handle_project_post(self, path: str) -> None:
             tool = data.get("tool")
             if not isinstance(tool, str):
                 raise ValueError("Selecciona Codex u OpenCode para generar memoria.")
-            result = generate_memory(project, tool, executable=_load_agent_paths().get(tool))
+            try:
+                result = generate_memory(project, tool, executable=_load_agent_paths().get(tool))
+            except TimeoutError as exc:
+                self._json({"error": str(exc)}, 504)
+                return
             if self._active_project() != project:
                 self._json({"error": "El proyecto cambió durante el análisis"}, 409)
                 return

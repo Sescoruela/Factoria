@@ -80,7 +80,9 @@ function bindMemoryReview(container, project) {
     );
     buttons.forEach((item) => (item.disabled = true));
     status.textContent =
-      action === 'generate' ? 'Analizando los archivos con el LLM…' : 'Revisando el informe…';
+      action === 'generate'
+        ? 'Analizando los archivos con el LLM. Puede tardar unos minutos.'
+        : 'Revisando el informe…';
     try {
       const result = await call(action, { report: report.value, revision, tool: tool.value });
       if (state.selected_project?.path !== project.path) return;
@@ -103,7 +105,7 @@ function bindMemoryReview(container, project) {
         save.hidden = false;
         status.textContent =
           action === 'generate'
-            ? `Archivos disponibles para el análisis: ${result.files_analyzed}. Revisa los hallazgos antes de guardar.`
+            ? `${result.focused ? 'Codex terminó el reintento con una muestra reducida. ' : ''}Archivos disponibles para el análisis: ${result.files_analyzed}. Revisa los hallazgos antes de guardar.`
             : 'Revisa los hallazgos antes de guardar.';
       }
     } catch (error) {

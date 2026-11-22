@@ -52,6 +52,7 @@ class AgentResult:
     stderr: str = ""
     error: str | None = None
     secret_findings: tuple[SecretFinding, ...] = field(default_factory=tuple)
+    timed_out: bool = False
 
     @property
     def passed(self) -> bool:
@@ -150,6 +151,7 @@ class SubprocessToolAdapter:
                 command=command,
                 returncode=None,
                 error=f"Agent timed out after {request.timeout_seconds}s",
+                timed_out=True,
             )
         except OSError as exc:
             return AgentResult(

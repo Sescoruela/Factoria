@@ -214,6 +214,51 @@ class IntegrationTests(ProjectFixture):
         review_memory(self.root, result['report'], confirmed=True, token=result['revision'])
         self.assertTrue((self.root / REVIEW_PATH).is_file())
 
+    def test_codex_memory_retries_once_with_a_smaller_sample_after_timeout(self):
+        from factoria.adapters.base import AgentResult
+        from factoria.application.projects.memory_generation import generate_memory
+        from factoria.application.projects.memory_review import REVIEW_PATH, SECTIONS
+
+        source = self.root / 'src'
+        source.mkdir()
+        for number in range(24):
+            (source / f'module_{number:02}.py').write_text('VALUE = 1', encoding='utf-8')
+        self.git('add', 'src')
+        self.git('commit', '-m', 'Add modules')
+        report = {key: [] for key in SECTIONS}
+        report.update(commit=self.git('rev-parse', 'HEAD'), pending=[])
+        report['architecture'] = [{'finding': 'Módulo principal', 'sources': ['app.py']}]
+        timeout = AgentResult('codex', (), None, error='Agent timed out', timed_out=True)
+        samples = []
+
+        def run(request):
+            samples.append(len(list(request.project_root.rglob('*.py'))))
+            if len(samples) == 1:
+                return timeout
+            self.assertIn('Lee como máximo seis archivos', request.prompt)
+            self.assertIn('read-only', request.extra_args)
+            return AgentResult('codex', (), 0, stdout=json.dumps(report))
+
+        with patch('factoria.application.projects.memory_generation.CodexAdapter') as adapter:
+            adapter.return_value.run.side_effect = run
+            result = generate_memory(self.root, 'codex')
+            self.assertEqual(samples, [25, 20])
+            self.assertTrue(result['focused'])
+            self.assertFalse((self.root / REVIEW_PATH).exists())
+
+            adapter.return_value.run.reset_mock(side_effect=True)
+            adapter.return_value.run.return_value = timeout
+            with self.assertRaisesRegex(TimeoutError, 'también con una muestra reducida'):
+                generate_memory(self.root, 'codex')
+            self.assertEqual(adapter.return_value.run.call_count, 2)
+            self.assertFalse((self.root / REVIEW_PATH).exists())
+
+            adapter.return_value.run.reset_mock()
+            adapter.return_value.run.return_value = AgentResult('codex', (), 1)
+            with self.assertRaisesRegex(ValueError, 'Comprueba su sesión'):
+                generate_memory(self.root, 'codex')
+            adapter.return_value.run.assert_called_once()
+
     def test_http_preparation_requires_token_and_explicit_confirmation(self):
         import threading
         import urllib.error
