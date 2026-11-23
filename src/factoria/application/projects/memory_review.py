@@ -8,13 +8,21 @@ from pathlib import Path
 from factoria.application.governance import ExecutionGovernor, GovernedAction
 from factoria.application.policy_runtime import build_execution_context
 from factoria.application.projects.resource_support import catalog_locks
-from factoria.git_local import ensure_local_project_files
+from factoria.git_local import ensure_local_project_files, tracked_project_files
 from factoria.project_paths import project_path
 from factoria.security.secrets import SecretScanner
 from factoria.storage import atomic_write_bytes
 
 REVIEW_PATH = "docs/memoria/revision.md"
 _MARKER = "<!-- factoria: memory review -->"
+_DETAIL_START = b"<!-- factoria: memory findings:start -->"
+_DETAIL_END = b"<!-- factoria: memory findings:end -->"
+_DETAILS = {
+    "docs/memoria/arquitectura.md": ("Arquitectura", ("architecture", "contracts")),
+    "docs/memoria/flujos.md": ("Flujos", ("flows",)),
+    "docs/memoria/decisiones.md": ("Decisiones", ("decisions",)),
+    "docs/memoria/testing.md": ("Pruebas y verificación", ("checks",)),
+}
 SECTIONS = {
     "purpose": "Propósito y alcance",
     "architecture": "Arquitectura y puntos de entrada",
@@ -161,6 +169,81 @@ def _render(root: Path, report: object, commit: str) -> str:
     return rendered
 
 
+def _findings_block(bounds: bytes) -> tuple[bytes, bytes, bytes]:
+    before, start, rest = bounds.partition(_DETAIL_START)
+    if not start and _DETAIL_END not in bounds:
+        return bounds, b"", b""
+    content, end, after = rest.partition(_DETAIL_END)
+    if not end or bounds.count(_DETAIL_START) != 1 or bounds.count(_DETAIL_END) != 1:
+        raise ValueError("Los marcadores de hallazgos de Factoría están incompletos o duplicados.")
+    return before, start + content + end, after
+
+
+def preserve_generated_findings(previous: bytes, rendered: bytes) -> bytes:
+    """Retain review findings when the regular memory updater renders its own sections."""
+    _, block, _ = _findings_block(previous)
+    return rendered.rstrip(b"\n") + b"\n\n" + block + b"\n" if block else rendered
+
+
+def _memory_document(previous: bytes, title: str, keys: tuple[str, ...], report: dict) -> bytes:
+    before, existing, after = _findings_block(previous)
+    entries = [
+        _DETAIL_START.decode(),
+        "## Hallazgos de la revisión",
+        "",
+        f"Commit analizado: `{report['commit']}`",
+    ]
+    for key in keys:
+        entries.extend(("", f"### {SECTIONS[key]}", ""))
+        findings = report[key]
+        if not findings:
+            entries.append(
+                "Pendiente de confirmar. La revisión no aporta fuentes para esta sección."
+            )
+        for finding in findings:
+            sources = ", ".join(f"`{source.strip()}`" for source in finding["sources"])
+            entries.extend((f"* {finding['finding'].strip()}", f"  Fuentes: {sources}"))
+    entries.extend(("", _DETAIL_END.decode()))
+    block = "\n".join(entries).encode("utf-8")
+    if existing:
+        return before + block + after
+    if not before.strip():
+        before = f"# {title}\n".encode("utf-8")
+    separator = b"\n" if before.endswith(b"\n") else b"\n\n"
+    return before + separator + block + b"\n"
+
+
+def _write_documents(writes: dict[Path, bytes], originals: dict[Path, bytes | None]) -> None:
+    completed = []
+    try:
+        for target, content in writes.items():
+            previous = target.read_bytes() if target.exists() else None
+            if previous != originals[target]:
+                raise ValueError("Un documento cambió durante el guardado. Vuelve a revisar.")
+            if content != previous:
+                atomic_write_bytes(target, content, create=previous is None)
+                completed.append(target)
+    except (OSError, ValueError) as error:
+        unrecovered = []
+        for target in reversed(completed):
+            try:
+                if not target.exists() or target.read_bytes() != writes[target]:
+                    unrecovered.append(target.name)
+                    continue
+                original = originals[target]
+                if original is None:
+                    target.unlink()
+                else:
+                    atomic_write_bytes(target, original)
+            except OSError:
+                unrecovered.append(target.name)
+        if unrecovered:
+            raise RuntimeError(
+                "Guardado interrumpido. Revisa estos documentos: " + ", ".join(unrecovered)
+            ) from error
+        raise
+
+
 def review_memory(
     root: Path,
     raw_report: object,
@@ -202,17 +285,37 @@ def review_memory(
             }
         markdown = _render(evidence_root or root, report, commit)
         target = project_path(root, REVIEW_PATH)
-        existed = target.exists()
-        before = target.read_bytes() if existed else b""
-        if existed and not before.startswith((_MARKER + "\n").encode()):
+        previous = target.read_bytes() if target.exists() else None
+        if previous and not previous.startswith((_MARKER + "\n").encode()):
             raise ValueError(f"Ya existe un documento propio en {REVIEW_PATH}")
-        content = markdown.encode("utf-8")
-        revision = hashlib.sha256(
-            str(root).encode("utf-8") + b"\0" + before + b"\0" + content
-        ).hexdigest()
+        writes = {target: markdown.encode("utf-8")}
+        originals = {target: previous}
+        tracked = tracked_project_files(root, _DETAILS)
+        for name, (title, keys) in _DETAILS.items():
+            if name in tracked:
+                continue
+            document = project_path(root, name)
+            original = document.read_bytes() if document.exists() else None
+            originals[document] = original
+            writes[document] = _memory_document(original or b"", title, keys, report)
+        digest = hashlib.sha256(str(root).encode("utf-8"))
+        for document, content in writes.items():
+            digest.update(str(document.relative_to(root)).encode() + b"\0")
+            original = originals[document]
+            digest.update(b"\0" if original is None else b"\1" + hashlib.sha256(original).digest())
+            digest.update(hashlib.sha256(content).digest())
+        revision = digest.hexdigest()
+        documents = [document.relative_to(root).as_posix() for document in writes]
         if confirmed:
             if token != revision:
                 raise ValueError("La propuesta cambió. Vuelve a revisarla antes de guardarla.")
-            ensure_local_project_files(root, (REVIEW_PATH,))
-            atomic_write_bytes(target, content, create=not existed)
-    return {"path": REVIEW_PATH, "markdown": markdown, "revision": revision, **adjustments}
+            ensure_local_project_files(root, documents)
+            _write_documents(writes, originals)
+    return {
+        "path": REVIEW_PATH,
+        "markdown": markdown,
+        "revision": revision,
+        "documents": documents,
+        "tracked_documents": sorted(tracked),
+        **adjustments,
+    }

@@ -134,8 +134,13 @@ class MemoryUpdateFlow:
             MemoryDocumentKind.DECISIONS: "decisiones.md",
             MemoryDocumentKind.TESTING: "testing.md",
         }
+        from factoria.application.projects.memory_review import preserve_generated_findings
+
         for kind in kinds:
             target = docs_root / names[kind]
-            target.write_text(render_memory_document(memory, kind), encoding="utf-8", newline="")
+            content = render_memory_document(memory, kind).encode("utf-8")
+            if target.exists():
+                content = preserve_generated_findings(target.read_bytes(), content)
+            target.write_bytes(content)
             written.append(target)
         return tuple(written)

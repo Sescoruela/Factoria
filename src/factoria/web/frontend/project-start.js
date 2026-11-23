@@ -92,8 +92,12 @@ function bindMemoryReview(container, project) {
         guide.snapshot = null;
         renderAll();
         const current = container.querySelector('#projectMemoryReview');
-        current.querySelector('[role="status"]').textContent =
-          'Revisión guardada en docs/memoria/revision.md.';
+        const summary = [`Revisión guardada en ${result.documents.join(', ')}.`];
+        if (result.tracked_documents.length)
+          summary.push(
+            `Documentos versionados conservados: ${result.tracked_documents.join(', ')}.`,
+          );
+        current.querySelector('[role="status"]').textContent = summary.join(' ');
       } else {
         if (action === 'generate') {
           report.value = result.report;
@@ -114,6 +118,11 @@ function bindMemoryReview(container, project) {
             );
           notes.push(`Archivos disponibles para el análisis: ${result.files_analyzed}.`);
         }
+        if (result.documents?.length) notes.push(`Se guardará en ${result.documents.join(', ')}.`);
+        if (result.tracked_documents?.length)
+          notes.push(
+            `Documentos versionados que se conservarán: ${result.tracked_documents.join(', ')}.`,
+          );
         status.textContent = [...notes, 'Revisa los hallazgos antes de guardar.'].join(' ');
       }
     } catch (error) {

@@ -169,6 +169,78 @@ class IntegrationTests(ProjectFixture):
         hits = project_memory_graph(self.root, query='Confirmar despliegue')
         self.assertTrue(any(node['source'] == REVIEW_PATH for node in hits['matches']))
 
+    def test_memory_review_fills_each_document_and_preserves_existing_sections(self):
+        from factoria.application.projects.memory_review import REVIEW_PATH, SECTIONS, review_memory
+        from factoria.memory.loader import load_project_memory
+
+        docs = self.root / 'docs/memoria'
+        handwritten = b'# Decisiones\r\n\r\n- Decision manual.\r\n'
+        decisions = docs / 'decisiones.md'
+        decisions.write_bytes(handwritten)
+        report = {key: [] for key in SECTIONS}
+        report.update(commit=self.git('rev-parse', 'HEAD'), pending=[])
+        expected = {
+            'architecture': ('arquitectura.md', 'Separar la interfaz.'),
+            'flows': ('flujos.md', 'El flujo empieza en app.py.'),
+            'decisions': ('decisiones.md', 'El código mantiene una decisión técnica.'),
+            'checks': ('testing.md', 'Hay comprobaciones declaradas.'),
+        }
+        for key, (_, finding) in expected.items():
+            report[key] = [{'finding': finding, 'sources': ['app.py']}]
+        report['contracts'] = [{'finding': 'Contrato local.', 'sources': ['app.py']}]
+        raw = json.dumps(report)
+
+        preview = review_memory(self.root, raw)
+        self.assertEqual(decisions.read_bytes(), handwritten)
+        decisions.write_bytes(handwritten + b'Nota nueva.\r\n')
+        with self.assertRaisesRegex(ValueError, 'La propuesta cambió'):
+            review_memory(self.root, raw, confirmed=True, token=preview['revision'])
+        self.assertFalse((self.root / REVIEW_PATH).exists())
+        preview = review_memory(self.root, raw)
+        review_memory(self.root, raw, confirmed=True, token=preview['revision'])
+        self.assertEqual(len(preview['documents']), 5)
+        for name, finding in expected.values():
+            text = (docs / name).read_text(encoding='utf-8')
+            self.assertIn(finding, text)
+            self.assertIn('Fuentes: `app.py`', text)
+        self.assertIn('Contrato local.', (docs / 'arquitectura.md').read_text(encoding='utf-8'))
+        self.assertTrue(decisions.read_bytes().startswith(handwritten + b'Nota nueva.\r\n'))
+        self.assertEqual(load_project_memory(self.root).decisions, ('Decision manual.',))
+
+        report['decisions'][0]['finding'] = 'Otra decisión respaldada.'
+        raw = json.dumps(report)
+        preview = review_memory(self.root, raw)
+        review_memory(self.root, raw, confirmed=True, token=preview['revision'])
+        text = decisions.read_text(encoding='utf-8')
+        self.assertEqual(text.count('Hallazgos de la revisión'), 1)
+        self.assertNotIn('El código mantiene una decisión técnica.', text)
+        self.assertIn('Otra decisión respaldada.', text)
+        current = load_project_memory(self.root)
+        MemoryUpdateFlow(None, '0.2.0').apply(
+            self.root, MemoryUpdateProposal(current, current, (), confirmed=True)
+        )
+        self.assertIn('Otra decisión respaldada.', decisions.read_text(encoding='utf-8'))
+
+    def test_memory_review_preserves_versioned_documents(self):
+        from factoria.application.projects.memory_review import SECTIONS, review_memory
+
+        path = 'docs/memoria/arquitectura.md'
+        target = self.root / path
+        target.write_text('# Arquitectura versionada\n', encoding='utf-8')
+        self.git('add', '-f', path)
+        self.git('commit', '-m', 'Keep architecture under version control')
+        report = {key: [] for key in SECTIONS}
+        report.update(commit=self.git('rev-parse', 'HEAD'), pending=[])
+        report['architecture'] = [{'finding': 'Módulo local.', 'sources': ['app.py']}]
+        raw = json.dumps(report)
+        preview = review_memory(self.root, raw)
+        saved = review_memory(self.root, raw, confirmed=True, token=preview['revision'])
+        self.assertEqual(saved['tracked_documents'], [path])
+        self.assertNotIn(path, saved['documents'])
+        self.assertIn('Módulo local.', saved['markdown'])
+        self.assertEqual(target.read_text(encoding='utf-8'), '# Arquitectura versionada\n')
+        self.assertEqual(self.git('status', '--porcelain'), '')
+
     def test_llm_memory_uses_an_isolated_snapshot_and_leaves_writing_for_confirmation(self):
         from factoria.adapters.base import AgentResult
         from factoria.application.projects.memory_generation import generate_memory

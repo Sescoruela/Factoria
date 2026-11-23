@@ -566,7 +566,11 @@ test('imports a project memory review from an existing agent session', async ({p
   await panel.getByLabel('Informe JSON').fill(JSON.stringify({
     commit,
     purpose: [{finding: 'Gestiona turnos de empleados.', sources: ['README.md']}],
-    architecture: [], flows: [], contracts: [], decisions: [], checks: [],
+    architecture: [{finding: 'Módulo de planificación.', sources: ['README.md']}],
+    flows: [{finding: 'Asignar turnos.', sources: ['README.md']}],
+    contracts: [],
+    decisions: [{finding: 'Los turnos duran treinta minutos.', sources: ['README.md']}],
+    checks: [{finding: 'Comprobación descrita en el README.', sources: ['README.md']}],
     pending: ['Confirmar persistencia'],
   }));
   await panel.getByRole('button', {name: 'Revisar informe'}).click();
@@ -576,6 +580,14 @@ test('imports a project memory review from an existing agent session', async ({p
   await panel.getByRole('button', {name: 'Guardar revisión'}).click();
   await expect(panel.getByText(/Revisión guardada/)).toBeVisible();
   expect(fs.readFileSync(target, 'utf8')).toContain('Confirmar persistencia');
+  for (const [name, finding] of Object.entries({
+    'arquitectura.md': 'Módulo de planificación.',
+    'flujos.md': 'Asignar turnos.',
+    'decisiones.md': 'Los turnos duran treinta minutos.',
+    'testing.md': 'Comprobación descrita en el README.',
+  })) {
+    expect(fs.readFileSync(path.join(path.dirname(target), name), 'utf8')).toContain(finding);
+  }
   expect(execFileSync('git', ['-C', lab.project, 'status', '--porcelain'], {encoding: 'utf8'})).toBe('');
 });
 
