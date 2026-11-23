@@ -214,6 +214,42 @@ class IntegrationTests(ProjectFixture):
         review_memory(self.root, result['report'], confirmed=True, token=result['revision'])
         self.assertTrue((self.root / REVIEW_PATH).is_file())
 
+    def test_generated_memory_keeps_supported_findings_when_source_counts_are_wrong(self):
+        from factoria.adapters.base import AgentResult
+        from factoria.application.projects.memory_generation import generate_memory
+        from factoria.application.projects.memory_review import REVIEW_PATH, SECTIONS, review_memory
+
+        sources = ['app.py']
+        for number in range(9):
+            path = f'module_{number}.py'
+            (self.root / path).write_text('VALUE = 1', encoding='utf-8')
+            sources.append(path)
+        self.commit()
+        report = {key: [] for key in SECTIONS}
+        report.update(commit=self.git('rev-parse', 'HEAD'), pending=['Verificar versión'])
+        report['architecture'] = [
+            {'finding': 'Aplicación con varios módulos', 'sources': [sources[0], *sources]},
+            {'finding': 'Puede tener otra capa', 'sources': []},
+            {'finding': 'Punto de entrada', 'sources': 'app.py'},
+        ]
+        result = AgentResult('codex', (), 0, stdout=json.dumps(report))
+        with patch('factoria.application.projects.memory_generation.CodexAdapter') as adapter:
+            adapter.return_value.run.return_value = result
+            proposal = generate_memory(self.root, 'codex')
+            adapter.return_value.run.assert_called_once()
+
+        normalized = json.loads(proposal['report'])
+        self.assertEqual(normalized['architecture'][0]['sources'], sources[:8])
+        self.assertEqual(len(normalized['architecture']), 2)
+        self.assertEqual(normalized['architecture'][1]['sources'], ['app.py'])
+        self.assertIn('Sin fuentes: Puede tener otra capa', normalized['pending'][1])
+        self.assertEqual(proposal['findings_with_adjusted_sources'], 2)
+        self.assertEqual(proposal['findings_without_sources'], 1)
+        self.assertFalse((self.root / REVIEW_PATH).exists())
+        saved = review_memory(self.root, proposal['report'], confirmed=True, token=proposal['revision'])
+        self.assertEqual(saved['markdown'], proposal['markdown'])
+        self.assertTrue((self.root / REVIEW_PATH).is_file())
+
     def test_codex_memory_retries_once_with_a_smaller_sample_after_timeout(self):
         from factoria.adapters.base import AgentResult
         from factoria.application.projects.memory_generation import generate_memory

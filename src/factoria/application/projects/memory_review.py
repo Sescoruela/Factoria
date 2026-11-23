@@ -24,6 +24,8 @@ SECTIONS = {
     "checks": "Pruebas y verificación",
 }
 MAX_REPORT_BYTES = 65536
+_MAX_SOURCES = 8
+_MAX_PENDING = 32
 
 
 def review_request(commit: str = "<SHA completo de git rev-parse HEAD>") -> str:
@@ -34,7 +36,9 @@ def review_request(commit: str = "<SHA completo de git rev-parse HEAD>") -> str:
         "Cubre las partes reales del proyecto, incluidos sus puntos de entrada, módulos y "
         "responsabilidades, relaciones entre capas, flujos de usuario y datos, persistencia, "
         "contratos, dependencias externas, decisiones explícitas, restricciones y pruebas. "
-        "Cita archivos concretos del repositorio para cada hallazgo. Los comandos declarados "
+        f"Cita entre 1 y {_MAX_SOURCES} rutas relativas distintas por hallazgo. "
+        "Si no encuentras una fuente, anota la duda en pending y deja fuera ese hallazgo. "
+        "Los comandos declarados "
         "deben figurar como no ejecutados. No leas ni incluyas secretos o configuración privada. "
         "Indica como pendientes las áreas que no puedas confirmar, sin completar huecos por intuición. "
         "Devuelve solo JSON, sin bloque Markdown. Esquema: "
@@ -81,6 +85,42 @@ def _source(root: Path, value: object) -> str:
     return relative
 
 
+def _normalize_generated_sources(root: Path, report: dict) -> tuple[int, int]:
+    """Keep only supported findings in the review and flag gaps for confirmation."""
+    adjusted = 0
+    unverified = 0
+    pending = report.get("pending")
+    for key, title in SECTIONS.items():
+        entries = report.get(key)
+        if not isinstance(entries, list) or len(entries) > 32:
+            continue
+        grounded = []
+        for entry in entries:
+            if not isinstance(entry, dict) or set(entry) != {"finding", "sources"}:
+                grounded.append(entry)
+                continue
+            sources = entry["sources"]
+            single_source = isinstance(sources, str)
+            if single_source:
+                sources = [sources] if sources.strip() else []
+            if sources is not None and not isinstance(sources, list):
+                grounded.append(entry)
+                continue
+            if not sources:
+                finding = _line(entry["finding"], 1400)
+                unverified += 1
+                if isinstance(pending, list) and len(pending) < _MAX_PENDING:
+                    pending.append((f"{title} — Sin fuentes: {finding}")[:700])
+                continue
+            distinct = list(dict.fromkeys(_source(root, source) for source in sources))
+            if single_source or len(distinct) != len(sources) or len(distinct) > _MAX_SOURCES:
+                adjusted += 1
+                entry = {**entry, "sources": distinct[:_MAX_SOURCES]}
+            grounded.append(entry)
+        report[key] = grounded
+    return adjusted, unverified
+
+
 def _render(root: Path, report: object, commit: str) -> str:
     if not isinstance(report, dict) or set(report) != {"commit", *SECTIONS, "pending"}:
         raise ValueError("El informe debe seguir el esquema del encargo de Factoría")
@@ -99,8 +139,10 @@ def _render(root: Path, report: object, commit: str) -> str:
             if not isinstance(entry, dict) or set(entry) != {"finding", "sources"}:
                 raise ValueError(f"Cada hallazgo necesita texto y fuentes: {title}")
             sources = entry["sources"]
-            if not isinstance(sources, list) or not 1 <= len(sources) <= 8:
-                raise ValueError(f"Cada hallazgo necesita entre 1 y 8 fuentes: {title}")
+            if not isinstance(sources, list) or not 1 <= len(sources) <= _MAX_SOURCES:
+                raise ValueError(
+                    f"Cada hallazgo necesita entre 1 y {_MAX_SOURCES} fuentes: {title}"
+                )
             links = ", ".join(f"`{_source(root, path)}`" for path in sources)
             lines.append(f"- {_line(entry['finding'], 1400)}")
             lines.append(f"  Fuentes: {links}")
@@ -108,7 +150,7 @@ def _render(root: Path, report: object, commit: str) -> str:
     if not found:
         raise ValueError("El informe debe aportar al menos un hallazgo con fuentes")
     pending = report["pending"]
-    if not isinstance(pending, list) or len(pending) > 32:
+    if not isinstance(pending, list) or len(pending) > _MAX_PENDING:
         raise ValueError("La lista de datos pendientes no es válida")
     if pending:
         lines.extend(["", "## Pendiente de confirmar", ""])
@@ -148,6 +190,16 @@ def review_memory(
         if result.returncode != 0:
             raise ValueError("Crea el primer commit del repositorio para revisar su memoria.")
         commit = result.stdout.strip()
+        adjustments = {}
+        if evidence_root is not None and isinstance(report, dict):
+            adjusted, unverified = _normalize_generated_sources(evidence_root, report)
+            adjustments = {
+                "report": json.dumps(report, ensure_ascii=False, separators=(",", ":"))
+                if adjusted or unverified
+                else raw_report,
+                "findings_without_sources": unverified,
+                "findings_with_adjusted_sources": adjusted,
+            }
         markdown = _render(evidence_root or root, report, commit)
         target = project_path(root, REVIEW_PATH)
         existed = target.exists()
@@ -163,4 +215,4 @@ def review_memory(
                 raise ValueError("La propuesta cambió. Vuelve a revisarla antes de guardarla.")
             ensure_local_project_files(root, (REVIEW_PATH,))
             atomic_write_bytes(target, content, create=not existed)
-    return {"path": REVIEW_PATH, "markdown": markdown, "revision": revision}
+    return {"path": REVIEW_PATH, "markdown": markdown, "revision": revision, **adjustments}

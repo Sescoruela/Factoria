@@ -103,10 +103,18 @@ function bindMemoryReview(container, project) {
         preview.textContent = result.markdown;
         preview.hidden = false;
         save.hidden = false;
-        status.textContent =
-          action === 'generate'
-            ? `${result.focused ? 'Codex terminó el reintento con una muestra reducida. ' : ''}Archivos disponibles para el análisis: ${result.files_analyzed}. Revisa los hallazgos antes de guardar.`
-            : 'Revisa los hallazgos antes de guardar.';
+        const notes = [];
+        if (action === 'generate') {
+          if (result.focused) notes.push('Codex terminó el reintento con una muestra reducida.');
+          if (result.findings_with_adjusted_sources)
+            notes.push('Se ajustó el formato o la cantidad de fuentes.');
+          if (result.findings_without_sources)
+            notes.push(
+              `Hallazgos sin fuentes excluidos de la revisión: ${result.findings_without_sources}.`,
+            );
+          notes.push(`Archivos disponibles para el análisis: ${result.files_analyzed}.`);
+        }
+        status.textContent = [...notes, 'Revisa los hallazgos antes de guardar.'].join(' ');
       }
     } catch (error) {
       clearPreview();

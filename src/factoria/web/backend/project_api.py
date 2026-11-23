@@ -51,6 +51,9 @@ def handle_project_post(self, path: str) -> None:
             except TimeoutError as exc:
                 self._json({"error": str(exc)}, 504)
                 return
+            except ValueError as exc:
+                self._json({"error": str(exc)}, 400)
+                return
             if self._active_project() != project:
                 self._json({"error": "El proyecto cambió durante el análisis"}, 409)
                 return

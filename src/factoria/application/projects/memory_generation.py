@@ -231,7 +231,6 @@ def _generate_attempt(
             raise ValueError("El informe del modelo supera el tamaño admitido.")
         return {
             **review_memory(root, report, evidence_root=snapshot),
-            "report": report,
             "tool": tool,
             "files_analyzed": count,
             "focused": focused,
