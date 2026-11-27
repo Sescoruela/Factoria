@@ -16,6 +16,7 @@ from unittest.mock import patch
 import urllib.request
 import urllib.error
 
+from factoria.application.projects.git_resources import github_resource_url, resource_template
 from factoria.application.projects.project_templates import (
     export_template, validate_template, preview_template, apply_template, read_template, TemplateConflict,
 )
@@ -55,6 +56,38 @@ class ProjectTemplateTests(unittest.TestCase):
         root = root or self.target
         return {str(p.relative_to(root)): p.read_bytes() for p in root.rglob('*')
                 if p.is_file() and '.git' not in p.relative_to(root).parts}
+
+    def test_git_resources_preview_then_apply_and_export(self):
+        skill = resource_template('SKILL.md', '---\nname: qa-api\ndescription: Revisar API\nallowed-tools: Bash\n---\n# Instrucciones\nRevisar el contrato.\n', 'skill', '', '')
+        agent = resource_template('auditor.toml', 'name = "auditor-qa"\ndeveloper_instructions = "Revisa el contrato."\nmodel = "foreign"\n', 'agent', 'reviewer', '')
+        before = self.sources()
+        preview_template(self.target, skill)
+        preview_template(self.target, agent)
+        self.assertEqual(self.sources(), before)
+        self.apply(data=skill)
+        self.apply(data=agent)
+        exported = export_template(self.target, 'QA', scope='agents')
+        self.assertFalse(exported['workflows'])
+        self.assertEqual(exported['skills'], skill['skills'])
+        auditor = next(a for a in exported['agents'] if a['role'] == 'auditor-qa')
+        self.assertEqual(auditor['base_role'], 'reviewer')
+        self.assertEqual(auditor['instructions'], 'Revisa el contrato.')
+        self.assertNotIn('allowed-tools', exported['skills'][0]['content'])
+        self.assertFalse(export_template(self.target, 'QA', scope='skills')['agents'])
+
+    def test_github_url_only_accepts_public_file_locations(self):
+        self.assertEqual(
+            github_resource_url('https://github.com/acme/tools/blob/main/skills/api/SKILL.md'),
+            'https://raw.githubusercontent.com/acme/tools/main/skills/api/SKILL.md',
+        )
+        for value in (
+            'https://github.com/acme/tools',
+            'http://github.com/acme/tools/blob/main/SKILL.md',
+            'https://github.com@localhost/acme/tools/blob/main/SKILL.md',
+            'https://raw.githubusercontent.com/acme/tools/main/%2e%2e/SKILL.md',
+        ):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                github_resource_url(value)
 
     def test_roundtrip_equivalent_resources_and_both_integrations(self):
         memory = replace(load_project_memory(self.source), purpose='Destination only')
@@ -255,6 +288,18 @@ class ProjectTemplateTests(unittest.TestCase):
                 req=urllib.request.Request(base+'/api/template/'+action,data=json.dumps(payload).encode(),headers={'Content-Type':'application/json',**({'X-Factoria-Token':'test-token'} if auth else {})})
                 with urllib.request.urlopen(req,timeout=5) as response:return json.load(response)
             try:
+                github = 'https://github.com/acme/tools/blob/main/SKILL.md'
+                with patch(
+                    'factoria.application.projects.git_resources.download_resource',
+                    return_value=('SKILL.md', '---\nname: qa-http\n---\nCheck inputs.'),
+                ) as download:
+                    source = request('source', {
+                        'project_path': str(self.target), 'kind': 'skill',
+                        'role': 'explorer', 'url': github,
+                    })['template']
+                download.assert_called_once_with(github)
+                self.assertEqual(source['skills'][0]['id'], 'qa-http')
+                self.assertFalse((self.target / '.factoria/skills/qa-http.md').exists())
                 payload={'project_path':str(self.target),'template':self.data}
                 with self.assertRaises(urllib.error.HTTPError) as error:request('preview',payload,False)
                 self.assertEqual(error.exception.code,403)

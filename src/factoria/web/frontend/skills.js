@@ -15,7 +15,7 @@
   section.id = 'skills';
   section.className = 'section';
   section.innerHTML =
-    '<div class="concept-note"><strong>Skills del proyecto</strong><p>Guarda conocimiento e instrucciones reutilizables en Markdown. Después podrás asignarlas a tus agentes y preparar Codex y OpenCode.</p></div><button class="primary" id="newSkillButton" onclick="newSkill()">Crear skill</button><label>Plantilla de skill<select id="skillTemplatePicker"><option value="">Selecciona una plantilla…</option></select></label><button class="secondary" id="newSkillTemplateButton" onclick="newSkillFromTemplate()">Crear desde plantilla</button><p id="skillStatus" role="status" aria-live="polite"></p><div id="skillList" class="agent-grid"></div><div id="skillEditor"></div>';
+    '<div class="concept-note"><strong>Skills del proyecto</strong><p>Guarda conocimiento e instrucciones reutilizables en Markdown. Después podrás asignarlas a tus agentes y preparar Codex y OpenCode.</p></div><div class="actions resource-toolbar"><button class="primary" id="newSkillButton" onclick="newSkill()">Crear skill</button><details class="resource-templates"><summary>Usar una plantilla</summary><div class="actions"><label>Plantilla de skill<select id="skillTemplatePicker"><option value="">Selecciona una plantilla…</option></select></label><button class="secondary" id="newSkillTemplateButton" onclick="newSkillFromTemplate()">Crear desde plantilla</button></div></details><button type="button" class="secondary" data-open-page="templates">Importar y exportar</button></div><p id="skillStatus" role="status" aria-live="polite"></p><div id="skillList" class="agent-grid"></div><div id="skillEditor"></div>';
   document.querySelector('main.main').appendChild(section);
   button.onclick = () => {
     document.querySelectorAll('.nav button').forEach((x) => x.classList.remove('active'));
@@ -133,6 +133,7 @@
       : { id: '', name: '', description: '', content: '' };
     skillDirty = true;
     renderEditor();
+    document.getElementById('skillName').focus();
     status('Nueva skill · cambios sin guardar');
   };
   window.editSkill = function (id) {
@@ -153,8 +154,20 @@
       .querySelectorAll('#skillList [data-resource-id]')
       .forEach((item) => item.classList.toggle('selected', item.dataset.resourceId === s?.id));
     document.getElementById('skillEditor').innerHTML =
-      `<div class="agent-editor" style="margin-top:16px"><fieldset id="skillFields" style="border:0;padding:0;margin:0"><h3>${skillCreating ? 'Crear skill' : 'Modificar skill'}</h3><label>Identificador<input id="skillId" maxlength="64" value="${esc(s.id)}" ${skillCreating ? '' : 'disabled'} placeholder="revision-api"></label><label>Nombre<input id="skillName" maxlength="120" value="${esc(s.name)}"></label><label>Descripción<textarea id="skillDescription" rows="2" maxlength="1000">${esc(s.description)}</textarea></label><label>Contenido Markdown<textarea id="skillContent" rows="16" maxlength="100000" spellcheck="false">${esc(s.content)}</textarea></label><div class="actions"><button class="primary" onclick="saveSkill()">Guardar skill</button><button class="secondary" onclick="discardSkill()">Descartar / recargar</button></div><p class="muted">Archivo: .factoria/skills/&lt;identificador&gt;.md. Tras guardar, asigna la skill a un agente y prepara la integración.</p></fieldset></div>`;
+      `<div class="agent-editor ${skillCreating ? 'resource-create' : ''}">
+      <fieldset id="skillFields" class="resource-fields">
+        <h2>${skillCreating ? 'Nueva skill' : 'Editar skill'}</h2>
+        <label>Nombre<input id="skillName" maxlength="120" value="${esc(s.name)}" placeholder="Revisión de contratos"></label>
+        <label>Instrucciones<textarea id="skillContent" rows="10" maxlength="100000" spellcheck="false" placeholder="Describe los pasos y las reglas que debe seguir el agente. Puedes usar Markdown.">${esc(s.content)}</textarea></label>
+        <details class="resource-advanced"><summary>Opciones avanzadas</summary>
+          <label>Identificador<input id="skillId" maxlength="64" value="${esc(s.id)}" ${skillCreating ? '' : 'disabled'}><small class="muted">Se genera a partir del nombre. Puedes cambiarlo antes de guardar.</small></label>
+          <label>Descripción opcional<textarea id="skillDescription" rows="2" maxlength="1000">${esc(s.description)}</textarea></label>
+        </details>
+        <div class="actions"><button class="primary" onclick="saveSkill()">Guardar skill</button><button class="secondary" onclick="discardSkill()">Descartar</button></div>
+      </fieldset></div>`;
+    if (skillCreating) suggestResourceId('skillName', 'skillId', 'skill');
   }
+
   window.saveSkill = async function () {
     if (!skillDraft || skillSaving) return;
     if (skillProject !== state.selected_project?.path)
@@ -167,6 +180,25 @@
       revision: skillRevision,
       project_path: skillProject,
     };
+    if (!payload.name || !payload.content.trim()) {
+      document.getElementById(payload.name ? 'skillContent' : 'skillName').focus();
+      return status(
+        payload.name
+          ? 'Escribe las instrucciones de la skill.'
+          : 'Escribe un nombre para la skill.',
+      );
+    }
+    const duplicate = skillCreating && state.skills?.some((item) => item.id === payload.id);
+    if (duplicate || !/^[a-z][a-z0-9-]{0,63}$/.test(payload.id)) {
+      const field = document.getElementById('skillId');
+      field.closest('details').open = true;
+      field.focus();
+      return status(
+        duplicate
+          ? 'Ya existe una skill con ese identificador.'
+          : 'Escribe un identificador con letras minúsculas, números o guiones.',
+      );
+    }
     skillSaving = true;
     document.getElementById('skillFields').disabled = true;
     status('Guardando…');

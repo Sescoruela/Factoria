@@ -1,7 +1,10 @@
 # Interfaz de trabajo — 07/11/2026
 
-La interfaz utiliza superficies claras, un acento verde discreto, tipografía de
-sistema y controles con una jerarquía constante.
+Desde el 24/11/2026, ambas vistas comparten una barra azul noche, un monograma
+menta y acciones en índigo. Inicio abre con el proyecto activo y su siguiente tarea.
+En escritorio, los demás proyectos preparados se pueden seleccionar a su lado.
+**Memoria del proyecto** tiene acceso directo al análisis y al grafo. El formulario
+para importar JSON se despliega cuando se necesita.
 
 Actualización del menú del 19/11/2026. **Inicio** y **Proyectos** tienen acceso
 directo. **Trabajo**, **Configurar proyecto** y **Herramientas** se despliegan al
@@ -31,7 +34,7 @@ Los cambios viven en `web/frontend/interface.css` y `web/frontend/interface.js`,
 vistas. Se mantienen las políticas, revisiones, confirmaciones y guardados existentes.
 No se añaden librerías de runtime, fuentes externas ni arranque de proveedores.
 
-## Capturas revisadas
+## Capturas de la versión del 07/11/2026
 
 Proyecto de demostración creado en el fixture desechable, con una skill, un agente
 propio y un workflow propio. Las rutas temporales visibles no son datos del usuario.

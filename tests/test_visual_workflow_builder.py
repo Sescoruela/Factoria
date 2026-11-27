@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from factoria.application.projects.workflow_presets import (
@@ -9,6 +10,7 @@ from factoria.application.projects.workflow_presets import (
     VisualWorkflowStep,
     default_preset,
     load_preset,
+    preset_to_workflow,
     save_preset,
     validate_preset,
 )
@@ -65,6 +67,40 @@ class VisualWorkflowPresetTests(unittest.TestCase):
         checked = validate_preset(VisualWorkflowPreset(kind="feature", steps=tuple(steps)))
         self.assertEqual(next(step for step in checked.steps if step.name == "explore").tool, "codex")
         self.assertEqual(next(step for step in checked.steps if step.name == "implement").tool, "opencode")
+
+    def test_diagram_round_trip_does_not_change_executable_order(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            base = default_preset("feature")
+            diagram = {
+                "nodes": {
+                    "explore": {"x": 2500, "y": 700},
+                    "note-test": {"x": 20, "y": 300, "label": "Pruebas de integración"},
+                },
+                "edges": [
+                    ["explore", "implement"], ["explore", "note-test"], ["note-test", "review"],
+                ],
+            }
+            save_preset(root, replace(base, diagram=diagram))
+            # The classic editor can still save stages without sending a diagram.
+            save_preset(root, base)
+            loaded = load_preset(root, "feature")
+            self.assertEqual(loaded.diagram, diagram)
+            executable = preset_to_workflow(loaded, project_root=root)
+            self.assertEqual([step.name for step in executable.steps], [s.name for s in base.steps])
+            invalid = {"nodes": {}, "edges": [["explore", "desconocido"]]}
+            with self.assertRaisesRegex(ValueError, "Conexión"):
+                save_preset(root, replace(base, diagram=invalid))
+
+    def test_executable_graph_rejects_cycles_disconnected_nodes_and_missing_gate_paths(self):
+        base = default_preset("fix")
+        for edges, message in (
+            ([["explore", "implement"], ["implement", "review"], ["review", "implement"]], "ciclo"),
+            ([["explore", "implement"]], "conectadas"),
+            ([["explore", "review"], ["explore", "implement"]], "implement con review"),
+        ):
+            with self.subTest(edges=edges), self.assertRaisesRegex(ValueError, message):
+                validate_preset(replace(base, diagram={"nodes": {}, "edges": edges, "execute": True}))
 
     def test_fix_optional_steps_persist_per_project(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

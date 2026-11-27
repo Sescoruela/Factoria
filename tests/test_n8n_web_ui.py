@@ -15,7 +15,10 @@ class N8NWebUiTests(unittest.TestCase):
         html = files("factoria.web.frontend").joinpath("index_n8n.html").read_text(encoding="utf-8")
         self.assertIn('id="workflowCanvas"', html)
         self.assertIn('id="connections"', html)
-        assets = files("factoria.web.frontend").joinpath("agents.js").read_text(encoding="utf-8") + files("factoria.web.frontend").joinpath("shell-main.js").read_text(encoding="utf-8")
+        assets = "".join(
+            files("factoria.web.frontend").joinpath(name).read_text(encoding="utf-8")
+            for name in ("agents.js", "shell-main.js", "workflow-canvas.js")
+        )
         self.assertIn('class="port in"', assets)
         self.assertIn('class="port out"', assets)
         self.assertIn("startNodeDrag", assets)

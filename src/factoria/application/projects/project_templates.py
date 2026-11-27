@@ -72,7 +72,7 @@ def validate_template(data: dict) -> dict:
     if any(path not in available for item in agent_items for path in item.skills):
         raise ValueError("Todas las skills referenciadas deben pertenecer al catálogo exportado")
     for identifier, raw in data["workflows"].items():
-        _fields(raw, ("kind", "id", "name", "description", "steps"), ("kind", "steps"))
+        _fields(raw, ("kind", "id", "name", "description", "steps", "diagram"), ("kind", "steps"))
         if not isinstance(raw["steps"], list):
             raise ValueError("Etapas no válidas")
         for step in raw["steps"]:
@@ -86,6 +86,7 @@ def validate_template(data: dict) -> dict:
             id=None if builtin else identifier,
             name=raw.get("name", ""),
             description=raw.get("description", ""),
+            diagram=raw.get("diagram"),
         )
         preset_items[identifier] = workflows.validate_assignments(preset, agent_items)
     if len({key.casefold() for key in preset_items}) != len(preset_items):
@@ -114,7 +115,9 @@ def read_template(path: Path) -> dict:
     return validate_template(json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique))
 
 
-def export_template(root: Path, name: str) -> dict:
+def export_template(root: Path, name: str, *, scope: str | None = None) -> dict:
+    if scope not in (None, "skills", "agents"):
+        raise ValueError("Selecciona qué recursos exportar")
     root = root.resolve()
     with _locks():
         before = _revision(root)
@@ -124,9 +127,13 @@ def export_template(root: Path, name: str) -> dict:
                 "schema_version": 1,
                 "name": name,
                 "skills": [asdict(item) for item in catalog],
-                "agents": [item.to_mapping() for item in agents.load_agent_profiles(root)],
+                "agents": [
+                    item.to_mapping()
+                    for item in (agents.load_agent_profiles(root) if scope != "skills" else ())
+                ],
                 "workflows": {
-                    key: item.to_mapping() for key, item in workflows.load_catalog(root).items()
+                    key: item.to_mapping()
+                    for key, item in (workflows.load_catalog(root).items() if scope is None else ())
                 },
             }
         )

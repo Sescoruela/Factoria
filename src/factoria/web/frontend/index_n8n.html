@@ -12,8 +12,7 @@
     ><div class="app"
       ><aside class="sidebar"
         ><div class="brand"
-          ><span class="brand-mark" aria-hidden="true">f</span
-          ><div>Factoria<small>Tu espacio de trabajo</small></div></div
+          ><span class="brand-mark" aria-hidden="true"></span><div>Factoría</div></div
         ><div class="nav">
           <button data-page="dashboard" class="active">Inicio</button
           ><button data-page="projects">Proyectos</button><button data-page="agents">Agentes</button
@@ -43,17 +42,15 @@
                 ></div
               ></div
             ><div class="card wide"
-              ><div class="label">Proyectos</div
+              ><div class="label">Proyectos</div><label for="projectSearch">Buscar proyecto</label
               ><input
                 id="projectSearch"
                 placeholder="Buscar por nombre o carpeta"
                 oninput="renderProjects()" /><div id="projectList" class="list"></div></div
             ><div class="card"
-              ><div class="label">Crear proyecto</div
-              ><input id="newName" placeholder="Nombre" /><textarea
-                id="newPurpose"
-                placeholder="Descripción"
-              ></textarea
+              ><div class="label">Crear proyecto</div><label for="newName">Nombre</label
+              ><input id="newName" placeholder="Nombre" /><label for="newPurpose">Descripción</label
+              ><textarea id="newPurpose" placeholder="Descripción"></textarea
               ><div class="actions"
                 ><button class="primary" onclick="createProject()">Crear</button></div
               ></div
@@ -126,15 +123,25 @@
                 obligatorios dependen del tipo base.</p
               ></details
             ></div
-          ><div class="workflow-note"
-            ><strong>Mueve los nodos horizontalmente para reordenar el flujo.</strong
-            ><div class="muted"
-              >Las conexiones se recalculan automáticamente. Factoria seguirá rechazando cualquier
-              orden que cambie las etapas obligatorias.</div
-            ><div class="legend"
-              ><span><i class="dot"></i> obligatorio</span
-              ><span><i class="dot optional"></i> opcional</span></div
-            ></div
+          ><div class="workflow-note">
+            <strong>Arrastra las cajas en cualquier dirección.</strong>
+            <p
+              >Para conectar dos cajas, pulsa la salida de una y la entrada de la otra. El workflow
+              sigue las conexiones guardadas. Una unión espera a todas sus entradas. Conecta todas
+              las cajas activas desde explore y conserva el orden de las etapas obligatorias.</p
+            >
+            <div class="actions canvas-controls">
+              <button type="button" onclick="zoomWorkflow(-1)" aria-label="Alejar">−</button>
+              <output id="workflowZoom" aria-label="Zoom">100 %</output>
+              <button type="button" onclick="zoomWorkflow(1)" aria-label="Acercar">+</button>
+              <label>Caja de análisis<input id="workflowNoteName" maxlength="120" /></label>
+              <button type="button" onclick="addWorkflowNote()">Añadir caja</button>
+              <label>Conexión<select id="workflowEdge"></select></label>
+              <button type="button" id="removeWorkflowEdge" onclick="removeWorkflowLink()"
+                >Quitar conexión</button
+              >
+            </div>
+            <p id="workflowCanvasStatus" role="status"></p> </div
           ><div class="canvas-shell"
             ><div class="canvas-grid"></div
             ><div id="workflowCanvas" class="canvas"
@@ -175,6 +182,7 @@
     ><script src="/assets/project-start.js"></script
     ><script src="/assets/interface.js"></script
     ><script src="/assets/editor-state.js"></script
+    ><script src="/assets/workflow-canvas.js"></script
     ><script src="/assets/shell-main.js"></script
     ><script src="/assets/workflows.js"></script
     ><script src="/assets/agents.js"></script

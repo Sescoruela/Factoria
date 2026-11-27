@@ -7,11 +7,12 @@ import hashlib
 import json
 import os
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
 from factoria.application.projects.agent_profiles import agent_catalog_revision, load_agent_profiles
+from factoria.application.projects.workflow_diagram import execution_route, validate_diagram
 from factoria.orchestration import (
     AgentRole,
     AgentStep,
@@ -73,6 +74,7 @@ class VisualWorkflowPreset:
     id: str | None = None
     name: str = ""
     description: str = ""
+    diagram: dict | None = None
 
     @property
     def identifier(self) -> str:
@@ -82,6 +84,7 @@ class VisualWorkflowPreset:
         return {
             "kind": self.kind,
             "steps": [asdict(step) for step in self.steps],
+            **({"diagram": self.diagram} if self.diagram is not None else {}),
             **(
                 {"id": self.id, "name": self.name, "description": self.description}
                 if self.id is not None
@@ -205,12 +208,15 @@ def validate_preset(preset: VisualWorkflowPreset) -> VisualWorkflowPreset:
             "El orden solicitado no es seguro. Mantén explore → plan → implement → review → document; "
             "puedes personalizar la plataforma, el perfil y las etapas opcionales."
         )
+    diagram = validate_diagram(preset.diagram, set(names))
+    execution_route(diagram, enabled_names)
     return VisualWorkflowPreset(
         kind=preset.kind,
         steps=tuple(normalized),
         id=preset.id,
         name=preset.name,
         description=preset.description,
+        diagram=diagram,
     )
 
 
@@ -275,6 +281,7 @@ def load_catalog(
             id=None if builtin else identifier,
             name=entry.get("name", ""),
             description=entry.get("description", ""),
+            diagram=entry.get("diagram"),
         )
         presets[identifier] = validate_preset(preset)
     if validate_agents:
@@ -392,6 +399,8 @@ def _save_preset(
         raise ValueError("El workflow que quieres modificar no existe")
     if not create and catalog[identifier].kind != checked.kind:
         raise ValueError("El tipo base de un workflow guardado no puede cambiar")
+    if not create and checked.diagram is None:
+        checked = validate_preset(replace(checked, diagram=catalog[identifier].diagram))
     from factoria.security import SecretScanner
 
     if SecretScanner().scan_text(checked.name + "\n" + checked.description, location=identifier):
@@ -429,7 +438,19 @@ def preset_to_workflow(
                 agent_id=item.agent_id,
             )
         )
-    return AgentWorkflow(kind=checked.kind, steps=tuple(steps))
+    by_name = {step.name: step for step in steps}
+    route = execution_route(checked.diagram, list(by_name))
+    for name in route:
+        if name not in by_name:
+            explorer = agent_defaults[AgentRole.EXPLORER.value]
+            by_name[name] = AgentStep(
+                name=name,
+                role=AgentRole.EXPLORER,
+                profile=ModelProfile(explorer.profile),
+                preferred_tool=explorer.platform,
+                label=checked.diagram["nodes"][name]["label"],
+            )
+    return AgentWorkflow(kind=checked.kind, steps=tuple(by_name[name] for name in route))
 
 
 def workflow_snapshot(workflow: AgentWorkflow) -> tuple[dict[str, str | None], ...]:
@@ -440,6 +461,7 @@ def workflow_snapshot(workflow: AgentWorkflow) -> tuple[dict[str, str | None], .
             "profile": step.profile.value if step.profile else None,
             "preferred_tool": step.preferred_tool,
             **({"agent_id": step.agent_id} if step.agent_id is not None else {}),
+            **({"label": step.label} if step.label is not None else {}),
         }
         for step in workflow.steps
     )
@@ -464,6 +486,7 @@ def workflow_from_snapshot(kind: str, raw_steps: tuple[dict[str, Any], ...]) -> 
                 profile=ModelProfile(str(profile_raw)) if profile_raw else None,
                 preferred_tool=str(preferred_tool) if preferred_tool else None,
                 agent_id=agent_id,
+                label=raw.get("label"),
             )
         )
     return AgentWorkflow(kind=kind, steps=tuple(steps))

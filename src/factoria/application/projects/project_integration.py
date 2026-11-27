@@ -139,7 +139,7 @@ def workflow_guide(kind: str, definition: dict) -> str:
     for index, step in enumerate(definition["workflows"][kind], 1):
         role = agents[step.get("agent_id") or step["role"]]
         rows.append(
-            f"{index}. **{step['name']} / {step['role']}** · agente `{role['role']}` · perfil `{step['profile']}` · plataforma `{step['preferred_tool'] or 'sesión actual'}`"
+            f"{index}. **{step.get('label') or step['name']} / {step['role']}** · agente `{role['role']}` · perfil `{step['profile']}` · plataforma `{step['preferred_tool'] or 'sesión actual'}`"
         )
         rows.append(f"   - Subagente en OpenCode: `factoria-{role['role']}`.")
         if role["instructions"]:

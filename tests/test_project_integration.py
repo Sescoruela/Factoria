@@ -594,6 +594,102 @@ class IntegrationTests(ProjectFixture):
 
 
 class NativeWorkflowTests(ProjectFixture):
+    def test_fix_executes_saved_branches_before_the_join(self):
+        diagram = {
+            'execute': True,
+            'nodes': {
+                'note-api': {'x': 100, 'y': 200, 'label': 'Analizar API'},
+                'note-data': {'x': 100, 'y': 400, 'label': 'Analizar datos'},
+            },
+            'edges': [
+                ['explore', 'note-api'], ['explore', 'note-data'],
+                ['note-api', 'implement'], ['note-data', 'implement'],
+                ['implement', 'review'],
+            ],
+        }
+        preset = default_preset('fix')
+        save_preset(self.root, replace(preset, diagram=diagram))
+        ProjectIntegration(self.root).apply(confirmed=True)
+        self.commit()
+        state = self.native.start('fix', 'Change value along the graph', 'codex')
+        flow_id = state['flow_id']
+        self.assertEqual(state['stage'], 'explore')
+        self.evidence(state)
+        state = self.native.next(flow_id)
+        self.assertEqual(state['stage'], 'note-api')
+        self.assertIn('Analizar API', state['instruction'])
+        with self.assertRaisesRegex(ValueError, 'Falta evidencia'):
+            self.native.next(flow_id)
+        self.evidence(state)
+        (self.root / 'app.py').write_text('VALUE = 2\n')
+        with self.assertRaisesRegex(ValueError, 'caja de análisis'):
+            self.native.next(flow_id)
+        (self.root / 'app.py').write_text('VALUE = 1\n')
+        state = NativeWorkflow(self.root).next(flow_id)
+        self.assertEqual(state['stage'], 'note-data')
+        self.evidence(state)
+        state = self.native.next(flow_id)
+        self.assertEqual(state['stage'], 'implement')
+        (self.root / 'app.py').write_text('VALUE = 2\n')
+        self.evidence(state)
+        state = self.native.next(flow_id)
+        self.assertEqual(state['stage'], 'verify')
+        state = self.native.next(flow_id)
+        self.assertEqual(state['stage'], 'review')
+        self.evidence(state, APPROVED)
+        self.assertEqual(self.native.next(flow_id)['stage'], 'ready_for_commit')
+        self.commit()
+        self.assertEqual(self.native.lifecycle(flow_id, 'finish')['state'], 'completed')
+
+    def test_fix_qa_uses_its_own_route_from_generated_commands(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+
+        diagram = {
+            'execute': True,
+            'nodes': {
+                'note-qa': {'x': 600, 'y': 300, 'label': 'Validar casos límite'},
+                'note-contract': {'x': 40, 'y': 100, 'label': 'Analizar contrato'},
+                'note-data': {'x': 40, 'y': 400, 'label': 'Analizar datos'},
+            },
+            'edges': [
+                ['explore', 'note-contract'], ['explore', 'note-data'],
+                ['note-contract', 'note-qa'], ['note-data', 'note-qa'],
+                ['note-qa', 'implement'], ['implement', 'review'],
+            ],
+        }
+        preset = replace(default_preset('fix'), id='fix-qa', name='fixQA', diagram=diagram)
+        save_preset(self.root, preset, create=True)
+        ProjectIntegration(self.root).apply(confirmed=True)
+        self.commit()
+        invocation = 'start fix-qa --tool'
+        for relative in (
+            '.agents/skills/factoria-fix-qa/SKILL.md',
+            '.opencode/commands/factoria-fix-qa.md',
+        ):
+            self.assertIn(invocation, (self.root / relative).read_text(encoding='utf-8'))
+
+        for tool in ('codex', 'opencode'):
+            output = StringIO()
+            with self.subTest(tool=tool), redirect_stdout(output):
+                self.assertEqual(run_project_cli([
+                    '--project', str(self.root), 'native', 'start', 'fix-qa',
+                    '--tool', tool, '--task', 'QA del cambio',
+                ]), 0)
+                state = json.loads(output.getvalue())
+                self.assertEqual((state['workflow_id'], state['workflow_name']), ('fix-qa', 'fixQA'))
+                flow_id = state['flow_id']
+                for stage in ('explore', 'note-contract', 'note-data', 'note-qa'):
+                    self.assertEqual(state['stage'], stage)
+                    self.evidence(state)
+                    state = self.native.next(flow_id)
+                self.assertEqual(state['stage'], 'implement')
+                self.native.lifecycle(flow_id, 'cancel', confirmed=True)
+
+        basic = self.native.start('fix', 'Corrección base', 'codex')
+        self.evidence(basic)
+        self.assertEqual(self.native.next(basic['flow_id'])['stage'], 'implement')
+
     def test_named_fix_and_feature_complete_in_both_tools_with_required_approvals(self):
         for kind in ('fix', 'feature'):
             preset = default_preset(kind)

@@ -280,6 +280,7 @@ def project_relations(root: Path) -> dict:
                         id=None if builtin else identifier,
                         name=value.get("name", ""),
                         description=value.get("description", ""),
+                        diagram=value.get("diagram"),
                     )
                 )
             except (ValueError, TypeError):

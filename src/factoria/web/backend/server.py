@@ -244,6 +244,7 @@ def _preset_from_payload(data: dict[str, object]) -> VisualWorkflowPreset:
         id=data.get("id"),
         name=data.get("name", ""),
         description=data.get("description", ""),
+        diagram=data.get("diagram"),
         steps=tuple(
             VisualWorkflowStep.from_mapping(item) for item in raw_steps if isinstance(item, dict)
         ),
@@ -351,6 +352,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             "/assets/skills.js",
             "/assets/templates.js",
             "/assets/workflows.js",
+            "/assets/workflow-canvas.js",
             "/assets/shell-classic.js",
             "/assets/agents.css",
             "/assets/shell-main.js",

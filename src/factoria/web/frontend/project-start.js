@@ -5,7 +5,7 @@ const taskTypes = new Map([
   ['feature', 'Añadir una funcionalidad'],
 ]);
 
-function memoryReviewContent(open) {
+function memoryReviewContent(open, project, graphOpen) {
   const tools = (state.agents || []).filter((agent) => agent.cli_available ?? agent.available);
   return `<details class="project-options" id="projectMemoryReview" ${open ? 'open' : ''}>
     <summary>Analizar memoria con OpenCode o Codex</summary>
@@ -22,12 +22,27 @@ function memoryReviewContent(open) {
     ${!state.integration?.prepared ? '<p>Prepara primero la integración del proyecto.</p>' : !tools.length ? '<p>Configura la ruta del CLI en Codex y OpenCode para generar desde Factoría, o importa un informe de tu sesión abierta.</p>' : ''}
     <textarea id="memoryReviewRequest" aria-label="Encargo de análisis" rows="4" readonly hidden></textarea>
     <form id="memoryReviewForm" class="guide-form">
-      <label>Informe JSON<textarea name="report" rows="6" maxlength="65536" required></textarea></label>
+      <details class="report-input"><summary>Importar o editar informe JSON</summary><label>Informe JSON<textarea name="report" rows="6" maxlength="65536" required></textarea></label>
+        <button type="submit" class="secondary">Revisar informe</button>
+      </details>
       <pre class="guide-preview" hidden></pre>
-      <div class="actions guide-actions"><button type="submit" class="secondary">Revisar informe</button>
+      <div class="actions guide-actions">
         <button type="button" class="primary" id="saveMemoryReview" hidden>Guardar revisión</button></div>
       <p role="status"></p>
     </form>
+    ${
+      project.memory_initialized
+        ? `<details id="projectMemoryGraph" ${graphOpen ? 'open' : ''}>
+      <summary>Grafo de memoria</summary>
+      <p>Genera un índice de la documentación del proyecto y busca decisiones o módulos por tema.</p>
+      <form class="guide-form" id="guideGraphForm">
+        <label>Qué buscar en la memoria<input name="query" maxlength="300"></label>
+        <div class="actions guide-actions"><button type="submit" class="primary">Buscar en la memoria</button><button type="button" class="secondary" data-guide="build-graph">Generar índice</button></div>
+      </form>
+      <div id="guideGraphResult" role="status"></div>
+    </details>`
+        : ''
+    }
   </details>`;
 }
 
@@ -48,6 +63,7 @@ function bindMemoryReview(container, project) {
     copy.disabled = true;
     try {
       const result = await call('request');
+      form.querySelector('.report-input').open = true;
       try {
         await navigator.clipboard.writeText(result.request);
         status.textContent = 'Encargo copiado.';
@@ -250,7 +266,7 @@ function taskContent(workflows, allowed) {
     .map(([kind, label]) => {
       const id = allowed.includes(kind) ? kind : allowed.find((id) => workflows[id]?.kind === kind);
       return id
-        ? `<button type="button" class="primary" data-guide="task" data-kind="${esc(id)}">${label}</button>`
+        ? `<button type="button" class="secondary task-choice" data-guide="task" data-kind="${esc(id)}">${label}</button>`
         : '';
     })
     .join('');
@@ -337,16 +353,17 @@ window.renderProjectOverview = function (container, project) {
     </button>`,
     )
     .join('');
-  container.innerHTML = `${overviewProjectsContent(project)}<article class="project-overview">
-    <div><h2>${esc(project.name)}</h2><div class="project-context"><span class="branch-name">${esc(project.branch || 'Sin rama')}</span><span>${project.dirty ? 'Hay cambios sin guardar en Git' : 'Sin cambios en Git'}</span></div></div>
+  container.innerHTML = `<article class="project-overview">
+    <div><span class="project-caption">Proyecto activo</span><h2>${esc(project.name)}</h2><div class="project-context"><span class="branch-name">${esc(project.branch || 'Sin rama')}</span><span>${project.dirty ? 'Hay cambios sin guardar en Git' : 'Sin cambios en Git'}</span></div></div>
     ${state.projects?.some(({ prepared }) => prepared) ? '' : '<button type="button" class="secondary" data-open-page="projects" data-start-selection>Cambiar proyecto</button>'}
   </article>
+  <div class="workspace-columns"><div class="workspace-tasks">
   <section class="card project-guide" aria-label="Empezar con este proyecto">
     ${preparationContent(project, integration) || taskContent(workflows, allowed)}
     ${project.dirty && project.memory_initialized && integration?.ready ? '<p class="guide-git-note">Empieza la tarea desde una rama de trabajo con el código limpio.</p>' : ''}
     <div class="guide-status" id="guideStatus" role="status"></div>
   </section>
-  ${memoryReviewContent(reviewOpen)}
+  ${memoryReviewContent(reviewOpen, project, graphOpen)}
   <details class="project-options" id="projectOptions" ${advancedOpen ? 'open' : ''}>
     <summary>Configuración del proyecto</summary>
     <div class="project-resources">
@@ -356,20 +373,8 @@ window.renderProjectOverview = function (container, project) {
       <button type="button" data-open-page="integration">Ver integración</button>
     </div>
     <h3>Workflows</h3><div class="workflow-list">${rows || '<p>No hay workflows disponibles.</p>'}</div>
-    ${
-      project.memory_initialized
-        ? `<details id="projectMemoryGraph" ${graphOpen ? 'open' : ''}>
-      <summary>Grafo de memoria</summary>
-      <p>Genera un índice de la documentación del proyecto y busca decisiones o módulos por tema.</p>
-      <form class="guide-form" id="guideGraphForm">
-        <label>Qué buscar en la memoria<input name="query" maxlength="300"></label>
-        <div class="actions guide-actions"><button type="submit" class="primary">Buscar en la memoria</button><button type="button" class="secondary" data-guide="build-graph">Generar índice</button></div>
-      </form>
-      <div id="guideGraphResult" role="status"></div>
-    </details>`
-        : ''
-    }
-  </details>`;
+
+  </details></div>${overviewProjectsContent(project)}</div>`;
   bindProjectGuide(container, project);
 };
 

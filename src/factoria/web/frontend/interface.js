@@ -36,7 +36,7 @@ window.returnToProjectOverview = function () {
     agentRoles: 'Agentes',
     skills: 'Skills',
     relations: 'Relaciones',
-    templates: 'Plantillas',
+    templates: 'Importar y exportar',
     resources: 'Archivo de recursos',
     flows: 'Ejecuciones',
     history: 'Historial',
@@ -48,21 +48,17 @@ window.returnToProjectOverview = function () {
   const navigation = [
     ['dashboard', null, '<path d="M3 10l9-7 9 7v10H3zM9 20v-6h6v6"/>'],
     ['projects', null, '<path d="M3 7h7l2-3h9v16H3z"/>'],
+    [
+      'memory',
+      null,
+      '<path d="M4 5c3-1 6-1 8 1 2-2 5-2 8-1v14c-3-1-6-1-8 1-2-2-5-2-8-1zM12 6v14"/>',
+    ],
     ['Trabajo', 'work', '<path d="M8 4l12 8-12 8z"/>', ['flows', 'history']],
     [
       'Configurar proyecto',
       'project-settings',
       '<path d="M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6m-5 0v6"/>',
-      [
-        'integration',
-        'designer',
-        'agentRoles',
-        'skills',
-        'memory',
-        'relations',
-        'templates',
-        'resources',
-      ],
+      ['integration', 'designer', 'agentRoles', 'skills', 'relations', 'templates', 'resources'],
     ],
     [
       'Herramientas',
@@ -203,11 +199,9 @@ window.returnToProjectOverview = function () {
         const graph = document.getElementById('projectMemoryGraph');
         if (review && document.getElementById('dashboard').classList.contains('active')) {
           review.open = true;
-          if (graph) {
-            document.getElementById('projectOptions').open = true;
-            graph.open = true;
-          }
+          if (graph) graph.open = true;
           review.querySelector('summary').focus();
+          review.scrollIntoView({ block: 'start' });
         } else if (!review) {
           toast('Selecciona un proyecto para revisar su memoria.');
         }

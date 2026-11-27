@@ -105,7 +105,7 @@ herramienta recibe una selección de archivos versionados del repositorio como
 contexto de solo lectura. Conviene iniciar sesión en la herramienta con antelación.
 
 Si trabajas desde una sesión externa, pulsa **Copiar encargo de análisis**,
-pega allí el encargo y vuelve con el JSON para usar **Revisar informe**.
+pega allí el encargo y vuelve con el JSON. En **Importar o editar informe JSON**, pega el resultado y pulsa **Revisar informe**.
 
 La revisión cubre propósito, arquitectura, flujos, contratos, decisiones y
 verificación. Los hallazgos citan archivos y tienen una sección para dudas
@@ -119,10 +119,10 @@ El menú lateral agrupa las opciones que usarás después de preparar el proyect
 | Menú | Qué puedes encontrar |
 | --- | --- |
 | **Trabajo** | Ejecuciones e historial |
-| **Configurar proyecto** | Preparación para Codex y OpenCode, workflows, agentes, skills, memoria, relaciones, plantillas y archivo de recursos |
+| **Configurar proyecto** | Preparación para Codex y OpenCode, workflows, agentes, skills, relaciones, plantillas y archivo de recursos |
 | **Herramientas** | Configuración de Codex y OpenCode, copias y recuperación, seguridad y consola |
 
-Para consultar la memoria, abre **Configurar proyecto → Memoria del proyecto**.
+Para consultar la memoria, abre **Memoria del proyecto** en el menú lateral.
 Si cambian sus documentos Markdown, pulsa **Generar índice** otra vez.
 
 La misma preparación está disponible en la terminal del proyecto.
@@ -148,6 +148,47 @@ conserva los datos del flujo. El consumo real depende de la sesión.
 Si quieres recuperar contexto entre sesiones, genera el [grafo de memoria](memory-graph.md)
 con `factoria project memory-graph build`. Puedes consultar decisiones y módulos
 relacionados con `factoria project memory-graph recall "tema"`.
+
+### Compartir agentes y skills
+
+En **Agentes** o **Skills**, abre **Importar y exportar**. Elige el tipo de
+recurso y pega el enlace de GitHub al archivo público. Puedes abrir un Markdown
+local o importar un agente de Codex en TOML. Para los agentes, elige también la
+función que tendrán en Factoría.
+
+Revisa las instrucciones y la lista de cambios, pulsa **Añadir al proyecto** y
+confirma. Si hay un conflicto, cambia el identificador o revisa el recurso
+existente. Vuelve a preparar la integración para que Codex y OpenCode reciban
+la configuración nueva.
+
+Para compartir, elige **Skills**, **Agentes y skills** o **Proyecto completo**.
+Pulsa **Preparar exportación**, revisa el JSON y descárgalo. Otra persona puede
+abrir ese JSON desde **Revisar plantilla**.
+
+### Diseñar un workflow
+
+Abre **Configurar proyecto → Workflows** en la vista principal. Arrastra las cajas
+en cualquier dirección y el fondo del lienzo para desplazarte. Usa los controles
+de zoom o **Ajustar vista** para encuadrar el diagrama.
+
+Para dibujar una rama, pulsa el puerto de salida de una caja y luego la entrada
+de otra. Repite desde la misma salida para abrir otra rama, o hacia la misma
+entrada para reunir varias. Puedes añadir cajas de análisis con nombre y quitar
+conexiones desde el selector. Pulsa **Guardar** para conservar el diagrama en el
+proyecto.
+
+Al iniciar Fix, Feature o un workflow con nombre desde Codex u OpenCode, la
+ejecución sigue la ruta guardada. Una caja de análisis pide al agente explorador
+que documente sus hallazgos sin editar código. Si dos ramas llegan a la misma
+caja, ambas deben terminar antes de continuar. Las ramas se ejecutan una a una.
+El guardado valida que el grafo tenga una entrada en explore, esté conectado
+y conserve el orden de las etapas obligatorias.
+
+Por ejemplo, crea un workflow con identificador `fix-qa` y nombre **fixQA**.
+Conecta las ramas de revisión de contrato y datos a una caja de QA. Guarda y
+vuelve a preparar la integración. Inícialo con `$factoria-fix-qa` en Codex o
+`/factoria-fix-qa` en OpenCode. Se usa el grafo de **fixQA**. El comando del Fix
+base sigue seleccionando su propio workflow.
 
 ## 4. Seguir el flujo
 

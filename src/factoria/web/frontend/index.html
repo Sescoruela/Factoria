@@ -11,8 +11,7 @@
     <div class="app">
       <aside class="sidebar"
         ><div class="brand"
-          ><span class="brand-mark" aria-hidden="true">f</span
-          ><div>Factoria<small>Tu espacio de trabajo</small></div></div
+          ><span class="brand-mark" aria-hidden="true"></span><div>Factoría</div></div
         ><div class="nav">
           <button data-page="dashboard" class="active">Inicio</button
           ><button data-page="projects">Proyectos</button><button data-page="agents">Agentes</button
@@ -43,17 +42,15 @@
                 ></div
               ></div
             ><div class="card wide"
-              ><div class="label">Proyectos</div
+              ><div class="label">Proyectos</div><label for="projectSearch">Buscar proyecto</label
               ><input
                 id="projectSearch"
                 placeholder="Buscar por nombre o carpeta"
                 oninput="renderProjects()" /><div class="list" id="projectList"></div></div
             ><div class="card"
-              ><div class="label">Crear proyecto</div
-              ><input id="newName" placeholder="Nombre" /><textarea
-                id="newPurpose"
-                placeholder="Descripción"
-              ></textarea
+              ><div class="label">Crear proyecto</div><label for="newName">Nombre</label
+              ><input id="newName" placeholder="Nombre" /><label for="newPurpose">Descripción</label
+              ><textarea id="newPurpose" placeholder="Descripción"></textarea
               ><div class="actions"
                 ><button class="primary" onclick="createProject()">Crear</button></div
               ></div

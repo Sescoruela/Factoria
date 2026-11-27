@@ -381,3 +381,54 @@ pre {
     padding: 16px;
   }
 }
+
+.canvas-controls {
+  align-items: end;
+}
+.canvas-controls label {
+  flex: 1 1 11rem;
+  min-width: 0;
+  margin-top: 0;
+}
+.canvas-controls output {
+  align-self: center;
+  min-width: 3.5rem;
+  text-align: center;
+}
+#workflowCanvasStatus:empty {
+  display: none;
+}
+#workflowCanvas {
+  cursor: grab;
+  touch-action: none;
+}
+#workflowCanvas.panning {
+  cursor: grabbing;
+}
+#designer .connections {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+#designer button.port {
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  cursor: crosshair;
+  z-index: 1;
+}
+#designer .port.in {
+  left: -10px;
+}
+#designer .port.out {
+  right: -10px;
+}
+#designer button.port:hover,
+#designer button.port[aria-pressed='true'] {
+  background: var(--accent);
+}
+#designer .diagram-note {
+  background: var(--soft);
+  overflow-wrap: anywhere;
+}

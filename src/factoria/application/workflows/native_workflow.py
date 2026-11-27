@@ -223,7 +223,14 @@ class NativeWorkflow:
             ),
             None,
         )
-        evidence = execution.workspace.root / _FILES[stage] if stage in _FILES else None
+        filename = f"{stage}.md" if step and step.get("label") else _FILES.get(stage)
+        evidence = execution.workspace.root / filename if filename else None
+        instruction = (
+            f"Realizar el análisis de la caja «{step['label']}». "
+            "Consultar la evidencia anterior y guardar los hallazgos sin editar el código."
+            if step and step.get("label")
+            else _INSTRUCTIONS[stage]
+        )
         return {
             "flow_id": flow_id,
             "state": execution.flow.state.value,
@@ -233,7 +240,7 @@ class NativeWorkflow:
             "agent": role,
             "workflow_id": session.get("workflow_id", session["kind"]),
             "workflow_name": session.get("workflow_name", session["kind"]),
-            "instruction": _INSTRUCTIONS[stage],
+            "instruction": instruction,
             "evidence_file": str(evidence) if evidence else None,
             "manual_steps": session.get("manual_steps", []),
             "external_impact": session.get("external_impact", []),
@@ -295,13 +302,17 @@ class NativeWorkflow:
             raise ValueError(
                 "El código cambió durante análisis/planificación; cancelar y revisar el alcance"
             )
-        if stage in _FILES:
+        analysis_node = step and step.get("label")
+        if analysis_node and self._tree_hash() != session["analysis_baseline"]:
+            raise ValueError("El código cambió durante una caja de análisis. Restaura el contenido anterior antes de continuar")
+        filename = f"{stage}.md" if analysis_node else _FILES.get(stage)
+        if filename:
             evidence = project_path(
                 self.root,
-                (execution.workspace.root / _FILES[stage]).relative_to(self.root).as_posix(),
+                (execution.workspace.root / filename).relative_to(self.root).as_posix(),
             )
             if not evidence.is_file() or not evidence.read_text(encoding="utf-8").strip():
-                raise ValueError("Falta evidencia de la etapa: " + _FILES[stage])
+                raise ValueError("Falta evidencia de la etapa: " + filename)
         if stage == "plan":
             session["plan_hash"] = hashlib.sha256(
                 (execution.workspace.root / "plan.md").read_bytes()
@@ -420,6 +431,8 @@ class NativeWorkflow:
         if stage == "ready_for_commit":
             raise ValueError("Tras commit explícito y árbol limpio usar native finish")
         session["index"] += 1
+        if session["sequence"][session["index"]].startswith("note-"):
+            session["analysis_baseline"] = self._tree_hash()
         self._save(flow_id, session)
         return self.status(flow_id)
 

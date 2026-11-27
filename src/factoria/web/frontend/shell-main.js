@@ -1,7 +1,6 @@
 let workflowDraft = [],
   workflowDirty = false,
-  workflowLoadedKind = null,
-  drag = null;
+  workflowLoadedKind = null;
 function markDirty() {
   workflowDirty = true;
   document.getElementById('workflowDirty').textContent = '• cambios sin guardar';
@@ -200,10 +199,11 @@ function loadWorkflowBoard(force = false) {
   if (!project || !source || source.error) {
     document.getElementById('workflowBoard').textContent =
       source?.error || 'Selecciona un proyecto.';
+    clearWorkflowDiagram();
     workflowRevision = null;
     return;
   }
-  workflowDraft = (source.steps || []).map((s, i) => ({ ...s, x: canonicalX(i), y: nodeY(i) }));
+  loadWorkflowDiagram(source);
   workflowRevision = source.revision;
   workflowProject = project;
   workflowLoadedKind = kind;
@@ -217,56 +217,10 @@ function renderWorkflowBoard() {
   document.getElementById('workflowBoard').innerHTML = workflowDraft
     .map(
       (s, i) =>
-        `<div class="node ${s.enabled ? '' : 'off'}" data-i="${i}" style="left:${s.x}px;top:${s.y}px" onpointerdown="startNodeDrag(event,${i})"><span class="port in"></span><span class="port out"></span><div class="node-header"><div class="node-icon">${iconFor(s.name)}</div><div><div class="node-title">${esc(s.name)}</div><div class="muted" style="font-size:12px">${esc(s.role)}</div></div></div><div class="node-body"><select onclick="event.stopPropagation()" onchange="setNodeTool(${i},this.value)"><option value="" ${!s.tool ? 'selected' : ''}>Agente predeterminado</option><option value="codex" ${s.tool === 'codex' ? 'selected' : ''}>Codex</option><option value="opencode" ${s.tool === 'opencode' ? 'selected' : ''}>OpenCode</option></select>${requiredStep(kind, s.name) ? '<div class="node-lock">Etapa obligatoria</div>' : `<label class="node-toggle" onclick="event.stopPropagation()"><input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleNode(${i},this.checked)"> etapa activa</label>`}<div class="node-meta"><span class="pill">${s.enabled ? 'activa' : 'apagada'}</span></div></div></div>`,
+        `<div class="node ${s.enabled ? '' : 'off'}" data-i="${i}" style="left:${s.x}px;top:${s.y}px" onpointerdown="startNodeDrag(event,${i})">${workflowPorts(s.name)}<div class="node-header"><div class="node-icon">${iconFor(s.name)}</div><div><div class="node-title">${esc(s.name)}</div><div class="muted" style="font-size:12px">${esc(s.role)}</div></div></div><div class="node-body"><select onclick="event.stopPropagation()" onchange="setNodeTool(${i},this.value)"><option value="" ${!s.tool ? 'selected' : ''}>Agente predeterminado</option><option value="codex" ${s.tool === 'codex' ? 'selected' : ''}>Codex</option><option value="opencode" ${s.tool === 'opencode' ? 'selected' : ''}>OpenCode</option></select>${requiredStep(kind, s.name) ? '<div class="node-lock">Etapa obligatoria</div>' : `<label class="node-toggle" onclick="event.stopPropagation()"><input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleNode(${i},this.checked)"> etapa activa</label>`}<div class="node-meta"><span class="pill">${s.enabled ? 'activa' : 'apagada'}</span></div></div></div>`,
     )
     .join('');
-  drawConnections();
-}
-function drawConnections() {
-  const enabled = workflowDraft.filter((x) => x.enabled).sort((a, b) => a.x - b.x);
-  const svg = document.getElementById('connections');
-  svg.innerHTML = '';
-  for (let i = 0; i < enabled.length - 1; i++) {
-    const a = enabled[i],
-      b = enabled[i + 1],
-      source = document.querySelector(`#workflowBoard .node[data-i="${workflowDraft.indexOf(a)}"]`),
-      target = document.querySelector(`#workflowBoard .node[data-i="${workflowDraft.indexOf(b)}"]`),
-      x1 = a.x + (source?.offsetWidth || 220),
-      y1 = a.y + (source?.offsetHeight || 190) / 2,
-      x2 = b.x,
-      y2 = b.y + (target?.offsetHeight || 190) / 2,
-      m = (x1 + x2) / 2;
-    svg.insertAdjacentHTML(
-      'beforeend',
-      `<path d="M ${x1} ${y1} C ${m} ${y1}, ${m} ${y2}, ${x2} ${y2}"/>`,
-    );
-  }
-}
-function startNodeDrag(e, i) {
-  if (e.target.closest('select,input,label,button')) return;
-  drag = { i, startX: e.clientX, origX: workflowDraft[i].x };
-  e.currentTarget.setPointerCapture(e.pointerId);
-  e.currentTarget.classList.add('dragging');
-  e.currentTarget.onpointermove = moveNode;
-  e.currentTarget.onpointerup = endNodeDrag;
-}
-function moveNode(e) {
-  if (!drag) return;
-  workflowDraft[drag.i].x = Math.max(35, drag.origX + (e.clientX - drag.startX));
-  e.currentTarget.style.left = workflowDraft[drag.i].x + 'px';
-  drawConnections();
-  markDirty();
-}
-function endNodeDrag(e) {
-  if (!drag) return;
-  e.currentTarget.classList.remove('dragging');
-  workflowDraft.sort((a, b) => a.x - b.x);
-  workflowDraft.forEach((s, i) => {
-    s.x = canonicalX(i);
-    s.y = nodeY(i);
-  });
-  drag = null;
-  renderWorkflowBoard();
+  renderWorkflowDiagram();
 }
 function setNodeTool(i, v) {
   workflowDraft[i].tool = v || null;
@@ -274,11 +228,9 @@ function setNodeTool(i, v) {
 }
 function toggleNode(i, v) {
   workflowDraft[i].enabled = v;
+  if (!v && workflowDiagram) bypassWorkflowStage(workflowDraft[i].name);
   markDirty();
   renderWorkflowBoard();
-}
-function fitCanvas() {
-  document.getElementById('workflowCanvas').scrollTo({ left: 0, top: 0, behavior: 'smooth' });
 }
 async function changeWorkflowKind() {
   const target = document.getElementById('workflowKind').value;
@@ -311,7 +263,8 @@ async function saveWorkflow() {
     id,
     name: id ? document.getElementById('workflowName').value.trim() : '',
     description: id ? document.getElementById('workflowDescription').value : '',
-    steps: [...workflowDraft].sort((a, b) => a.x - b.x).map(({ x, y, ...s }) => s),
+    steps: workflowDraft.map(({ x, y, ...s }) => s),
+    diagram: workflowDiagram && { ...workflowDiagram, execute: true },
     project_path: workflowProject,
     revision: workflowRevision,
   };

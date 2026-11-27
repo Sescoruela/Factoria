@@ -15,6 +15,7 @@ PROJECT_RESOURCE_ROUTES = frozenset(
         "/api/resource/preview",
         "/api/resource/apply",
         "/api/template/export",
+        "/api/template/source",
         "/api/template/preview",
         "/api/template/apply",
     }
@@ -147,6 +148,24 @@ def handle_project_post(self, path: str) -> None:
         except ResourceConflict as exc:
             self._json({"error": str(exc)}, 409)
         return
+    if path == "/api/template/source":
+        from factoria.application.projects.git_resources import download_resource, resource_template
+
+        project = self._active_project()
+        if project is None or data.get("project_path") != str(project):
+            self._json({"error": "El proyecto seleccionado cambió"}, 409)
+            return
+        url = data.get("url", "")
+        if not isinstance(url, str) or len(url) > 2048:
+            raise ValueError("Enlace de GitHub no válido")
+        filename, text = download_resource(url) if url else (
+            data.get("filename"), data.get("text")
+        )
+        template = resource_template(
+            filename, text, data.get("kind"), data.get("role"), data.get("identifier", "")
+        )
+        self._json({"template": template})
+        return
     if path in {"/api/template/export", "/api/template/preview", "/api/template/apply"}:
         from factoria.application.projects.project_templates import (
             export_template,
@@ -161,7 +180,7 @@ def handle_project_post(self, path: str) -> None:
             return
         try:
             if path.endswith("/export"):
-                result = {"template": export_template(project, data.get("name", ""))}
+                result = {"template": export_template(project, data.get("name", ""), scope=data.get("scope"))}
             elif path.endswith("/preview"):
                 result = preview_template(project, data.get("template"))
             else:

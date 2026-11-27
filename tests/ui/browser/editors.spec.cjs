@@ -71,12 +71,14 @@ async function create(page, kind) {
   await nav(page, kinds[kind].nav);
   if (kind === 'skill') {
     await page.locator('#newSkillButton').click();
+    await page.locator('#skillEditor').getByText('Opciones avanzadas').click();
     await page.locator('#skillId').fill('browser-skill');
     await page.locator('#skillName').fill('Revisión de contratos');
     await page.locator('#skillDescription').fill('Reglas HTTP de prueba');
     await page.locator('#skillContent').fill('# Inicial\n\nConservar contratos.  \n');
   } else if (kind === 'agent') {
     await page.locator('#newAgentButton').click();
+    await page.locator('#agentRoleEditor').getByText('Opciones avanzadas').click();
     await page.locator('#agent-id').fill('browser-reviewer');
     await page.locator('#agent-name').fill('Revisor de contratos');
     await page.locator('#agent-base').selectOption('reviewer');
@@ -491,6 +493,73 @@ test('classic overview opens the full skill editor in the same authenticated ser
   await expect(page.locator('#newSkillButton')).toBeEnabled();
 });
 
+test('creates agents and skills using only the basic fields', async ({page, lab}) => {
+  await open(page, lab, 'main');
+  await nav(page, 'skills');
+  await page.locator('#newSkillButton').click();
+  await expect(page.locator('#skillName')).toBeFocused();
+  await page.locator('#skillName').fill('Revisión de API');
+  await page.locator('#skillContent').fill('Comprueba el contrato de la API.');
+  await expect(page.locator('#skillId')).toBeHidden();
+  await expect(page.locator('#skillId')).toHaveValue('revision-de-api');
+  await save(page, 'skill');
+  expect(fs.existsSync(path.join(lab.project, '.factoria/skills/revision-de-api.md'))).toBeTruthy();
+
+  await nav(page, 'agentRoles');
+  await page.locator('#newAgentButton').click();
+  await expect(page.locator('#agent-name')).toBeFocused();
+  await page.locator('#agent-name').fill('Revisor de API');
+  await page.locator('#agent-base').selectOption('reviewer');
+  await page.locator('#agent-instructions').fill('Señala cambios incompatibles.');
+  await page.locator('#agentSkillPicker').selectOption('.factoria/skills/revision-de-api.md');
+  await expect(page.locator('#assignedSkills')).toContainText('Revisión de API');
+  await page.getByRole('button', {name: 'Quitar Revisión de API'}).click();
+  await expect(page.locator('#assignedSkills li')).toHaveCount(0);
+  await page.locator('#agentSkillPicker').selectOption('.factoria/skills/revision-de-api.md');
+  await expect(page.locator('#agent-id')).toBeHidden();
+  await expect(page.locator('#agent-id')).toHaveValue('revisor-de-api');
+  await save(page, 'agent');
+  expect(disk(lab, 'agent')).toContain('.factoria/skills/revision-de-api.md');
+});
+
+test('free positions and diverging links survive saving and reopening', async ({page, lab}) => {
+  await open(page, lab, 'main');
+  await nav(page, 'designer');
+  const board = page.locator('#workflowBoard');
+  const first = board.locator('.node').first();
+  const heading = first.locator('.node-header');
+  const start = await heading.boundingBox();
+  const initialTop = await first.evaluate(card => card.offsetTop);
+  await page.mouse.move(start.x + 40, start.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(start.x + 72, start.y + 75, {steps: 6});
+  await page.mouse.up();
+  const movedTop = await first.evaluate(card => card.offsetTop);
+  expect(movedTop).toBe(initialTop + 65);
+
+  await page.getByLabel('Caja de análisis', {exact: true}).fill('Pruebas de integración');
+  await page.getByRole('button', {name: 'Añadir caja'}).click();
+  const extra = board.locator('.diagram-note');
+  await expect(extra).toContainText('Pruebas de integración');
+  await first.getByRole('button', {name: 'Salida de explore'}).click();
+  await extra.locator('[data-port="in"]').click();
+  await expect(page.locator('#workflowEdge')).toContainText('explore → plan');
+  await expect(page.locator('#workflowEdge')).toContainText('explore → Pruebas de integración');
+  await page.getByRole('button', {name: 'Ajustar vista'}).click();
+  await expect(page.locator('#workflowZoom')).not.toHaveText('100 %');
+
+  await page.locator(kinds.workflow.save).click();
+  await expect(page.locator('#workflowDirty')).toHaveText('');
+  const stored = JSON.parse(disk(lab, 'workflow')).feature;
+  expect(stored.steps.map(step => step.name)).toEqual(['explore', 'plan', 'implement', 'review', 'document']);
+  expect(stored.diagram.nodes.explore.y).toBe(movedTop);
+  await page.reload();
+  await nav(page, 'designer');
+  await expect(extra).toContainText('Pruebas de integración');
+  await expect.poll(() => first.evaluate(card => card.offsetTop)).toBe(movedTop);
+  await expect(page.locator('#workflowEdge')).toContainText('explore → Pruebas de integración');
+});
+
 test('workflow connections meet the visible node ports after resizing the layout', async ({page,lab})=>{
   await open(page,lab,'main');await nav(page,'designer');
   await expect(page.locator('#workflowDetails')).not.toHaveAttribute('open','');
@@ -540,7 +609,6 @@ test('guided start reviews and prepares a fresh repository, copies a task and se
   await expect(overview.getByText('Petición copiada.')).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('/factoria-feature Añade turnos de 30 minutos');
   const navigation = page.getByRole('navigation', {name: 'Navegación principal'});
-  await navigation.getByRole('button', {name: 'Configurar proyecto'}).click();
   await navigation.getByRole('button', {name: 'Memoria del proyecto'}).click();
   await expect(overview.locator('#projectMemoryGraph')).toHaveAttribute('open', '');
   await overview.getByRole('button', {name: 'Generar índice'}).click();
@@ -660,11 +728,11 @@ test('guided start identifies a conflicting file and preserves it', async ({page
 });
 
 
-test('navigation shows five main entries and opens the matching group for a direct link', async ({page, lab}) => {
+test('navigation shows direct access to memory and opens the matching group for a direct link', async ({page, lab}) => {
   await open(page, lab, 'main');
   const menu = page.getByRole('navigation', {name: 'Navegación principal'});
   await expect(menu.locator(':scope > button, :scope > div > button')).toHaveText([
-    'Inicio', 'Proyectos', 'Trabajo', 'Configurar proyecto', 'Herramientas',
+    'Inicio', 'Proyectos', 'Memoria del proyecto', 'Trabajo', 'Configurar proyecto', 'Herramientas',
   ]);
   await expect(menu.getByRole('button', {name: 'Ejecuciones', includeHidden: true})).toBeHidden();
   const work = menu.getByRole('button', {name: 'Trabajo', exact: true});

@@ -198,6 +198,7 @@ def _validate_restored(root, kind, identifier, record):
                 id=identifier,
                 name=raw.get("name", ""),
                 description=raw.get("description", ""),
+                diagram=raw.get("diagram"),
             ),
             agents.load_agent_profiles(root),
         )

@@ -61,9 +61,8 @@
     workflowRevision = source.revision;
     workflowDraftKind = source.kind;
     workflowLoadedKind = '__new__';
-    workflowDraft = structuredClone(source.steps || []).map((s, i) =>
-      typeof canonicalX === 'function' ? { ...s, x: canonicalX(i), y: nodeY(i) } : s,
-    );
+    if (typeof loadWorkflowDiagram === 'function') loadWorkflowDiagram(source);
+    else workflowDraft = structuredClone(source.steps || []);
     renderWorkflowList('__new__');
     document.getElementById('workflowId').value = '';
     document.getElementById('workflowId').disabled = false;

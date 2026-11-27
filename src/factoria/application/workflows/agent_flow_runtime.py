@@ -84,6 +84,13 @@ class LiveAgentFlowRunner:
         if kind not in {"fix", "feature"}:
             raise ValueError(f"Unsupported live flow kind: {kind}")
         memory = load_project_memory(project_root)
+        preset = load_preset(
+            project_root, kind, large_fix=large_fix, update_memory=update_memory
+        )
+        resolved_workflow = preset_to_workflow(preset, project_root=project_root)
+        gated = kind == "feature" or large_fix or any(
+            step.name == "plan" for step in resolved_workflow.steps
+        )
         flow_branch = self._prepare_branch(project_root, requested=branch)
         execution = self.service.create(
             flow_id=flow_id,
@@ -94,14 +101,6 @@ class LiveAgentFlowRunner:
         execution = self.service.start(execution)
         effective_profile = requested_permission_profile or base_permission_profile
         escalated = _profile_rank(effective_profile) > _profile_rank(base_permission_profile)
-        gated = kind == "feature" or large_fix
-        preset = load_preset(
-            project_root,
-            kind,
-            large_fix=large_fix,
-            update_memory=update_memory,
-        )
-        resolved_workflow = preset_to_workflow(preset, project_root=project_root)
         from factoria.application.projects.project_integration import project_definition
 
         session = LiveFlowSession(
@@ -137,9 +136,8 @@ class LiveAgentFlowRunner:
 
         workflow = self._workflow(session)
         if gated:
-            before_approval = tuple(
-                step for step in workflow.steps if step.name in {"explore", "plan"}
-            )
+            implementation = next(i for i, step in enumerate(workflow.steps) if step.name == "implement")
+            before_approval = workflow.steps[:implementation]
             execution, passed = self._run_steps(
                 execution,
                 session,
@@ -201,11 +199,9 @@ class LiveAgentFlowRunner:
             execution = self.service.resume(execution)
             session = replace(session, runtime_stage=RuntimeStage.RUNNING)
             self._save_session(session, execution=execution)
-            remaining = tuple(
-                step
-                for step in self._workflow(session).steps
-                if step.name not in {"explore", "plan"}
-            )
+            steps = self._workflow(session).steps
+            implementation = next(i for i, step in enumerate(steps) if step.name == "implement")
+            remaining = steps[implementation:]
             execution, passed = self._run_steps(
                 execution,
                 session,
@@ -556,7 +552,13 @@ class LiveAgentFlowRunner:
         )
         for path, content in role["skill_contents"].items():
             custom += f"\n\nSkill {path}:\n{content}"
-        return base + instructions[step.name] + custom
+        instruction = (
+            f"Perform the project analysis described by «{step.label}». Record your findings. "
+            "Do not modify files."
+            if step.label
+            else instructions[step.name]
+        )
+        return base + instruction + custom
 
     def _prepare_branch(self, project_root: Path, *, requested: str | None) -> str:
         if self._has_pending_changes(project_root):
