@@ -195,14 +195,12 @@ window.returnToProjectOverview = function () {
       choosingProjectFromOverview = button.hasAttribute('data-start-selection');
       openProjectSection(button.dataset.openPage, button.dataset.workflow);
       if (button.hasAttribute('data-open-memory')) {
-        const review = document.getElementById('projectMemoryReview');
-        const graph = document.getElementById('projectMemoryGraph');
-        if (review && document.getElementById('dashboard').classList.contains('active')) {
-          review.open = true;
-          if (graph) graph.open = true;
-          review.querySelector('summary').focus();
-          review.scrollIntoView({ block: 'start' });
-        } else if (!review) {
+        const viewer = document.getElementById('projectMemoryViewer');
+        if (viewer && document.getElementById('dashboard').classList.contains('active')) {
+          viewer.open = true;
+          viewer.querySelector('summary').focus();
+          viewer.scrollIntoView({ block: 'start' });
+        } else if (!viewer) {
           toast('Selecciona un proyecto para revisar su memoria.');
         }
       }

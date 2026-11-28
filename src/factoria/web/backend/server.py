@@ -360,6 +360,7 @@ class FactoriaWebHandler(BaseHTTPRequestHandler):
             "/assets/shell-common.js",
             "/assets/interface.js",
             "/assets/project-start.js",
+            "/assets/memory-viewer.js",
             "/assets/interface.css",
             "/assets/editor-state.js",
             "/assets/relations.js",

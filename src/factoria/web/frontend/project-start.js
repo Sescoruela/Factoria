@@ -329,6 +329,7 @@ window.renderProjectOverview = function (container, project) {
   ]);
   if (guide.busy || guide.snapshot === snapshot) return;
   guide.snapshot = snapshot;
+  const viewerOpen = container.querySelector('#projectMemoryViewer')?.open;
   const advancedOpen = container.querySelector('#projectOptions')?.open;
   const graphOpen = container.querySelector('#projectMemoryGraph')?.open;
   const reviewOpen =
@@ -363,6 +364,7 @@ window.renderProjectOverview = function (container, project) {
     ${project.dirty && project.memory_initialized && integration?.ready ? '<p class="guide-git-note">Empieza la tarea desde una rama de trabajo con el código limpio.</p>' : ''}
     <div class="guide-status" id="guideStatus" role="status"></div>
   </section>
+  ${memoryViewerContent(viewerOpen)}
   ${memoryReviewContent(reviewOpen, project, graphOpen)}
   <details class="project-options" id="projectOptions" ${advancedOpen ? 'open' : ''}>
     <summary>Configuración del proyecto</summary>
@@ -376,6 +378,7 @@ window.renderProjectOverview = function (container, project) {
 
   </details></div>${overviewProjectsContent(project)}</div>`;
   bindProjectGuide(container, project);
+  bindMemoryViewer(container, project);
 };
 
 function bindProjectGuide(container, project) {

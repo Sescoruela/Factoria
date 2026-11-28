@@ -122,8 +122,8 @@ El menú lateral agrupa las opciones que usarás después de preparar el proyect
 | **Configurar proyecto** | Preparación para Codex y OpenCode, workflows, agentes, skills, relaciones, plantillas y archivo de recursos |
 | **Herramientas** | Configuración de Codex y OpenCode, copias y recuperación, seguridad y consola |
 
-Para consultar la memoria, abre **Memoria del proyecto** en el menú lateral.
-Si cambian sus documentos Markdown, pulsa **Generar índice** otra vez.
+Para actualizar el grafo, abre **Analizar memoria con OpenCode o Codex** en
+**Inicio**, despliega **Grafo de memoria** y pulsa **Generar índice**.
 
 La misma preparación está disponible en la terminal del proyecto.
 
@@ -148,6 +148,14 @@ conserva los datos del flujo. El consumo real depende de la sesión.
 Si quieres recuperar contexto entre sesiones, genera el [grafo de memoria](memory-graph.md)
 con `factoria project memory-graph build`. Puedes consultar decisiones y módulos
 relacionados con `factoria project memory-graph recall "tema"`.
+
+### Consultar la memoria del proyecto
+
+En el menú lateral, abre **Memoria del proyecto**. Usa el selector para leer
+la memoria general, arquitectura, flujos, decisiones, verificación o la última
+revisión disponible. Escribe un tema en **Buscar en los documentos** y pulsa
+un resultado para saltar a su sección. Si cambias los archivos fuera de
+Factoría, pulsa **Actualizar memoria**.
 
 ### Compartir agentes y skills
 

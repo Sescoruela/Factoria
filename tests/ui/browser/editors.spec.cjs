@@ -610,7 +610,14 @@ test('guided start reviews and prepares a fresh repository, copies a task and se
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('/factoria-feature Añade turnos de 30 minutos');
   const navigation = page.getByRole('navigation', {name: 'Navegación principal'});
   await navigation.getByRole('button', {name: 'Memoria del proyecto'}).click();
-  await expect(overview.locator('#projectMemoryGraph')).toHaveAttribute('open', '');
+  const viewer = overview.locator('#projectMemoryViewer');
+  await expect(viewer).toHaveAttribute('open', '');
+  await viewer.getByLabel('Buscar en los documentos').fill('modulos');
+  await viewer.getByRole('button', {name: 'Arquitectura · Módulos'}).click();
+  await expect(viewer.getByLabel('Documento', {exact: true}).locator('option:checked')).toHaveText('Arquitectura');
+  await expect(viewer.getByRole('heading', {name: 'Módulos'})).toBeVisible();
+  await overview.locator('#projectMemoryReview > summary').click();
+  await overview.locator('#projectMemoryGraph > summary').click();
   await overview.getByRole('button', {name: 'Generar índice'}).click();
   await expect(overview.getByText(/Índice actualizado/)).toBeVisible();
   await overview.getByLabel('Qué buscar en la memoria').fill('Proyecto');

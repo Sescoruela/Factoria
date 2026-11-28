@@ -11,6 +11,7 @@ PROJECT_RESOURCE_ROUTES = frozenset(
         "/api/config/apply",
         "/api/project/relations",
         "/api/project/memory-review",
+        "/api/project/memory-documents",
         "/api/resource/list",
         "/api/resource/preview",
         "/api/resource/apply",
@@ -23,6 +24,17 @@ PROJECT_RESOURCE_ROUTES = frozenset(
 
 
 def handle_project_post(self, path: str) -> None:
+    if path == "/api/project/memory-documents":
+        from factoria.application.projects.memory_viewer import read_memory_documents
+
+        if not 0 <= int(self.headers.get("Content-Length", "0")) <= 16384:
+            raise ValueError("Solicitud de memoria demasiado grande")
+        project = self._active_project()
+        if project is None or self._body().get("project_path") != str(project):
+            self._json({"error": "El proyecto seleccionado cambió. Vuelve a abrirlo."}, 409)
+            return
+        self._json(read_memory_documents(project))
+        return
     if path == "/api/project/memory-review":
         from factoria.application.projects.memory_review import (
             MAX_REPORT_BYTES,
