@@ -205,6 +205,9 @@ window.returnToProjectOverview = function () {
         }
       }
     });
+    document.getElementById('projectSearch')?.addEventListener('input', () => {
+      document.getElementById('projectList').scrollTop = 0;
+    });
     const labels = {
       projectsRootInput: 'Carpeta de proyectos',
       projectSearch: 'Buscar proyectos',

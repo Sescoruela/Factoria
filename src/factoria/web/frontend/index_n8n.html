@@ -46,8 +46,14 @@
               ><input
                 id="projectSearch"
                 placeholder="Buscar por nombre o carpeta"
-                oninput="renderProjects()" /><div id="projectList" class="list"></div></div
-            ><div class="card"
+                oninput="renderProjects()" /><div
+                id="projectList"
+                class="list"
+                role="region"
+                aria-label="Listado de proyectos"
+                tabindex="0"
+              ></div></div
+            ><div class="card project-create-card"
               ><div class="label">Crear proyecto</div><label for="newName">Nombre</label
               ><input id="newName" placeholder="Nombre" /><label for="newPurpose">Descripción</label
               ><textarea id="newPurpose" placeholder="Descripción"></textarea

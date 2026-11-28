@@ -1226,3 +1226,30 @@ td button.secondary {
   margin: 0.9em 0 0.4em;
   color: var(--ink);
 }
+
+#projectList {
+  --project-row-height: 8rem;
+  --project-row-gap: 0.625rem;
+  grid-auto-rows: var(--project-row-height);
+  gap: var(--project-row-gap);
+  max-block-size: calc(5 * var(--project-row-height) + 4 * var(--project-row-gap));
+  overflow: auto;
+  overscroll-behavior-y: contain;
+}
+#projectList:not(:has(> .item)) {
+  grid-auto-rows: auto;
+}
+#projectList .item {
+  min-width: 0;
+  margin: 0;
+}
+#projectList .item > strong,
+#projectList .item > .muted {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-create-card {
+  align-self: start;
+}

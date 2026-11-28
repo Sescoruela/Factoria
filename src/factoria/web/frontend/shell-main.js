@@ -82,7 +82,7 @@ function renderProjects() {
     items
       .map(
         (p) =>
-          `<div class="item"><strong>${esc(p.name)}</strong><div class="muted">${esc(p.path)}</div><button class="secondary" onclick='selectProject(${JSON.stringify(p.path)})'>Abrir</button></div>`,
+          `<div class="item"><strong title="${esc(p.name)}">${esc(p.name)}</strong><div class="muted" title="${esc(p.path)}">${esc(p.path)}</div><button class="secondary" onclick='selectProject(${JSON.stringify(p.path)})'>Abrir</button></div>`,
       )
       .join('') || '<div class="muted">No hay proyectos.</div>';
 }

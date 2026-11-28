@@ -153,6 +153,39 @@ for (const shell of ['main', 'classic']) {
       }
     });
 
+    test('projects scroll after five cards and creation stays compact', async ({page, lab}) => {
+      for (let i = 1; i <= 8; i++) {
+        execFileSync('git', ['init', '-q', '-b', 'main', path.join(path.dirname(lab.project), 'sample-' + i)]);
+      }
+      await open(page, lab, shell, true);
+      await nav(page, 'projects');
+      const list = page.getByRole('region', {name: 'Listado de proyectos'});
+      await page.locator('#projectSearch').fill('sample-');
+      const rows = list.locator('.item');
+      await expect(rows).toHaveCount(8);
+      const geometry = await list.evaluate(element => {
+        const bounds = element.getBoundingClientRect();
+        return {
+          bottom: bounds.top + element.clientHeight,
+          fifthBottom: element.children[4].getBoundingClientRect().bottom,
+          sixthTop: element.children[5].getBoundingClientRect().top,
+        };
+      });
+      expect(geometry.fifthBottom).toBeLessThanOrEqual(geometry.bottom + 1);
+      expect(geometry.sixthTop).toBeGreaterThanOrEqual(geometry.bottom);
+      await list.evaluate(element => { element.scrollTop = element.scrollHeight; });
+      expect(await list.evaluate(element => {
+        const bottom = element.getBoundingClientRect().top + element.clientHeight;
+        return element.lastElementChild.getBoundingClientRect().bottom <= bottom + 1;
+      })).toBeTruthy();
+      const create = await page.locator('.project-create-card').boundingBox();
+      const createButton = await page.locator('.project-create-card .primary').boundingBox();
+      expect(create.y + create.height - createButton.y - createButton.height).toBeLessThan(35);
+      await page.locator('#projectSearch').fill('sample-8');
+      await expect(rows).toHaveCount(1);
+      expect(await list.evaluate(element => element.scrollHeight === element.clientHeight)).toBeTruthy();
+    });
+
     test('shows ChatGPT installation independently of a missing Codex CLI', async ({page, lab}) => {
       let desktopDetected = true;
       await page.route('**/api/state', async route => {
